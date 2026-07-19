@@ -1,0 +1,1 @@
+const modules=['client-portal-core.js','client-portal-event.js'];for(const file of modules)await import(new URL('./'+file,import.meta.url).href);
