@@ -1,0 +1,1 @@
+const url=new URL(location.href);const isClient=url.searchParams.get('portal')==='client';url.searchParams.delete('portal');const destination=isClient?'https://eventsible-client.vercel.app':'https://eventsible-admin.vercel.app';location.replace(destination+'/'+url.search+url.hash);
