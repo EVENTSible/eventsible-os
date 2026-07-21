@@ -8,6 +8,10 @@ The first web shell for EVENTSible OS, including:
 - Wedding Hero and Event Hero planning summary
 - Booking lifecycle and automation status
 
+## Architecture
+
+- [Domain + System Architecture Map](docs/DOMAIN_SYSTEM_ARCHITECTURE.md)
+
 ## Environment
 
 Copy `.env.example` to `.env.local` and set the EVENTSible OS Supabase URL and publishable key.
