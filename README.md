@@ -11,6 +11,7 @@ The first web shell for EVENTSible OS, including:
 ## Architecture
 
 - [Domain + System Architecture Map](docs/DOMAIN_SYSTEM_ARCHITECTURE.md)
+- [Domain Routing Sheet](docs/DOMAIN_ROUTING_SHEET.md)
 
 ## Environment
 
