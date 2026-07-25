@@ -8,13 +8,13 @@ This runbook turns the domain routing decisions into the exact launch steps need
 
 | Domain | Canonical Use | Repo / App Source | Status |
 | --- | --- | --- | --- |
-| `eventsible.info` | Public customer website, Event Builder, quote flow, Hero Lite | `EVENTSible/eventsible` / Lovable customer app | Target selected, routing pending |
-| `www.eventsible.info` | Redirect alias to `eventsible.info` | Same as above | Redirect pending |
-| `eventsible.biz` | Private business OS / admin shell | `EVENTSible/eventsible-os` | Target selected, routing pending |
+| `eventsible.info` | Public customer website, Event Builder, quote flow, Hero Lite | `EVENTSible/eventsible` / Lovable customer app | Target selected, routing pending; app unfinished |
+| `www.eventsible.info` | Redirect alias to `eventsible.info` | Same as above | Hold until public app is ready |
+| `eventsible.biz` | Private business OS / admin shell | `EVENTSible/eventsible-os` | Primary deployment target |
 | `portal.eventsible.biz` | Booked-client portal | `EVENTSible/eventsible-os` or portal app route | Target selected, routing pending |
 | `client.eventsible.biz` | Reserved alias only | No primary app | Do not use as canonical |
 | `eventsible.shop` | Storefront / Custom Creations / product orders | Shop app TBD | Planned |
-| `eventsible.app` | VINCE / Booth Console / live event tech | VINCE app repo outside current visible connector | Planned |
+| `eventsible.app` | VINCE / Booth Console / live event tech | VINCE app repo outside current visible connector | Planned; user believes Vercel-hosted |
 
 ## Current Access Finding
 
@@ -26,15 +26,28 @@ Connected Vercel team found through the Vercel connector:
 
 Because the connected Vercel team currently lists zero projects, domain routing cannot be completed from this connector session yet. Before DNS changes, confirm whether the production apps are under a different Vercel team/account, Lovable-managed hosting, or another deployment provider.
 
+## 2026-07-21 Deployment Attempt Status
+
+Attempted from this ChatGPT/Vercel connector session:
+
+- Retrieved the EVENTSible OS Supabase URL via the Supabase connector.
+- Retrieved active publishable Supabase keys via the Supabase connector.
+- Confirmed `EVENTSible/eventsible-os` is a Next.js app with `npm run build` mapped to `next build`.
+- Confirmed the connected Vercel team currently exposes no existing projects.
+- Tried the connected Vercel deploy tool; it requires a direct file deployment payload (`target`, `name`, and `files`) and does not import a GitHub repo by name from this session.
+- Tried cloning the public GitHub repo into the runtime; the container cannot resolve `github.com`, so it cannot build a file payload from the repo locally.
+
+Result: direct deployment from this session is blocked by tool/runtime limitations, not by the app configuration. The next deploy path is a Vercel Dashboard GitHub import of `EVENTSible/eventsible-os`, or connecting a Vercel account/team where the project is visible to this connector.
+
 ## Target Project Mapping Needed
 
 Fill this table before making DNS changes.
 
 | Domain / Subdomain | App Target | Required Project ID / Hosting Target | Needed Before Routing |
 | --- | --- | --- | --- |
-| `eventsible.info` | Customer app / Event Builder | TBD | Locate actual Lovable/Vercel production target for `EVENTSible/eventsible` |
-| `www.eventsible.info` | Redirect to apex | Same as `eventsible.info` | Confirm provider supports redirect rule |
-| `eventsible.biz` | EVENTSible OS / admin login | TBD | Locate deployed target for `EVENTSible/eventsible-os` |
+| `eventsible.info` | Customer app / Event Builder | TBD | Finish Lovable app before routing |
+| `www.eventsible.info` | Redirect to apex | Same as `eventsible.info` | Hold until `eventsible.info` app is ready |
+| `eventsible.biz` | EVENTSible OS / admin login | Vercel GitHub import target for `EVENTSible/eventsible-os` | Import/deploy repo, then inspect DNS requirements |
 | `portal.eventsible.biz` | Booked-client portal | TBD | Decide if portal is route inside OS or separate project |
 | `eventsible.shop` | Shop / Custom Creations | TBD | Locate/restore shop app |
 | `eventsible.app` | VINCE live event hub | TBD | Locate VINCE production Vercel/project target |
@@ -57,8 +70,8 @@ Do not blindly hard-code generic DNS records until Vercel/project-specific instr
 
 | Domain | Record Intent | Notes |
 | --- | --- | --- |
-| `eventsible.info` | Apex/root record to public customer app | Final value must come from hosting provider inspection |
-| `www.eventsible.info` | Redirect/CNAME alias to public app | Must redirect to `https://eventsible.info` |
+| `eventsible.info` | Apex/root record to public customer app | Hold until the Lovable/customer app is finished |
+| `www.eventsible.info` | Redirect/CNAME alias to public app | Must redirect to `https://eventsible.info` when app is ready |
 | `eventsible.biz` | Apex/root record to business OS | Must land on login/admin shell, not public marketing site |
 | `portal.eventsible.biz` | CNAME/subdomain to portal target | Must require auth before exposing booked-client data |
 | `eventsible.shop` | Apex/root record to shop target | Keep custom order data protected as needed |
@@ -106,11 +119,32 @@ After routing is staged, update the relevant CORS/auth configuration:
 - Screen route works on display devices.
 - Booth/host controls are not public.
 
+## Manual Vercel Import Steps For `eventsible.biz`
+
+Use this if the connector still cannot see or create the project directly:
+
+1. Open Vercel Dashboard.
+2. Choose the correct team/account for EVENTSible production deployments.
+3. Import Git Repository: `EVENTSible/eventsible-os`.
+4. Framework preset: Next.js.
+5. Install command: `npm install`.
+6. Build command: `npm run build`.
+7. Add environment variables for Preview and Production:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+8. Deploy preview.
+9. Test `/api/health`, `/login`, and `/admin`.
+10. Add `eventsible.biz` after preview QA.
+11. Inspect Vercel's exact DNS requirements before changing registrar DNS.
+12. Update Supabase Auth URL configuration after the domain is routed.
+
 ## Next Actions
 
-1. Confirm where the actual production apps are deployed: Vercel team/account, Lovable, or another host.
-2. If Vercel: make sure the connected account can see the relevant projects.
-3. Add `eventsible.info` to the customer app project and inspect DNS requirements.
-4. Add `eventsible.biz` to the OS/admin project and inspect DNS requirements.
+1. Import/deploy `EVENTSible/eventsible-os` in Vercel Dashboard or reconnect the Vercel team that can manage projects.
+2. Add the Supabase public env vars to Preview and Production.
+3. Smoke-test the generated Vercel preview URL.
+4. Add `eventsible.biz` to the deployed OS/admin project and inspect DNS requirements.
 5. Decide whether `portal.eventsible.biz` is a route inside the OS app or separate project.
-6. Update this runbook with final DNS records after provider inspection.
+6. Keep `eventsible.info` parked until the Lovable customer app is finished.
+7. Locate VINCE's Vercel project for `eventsible.app`.
+8. Update this runbook with final DNS records after provider inspection.
