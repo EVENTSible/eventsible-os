@@ -23,9 +23,10 @@ The publishable key is designed for browser applications. Never add the service-
 After the first Vercel deployment, open Supabase:
 
 1. Authentication → URL Configuration
-2. Set the production Site URL to `https://admin.eventsible.info`
+2. Set the production Site URL to `https://eventsible.biz`
 3. Add the deployed preview callback URL during testing
-4. Add `https://admin.eventsible.info/auth/callback` as an allowed redirect
+4. Add `https://eventsible.biz/auth/callback` as an allowed redirect
+5. Add `https://portal.eventsible.biz/auth/callback` when the booked-client portal is ready
 
 The login form uses passwordless email magic links and does not create unapproved users.
 
@@ -34,7 +35,8 @@ The login form uses passwordless email magic links and does not create unapprove
 1. Import `EVENTSible/eventsible-os` into Vercel.
 2. Add both environment variables above for Preview and Production.
 3. Deploy a Preview build and test `/api/health`, `/login`, and the protected `/admin` route.
-4. Connect `admin.eventsible.info` after Preview QA.
+4. Connect `eventsible.biz` after Preview QA.
+5. Connect `portal.eventsible.biz` only after booked-client portal auth is verified.
 
 ## Validation commands
 
