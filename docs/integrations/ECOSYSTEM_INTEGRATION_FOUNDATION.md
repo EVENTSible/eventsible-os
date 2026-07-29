@@ -192,6 +192,59 @@ Manual QA not completed in this pass:
 - No authenticated staff session was used, so production Admin Leads visual QA remains pending.
 - No ECC/VINCE behavior was changed or redeployed.
 
+### Preview Verification Attempt - 2026-07-29
+
+Requested scenario: synthetic `EVENTSible Contract QA Test`, Private Party, ready for quote, future Tuesday `2026-08-04`, `18:00` to `21:00`, South Bend, Indiana, with goals `Packed Dance Floor`, `Photos & Video`, and `Guest Interaction`. Requested service mapping set: `DJ / MC`, `Selfie Booth with Prints`, `Event Assistant`, `Live Singer / Vocalist`, plus one safe unknown Custom Quote line for preservation testing.
+
+Current Preview references:
+
+| App | Preview URL | Deployment |
+| --- | --- | --- |
+| EVENTSible OS | `https://eventsible-91me1mfqh-firstfamdjs-5913s-projects.vercel.app` | `dpl_3wLpiAz3ovePfKPJs153GBCcCP56` |
+| Event Builder | `https://eventsible-event-builder-3e8hs2dyp-firstfamdjs-5913s-projects.vercel.app` | `dpl_2BV8WDZfdTSpGnvcs2sCXXB5oLjL` |
+
+Baseline verification:
+
+- EVENTSible OS branch `feat/ecosystem-integration-foundation` remained at `9c7c69b068bcf56c46c44dc9900a1a08a1a12304` with a clean working tree before documentation updates.
+- Event Builder branch `feat/ecosystem-integration-foundation` remained at `2214d7171f9d158b63d6773648e55d98ac500231` with a clean working tree before documentation updates.
+- ECC/VINCE branch `master` remained read-only at `7c7c825aef6b3e51420c451dd8aae7db5285373c`.
+- Both Vercel Preview deployments were READY.
+- Event Builder Preview Vercel env names existed for `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_PUBLISHABLE_KEY`; values were not printed.
+- EVENTSible OS Vercel Preview reported no environment variables. The deployed OS app currently uses publishable Supabase configuration from source rather than Vercel runtime env.
+
+Blocking finding:
+
+- The local Vercel env pull for Event Builder Preview produced encrypted placeholder values instead of usable local values, so service-role database reads could not be performed from this QA session without another authorized Supabase access path.
+- Because Preview and Production environment scopes currently point at the same Builder Vercel variable names, no synthetic successful submission was sent in this attempt. Creating a chain without database readback would not satisfy the exact one-chain, idempotency, totals, mapping, and outbox acceptance criteria.
+
+Verified without creating records:
+
+- The deployed Builder Preview server function rejected invalid contact data, missing service selections, oversized notes, and the honeypot field with safe public failures.
+- The rejection messages did not expose Supabase secrets, service-role wording, OS table names, SQL text, passwords, tokens, or stack traces.
+- `builder_submission_v1` remains the Builder submission contract version.
+- The public catalog mirror exposes `public_service_catalog_v1` fields through the Builder compatibility layer and excludes private cost, margin, partner-rate, supplier, and internal-note fields by design.
+- The requested known Builder service IDs are `dj-mc-foundation`, `selfie-booth-prints`, `event-asst`, and `live-singer`. The shared mapping layer maps DJ/MC, Selfie Booth with Prints, Event Assistant, and Live Singer to stable service codes; Live Singer remains Custom Quote under current pricing rules.
+- South Bend, Indiana travel remains local/included in Builder logic.
+
+Not verified in this attempt:
+
+- Exact Contact, Builder submission, Lead, Event, Quote draft/version, Quote item, Builder facts/metadata, and integration outbox row counts.
+- Idempotent retry with the same submission key.
+- Second distinct successful submission.
+- UI total versus OS quote total.
+- Authenticated staff/admin display of the synthetic lead.
+- RLS verification against live `os_integration_outbox`.
+
+Outbox status:
+
+- Source control includes additive SQL for `public.os_integration_outbox` at `integrations/sql/ecosystem-integration-foundation.sql`.
+- Live Preview database application was not confirmed because database metadata access was unavailable in this QA session.
+- If the table is absent in the authorized Preview/test Supabase environment, apply only the additive migration in `integrations/sql/ecosystem-integration-foundation.sql` after confirming the target is not Production.
+
+Production readiness recommendation:
+
+- Not production ready for ecosystem integration cutover. The next required phase is an authorized Preview Supabase verification pass that can read exact OS rows, then one controlled synthetic submission, idempotent replay, second distinct submission, outbox/RLS verification, authenticated Admin visual QA, and final security scan before any production-readiness claim.
+
 ## Known Limitations
 
 - The outbox SQL is additive source control foundation; live database application and advisor output must be verified through the normal Supabase migration process before production use.
