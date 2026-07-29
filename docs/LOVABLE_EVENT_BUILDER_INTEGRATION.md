@@ -69,8 +69,8 @@ Persist the `submissionId` in the Builder state or local storage. A retry must r
 {
   contact: {
     name: "Jamie & Dylan",
-    email: "client@example.com",
-    phone: "574-555-0100"
+    email: "[email placeholder]",
+    phone: "[phone placeholder]"
   },
   event: {
     title: "Jamie & Dylan Wedding",

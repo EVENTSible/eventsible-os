@@ -22,6 +22,29 @@
 | AI Event/Wedding Planner | CONCEPT / PLANNED | Indexed as future relationship to Builder, Client Portal, and OS | Do not describe as live. |
 | Legacy website | LEGACY / BRIDGE | `www.eventsible574.com` remains documented as bridge only | Current content/SEO state not verified in this pass. |
 
+## 2026-07-29 Documentation Merge Baseline
+
+| Item | Baseline |
+| --- | --- |
+| Documentation merge date | 2026-07-29 |
+| Canonical documentation hub | `docs/README.md` in `EVENTSible/eventsible-os` |
+| EVENTSible OS merged commit | `40b6834d19883c4f6033aad6609896f527720b63` |
+| Event Builder merged commit | `fabfec42bc0115dc01f13ff1c2245ae74de4bdc2` |
+| ECC/VINCE merged commit | `7c7c825aef6b3e51420c451dd8aae7db5285373c` |
+| Recommended next phase | Ecosystem integration foundation and shared contracts |
+
+### Inherited Warnings and Advisories
+
+| Repository | Status |
+| --- | --- |
+| EVENTSible OS | `npm run lint` still fails on an inherited parse error in `public/gigtracker-v1.js`; inherited lint warnings remain in `public/event-workspace-files.js` and `public/gigtracker-v1-ops-ui.js`. `npm audit` reports 12 inherited high advisories. |
+| Event Builder | Tests pass, lint passes with inherited Fast Refresh warnings, build passes with the inherited large chunk warning, and `npm audit` reports 9 inherited advisories. |
+| ECC/VINCE | Search tests, main build, Booth Console tests, and Booth Console build pass. `npm audit` reports 0 vulnerabilities. The main build still reports the inherited large chunk warning. |
+
+### Routing Verification Issue
+
+EVENTSible OS root-route verification remains open: the current Vercel root route has previously returned 404 and should be tracked as a routing issue separate from this documentation merge. Do not treat `eventsible.biz` as production verified until routing, auth, and root behavior are confirmed.
+
 ## Event Builder Production Capability
 
 The current Event Builder includes public homepage content focused around the Builder, guided Event Basics, name and email-or-phone validation, best time to contact, planning stage, multiple date and time-frame capture, service-length calculation, city/state travel estimation, event type, What Matters Most, Popular Picks, three package recommendations, Basic/Premium/All-Inclusive packages, package customization, service-specific durations, weekday pricing, bundle pricing, custom quote handling, media/examples, Quote Summary, public OS intake, staff sign-in, Admin Leads, password recovery, bundled logo/audio assets, theme song one-play behavior, and raw Admin payload block removal.

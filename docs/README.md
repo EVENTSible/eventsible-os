@@ -10,6 +10,31 @@
 
 This folder is the source of truth for cross-system EVENTSible documentation. App repositories may keep app-specific setup, status, and implementation docs, but ecosystem ownership, domain routing, roadmap order, and system-of-record decisions belong here.
 
+## Canonical Document Map
+
+| Area | Canonical document |
+| --- | --- |
+| Ecosystem master plan | [EVENTSIBLE_ECOSYSTEM_MASTER_PLAN.md](ecosystem/EVENTSIBLE_ECOSYSTEM_MASTER_PLAN.md) |
+| Current state | [EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md](ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md) |
+| Domain and app index | [EVENTSIBLE_DOMAIN_AND_APP_INDEX.md](ecosystem/EVENTSIBLE_DOMAIN_AND_APP_INDEX.md) |
+| System-of-record matrix | [EVENTSIBLE_SYSTEM_OF_RECORD_MATRIX.md](ecosystem/EVENTSIBLE_SYSTEM_OF_RECORD_MATRIX.md) |
+| Repository index | [EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md](ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md) |
+| Shared architecture | [EVENTSIBLE_SHARED_ARCHITECTURE.md](architecture/EVENTSIBLE_SHARED_ARCHITECTURE.md) |
+| Data flow | [EVENTSIBLE_DATA_FLOW_OVERVIEW.md](architecture/EVENTSIBLE_DATA_FLOW_OVERVIEW.md) |
+| Auth and security boundaries | [EVENTSIBLE_AUTH_AND_SECURITY_BOUNDARIES.md](architecture/EVENTSIBLE_AUTH_AND_SECURITY_BOUNDARIES.md) |
+| Builder to OS integration | [EVENT_BUILDER_TO_OS.md](integrations/EVENT_BUILDER_TO_OS.md) |
+| OS to ECC/VINCE integration | [OS_TO_ECC_VINCE.md](integrations/OS_TO_ECC_VINCE.md) |
+| OS to Client Portal integration | [OS_TO_CLIENT_PORTAL.md](integrations/OS_TO_CLIENT_PORTAL.md) |
+| OS to Content Factory integration | [OS_TO_CONTENT_FACTORY.md](integrations/OS_TO_CONTENT_FACTORY.md) |
+| OS to Custom Creations integration | [OS_TO_CUSTOM_CREATIONS.md](integrations/OS_TO_CUSTOM_CREATIONS.md) |
+| Master roadmap | [EVENTSIBLE_MASTER_ROADMAP.md](roadmap/EVENTSIBLE_MASTER_ROADMAP.md) |
+| Next build order | [EVENTSIBLE_NEXT_BUILD_ORDER.md](roadmap/EVENTSIBLE_NEXT_BUILD_ORDER.md) |
+| Follow-up task baseline | [EVENTSIBLE_BASELINE_FOLLOW_UP_TASKS.md](roadmap/EVENTSIBLE_BASELINE_FOLLOW_UP_TASKS.md) |
+| Decision log | [EVENTSIBLE_DECISION_LOG.md](decisions/EVENTSIBLE_DECISION_LOG.md) |
+| Discrepancy report | [EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md](EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md) |
+| Documentation inventory | [EVENTSIBLE_DOCUMENTATION_INVENTORY.md](ecosystem/EVENTSIBLE_DOCUMENTATION_INVENTORY.md) |
+| App-lane summaries | [EVENTSIBLE_APP_LANE_SUMMARIES.md](apps/EVENTSIBLE_APP_LANE_SUMMARIES.md) |
+
 ## Where Future Updates Belong
 
 | Need | Update |
@@ -21,6 +46,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Cross-app architecture | `architecture/` |
 | Builder/OS/VINCE/client/shop/content handoffs | `integrations/` |
 | Build order and roadmap | `roadmap/` |
+| Baseline follow-up tasks from this merge | `roadmap/EVENTSIBLE_BASELINE_FOLLOW_UP_TASKS.md` |
 | Locked decisions | `decisions/EVENTSIBLE_DECISION_LOG.md` |
 | Stale or conflicting claims | `EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md` |
 | Historical documents that should not guide current work | `archive/` |

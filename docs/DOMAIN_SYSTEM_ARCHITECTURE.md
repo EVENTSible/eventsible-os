@@ -2,6 +2,8 @@
 
 _Last updated: 2026-07-21_
 
+> Current canonical note, recorded 2026-07-29: Cross-system domain decisions are now governed by `docs/ecosystem/EVENTSIBLE_DOMAIN_AND_APP_INDEX.md` and `docs/decisions/EVENTSIBLE_DECISION_LOG.md`. Where this historical architecture map conflicts with those documents, the canonical hub supersedes it. In particular, `client.eventsible.biz` is now the planned booked-client portal lane, while `portal.eventsible.biz` is historical or transitional until manually confirmed.
+
 This document is the working source of truth for where each EVENTSible domain, app, product surface, and customer/business flow should live.
 
 ## Core Rule
@@ -421,4 +423,4 @@ No project should be called `live` unless:
 - Should `eventsible.shop` be a separate app/repo or part of the Lovable customer app initially?
 - Should VINCE and Booth Console remain together long-term or split into cloud app + local desktop app repos?
 - Which domain registrar/DNS provider will control each domain long-term?
-- What email addresses should be created per domain? Examples: `hello@eventsible.info`, `bookings@eventsible.biz`, `shop@eventsible.shop`, `support@eventsible.app`.
+- What email addresses should be created per domain? Examples: `[email placeholder]`, `[email placeholder]`, `[email placeholder]`, `[email placeholder]`.

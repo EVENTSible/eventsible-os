@@ -2,6 +2,8 @@
 
 _Last updated: 2026-07-21_
 
+> Current canonical note, recorded 2026-07-29: Cross-system domain decisions are now governed by `docs/ecosystem/EVENTSIBLE_DOMAIN_AND_APP_INDEX.md` and `docs/decisions/EVENTSIBLE_DECISION_LOG.md`. Where this historical runbook conflicts with those documents, the canonical hub supersedes it. In particular, `client.eventsible.biz` is now the planned booked-client portal lane, while `portal.eventsible.biz` is historical or transitional until manually confirmed.
+
 This runbook turns the domain routing decisions into the exact launch steps needed to connect the public site, business OS, shop, and live-event app domains.
 
 ## Locked Canonical Decisions
