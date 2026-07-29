@@ -1,5 +1,7 @@
 # EVENTSible OS Admin
 
+Cross-system ecosystem documentation now lives in [`docs/README.md`](docs/README.md). Use that hub for domain/app ownership, repository identity, system-of-record decisions, roadmap order, and discrepancies before starting new EVENTSible app development.
+
 The first web shell for EVENTSible OS, including:
 
 - Passwordless Supabase Auth
