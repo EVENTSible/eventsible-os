@@ -23,6 +23,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Data flow | [EVENTSIBLE_DATA_FLOW_OVERVIEW.md](architecture/EVENTSIBLE_DATA_FLOW_OVERVIEW.md) |
 | Auth and security boundaries | [EVENTSIBLE_AUTH_AND_SECURITY_BOUNDARIES.md](architecture/EVENTSIBLE_AUTH_AND_SECURITY_BOUNDARIES.md) |
 | Builder to OS integration | [EVENT_BUILDER_TO_OS.md](integrations/EVENT_BUILDER_TO_OS.md) |
+| Ecosystem integration foundation | [ECOSYSTEM_INTEGRATION_FOUNDATION.md](integrations/ECOSYSTEM_INTEGRATION_FOUNDATION.md) |
 | OS to ECC/VINCE integration | [OS_TO_ECC_VINCE.md](integrations/OS_TO_ECC_VINCE.md) |
 | OS to Client Portal integration | [OS_TO_CLIENT_PORTAL.md](integrations/OS_TO_CLIENT_PORTAL.md) |
 | OS to Content Factory integration | [OS_TO_CONTENT_FACTORY.md](integrations/OS_TO_CONTENT_FACTORY.md) |
@@ -45,6 +46,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Data ownership | `ecosystem/EVENTSIBLE_SYSTEM_OF_RECORD_MATRIX.md` |
 | Cross-app architecture | `architecture/` |
 | Builder/OS/VINCE/client/shop/content handoffs | `integrations/` |
+| Ecosystem integration contracts and ID foundation | `integrations/ECOSYSTEM_INTEGRATION_FOUNDATION.md` |
 | Build order and roadmap | `roadmap/` |
 | Baseline follow-up tasks from this merge | `roadmap/EVENTSIBLE_BASELINE_FOLLOW_UP_TASKS.md` |
 | Locked decisions | `decisions/EVENTSIBLE_DECISION_LOG.md` |
