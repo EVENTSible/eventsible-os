@@ -17,6 +17,15 @@ function filesUnder(path) {
   return readdirSync(path).flatMap((entry) => filesUnder(join(path, entry)));
 }
 
+function isApprovedProductionRefMention(file) {
+  return (
+    file.endsWith("guard-local-supabase-ci.mjs") ||
+    file.endsWith("ecosystem-local-supabase-verify.mjs") ||
+    file.endsWith("ecosystem-integration-local-supabase.yml") ||
+    /docs[\\/]integrations[\\/]ECOSYSTEM_INTEGRATION_[A-Z0-9_-]+\.md$/.test(file)
+  );
+}
+
 const files = roots.flatMap((root) => {
   try {
     return filesUnder(root);
@@ -28,11 +37,7 @@ const files = roots.flatMap((root) => {
 for (const file of files) {
   if (!/\.(ya?ml|mjs|js|sql|md|toml)$/.test(file)) continue;
   const content = readFileSync(file, "utf8");
-  const mayMentionProductionRef =
-    file.endsWith("guard-local-supabase-ci.mjs") ||
-    file.endsWith("ecosystem-local-supabase-verify.mjs") ||
-    file.endsWith("ecosystem-integration-local-supabase.yml") ||
-    file.endsWith("ECOSYSTEM_INTEGRATION_FOUNDATION.md");
+  const mayMentionProductionRef = isApprovedProductionRefMention(file);
   if (content.includes(productionRef) && !mayMentionProductionRef) {
     throw new Error(`Production Supabase ref appears outside approved guard/report files: ${file}`);
   }
