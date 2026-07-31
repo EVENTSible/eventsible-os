@@ -1,0 +1,47 @@
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const productionRef = "cplpbzudjprzbnzocirc";
+const roots = [".github", "scripts", "supabase", "src/contracts", "docs/integrations"];
+const commandRoots = [".github", "scripts"];
+const forbiddenSupabaseCommands = [
+  /supabase\s+link/i,
+  /supabase\s+db\s+push/i,
+  /supabase\s+db\s+pull/i,
+  /supabase\s+branches?/i,
+];
+
+function filesUnder(path) {
+  const stat = statSync(path);
+  if (stat.isFile()) return [path];
+  return readdirSync(path).flatMap((entry) => filesUnder(join(path, entry)));
+}
+
+const files = roots.flatMap((root) => {
+  try {
+    return filesUnder(root);
+  } catch {
+    return [];
+  }
+});
+
+for (const file of files) {
+  if (!/\.(ya?ml|mjs|js|sql|md|toml)$/.test(file)) continue;
+  const content = readFileSync(file, "utf8");
+  const mayMentionProductionRef =
+    file.endsWith("guard-local-supabase-ci.mjs") ||
+    file.endsWith("ecosystem-local-supabase-verify.mjs") ||
+    file.endsWith("ecosystem-integration-local-supabase.yml") ||
+    file.endsWith("ECOSYSTEM_INTEGRATION_FOUNDATION.md");
+  if (content.includes(productionRef) && !mayMentionProductionRef) {
+    throw new Error(`Production Supabase ref appears outside approved guard/report files: ${file}`);
+  }
+  if (!commandRoots.some((root) => file === root || file.startsWith(`${root}\\`) || file.startsWith(`${root}/`))) continue;
+  for (const forbidden of forbiddenSupabaseCommands) {
+    if (forbidden.test(content)) {
+      throw new Error(`Forbidden Supabase command appears in ${file}: ${forbidden}`);
+    }
+  }
+}
+
+console.log("Local Supabase CI guard passed: no Production ref or remote Supabase commands found.");
