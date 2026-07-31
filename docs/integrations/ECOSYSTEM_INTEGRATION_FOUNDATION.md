@@ -1,9 +1,9 @@
 # EVENTSible Ecosystem Integration Foundation
 
-- Status: IMPLEMENTED / PREVIEW CANDIDATE
+- Status: CI LOCAL SUPABASE VERIFIED / CLOUD PREVIEW GAP REMAINS
 - Owner: EVENTSible OS
 - Canonical source: EVENTSible OS repository
-- Last verified: 2026-07-29
+- Last verified: 2026-07-31
 - Applies to: EVENTSible OS, Event Builder, Client Portal, ECC/VINCE, Booth Console, Content Factory, Custom Creations
 
 ## Repository Baseline
@@ -247,7 +247,7 @@ Production readiness recommendation:
 
 ## CI Local Supabase Verification
 
-- Status: IMPLEMENTED / NEEDS CI RUN VERIFICATION
+- Status: CI VERIFIED / CLOUD PREVIEW GAP REMAINS
 - Added: 2026-07-31
 - Workflow: `.github/workflows/ecosystem-integration-local-supabase.yml`
 - Local schema source: `supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql`
@@ -267,6 +267,104 @@ Safety boundaries:
 - `SUPABASE_LOCAL_DB_URL` is fixed to `postgresql://postgres:postgres@127.0.0.1:54322/postgres`.
 - The guard fails if remote Supabase commands are added to CI scripts, and the verifier refuses database URLs containing the Production ref or `supabase.co`.
 - Supabase start output is captured so local generated keys are not printed.
+
+### Passing CI Run - 2026-07-31
+
+| Field | Result |
+| --- | --- |
+| Workflow run | `30644640745` |
+| Workflow URL | `https://github.com/EVENTSible/eventsible-os/actions/runs/30644640745` |
+| Job | `91202882109` |
+| Commit | `c6c32de31bcc2a874a2c8c861707d04e16d47082` |
+| Branch | `feat/ecosystem-integration-foundation` |
+| Trigger | Push |
+| Result | Success |
+| Total duration | 2m 26s |
+| Job duration | 2m 22s |
+| Runner | Ubuntu 24.04 hosted runner |
+| Docker | Docker Engine 28.0.4 reachable; `hello-world` passed |
+| Node/npm | Node v24.14.1; npm 11.11.0 |
+| Supabase CLI | `npx supabase@2.111.0` |
+
+CI-local migration result:
+
+- `npx supabase@2.111.0 db reset --local` rebuilt the database from zero.
+- Migration applied: `20260731000000_ecosystem_integration_local_foundation.sql`.
+- Local Postgres accepted connections on `127.0.0.1:54322`.
+- The only Supabase config warnings were non-blocking local warnings: deprecated `[inbucket]` config and no `supabase/seed.sql` file.
+- Cleanup ran in the always step with `npx supabase@2.111.0 stop --no-backup`.
+
+Actual CI row counts:
+
+| Checkpoint | Contacts | Builder submissions | Leads | Events | Quote versions | Quote items | Builder activity | Outbox |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| After first submission | 1 | 1 | 1 | 1 | 1 | 5 | 1 | 1 |
+| After replay with same idempotency key | 1 | 1 | 1 | 1 | 1 | 5 | 1 | 1 |
+| After second distinct submission | 2 | 2 | 2 | 2 | 2 | 10 | 2 | 2 |
+
+First synthetic chain IDs:
+
+| Record | ID |
+| --- | --- |
+| Contact | `97026521-dfc3-4627-893b-b02ef3880bad` |
+| Builder submission | `85a6cb1f-bb67-4c42-829c-5d7d23e461af` |
+| Lead | `1de8c285-6052-4aac-80a5-3784684fbeac` |
+| Event | `5299ca4b-7e7a-4d5d-8d3e-fb5c4df3847c` |
+| Quote | `5f2af2ea-6df0-4e90-87bd-c54b0e5d9311` |
+| Quote version | `c96e1d06-98b4-4b09-9635-bbb5e81e7360` |
+| Outbox | `174cd6a0-da87-41cf-a7fd-089495432aa9` |
+
+Second synthetic chain:
+
+- Second `event_id`: `543eee18-5435-48aa-85c9-b45e0d23f17d`.
+- The second submission created a separate linked Contact, Builder submission, Lead, Event, Quote version, five quote items, Builder activity row, and Outbox event.
+
+Actual contract and mapping assertions:
+
+- Contract versions verified: `builder_submission_v1`, `quote_draft_v1`, and `public_service_catalog_v1`.
+- Known service codes verified: `dj_mc`, `selfie_booth_prints`, `live_performer`, and `event_staff`.
+- Controlled unknown service verified: `unknown-synthetic-service`.
+- UI/OS quote total verified: `66700` cents.
+- Package savings verified: `6300` cents.
+- Travel verified: `0` cents.
+- Live Singer remained Custom Quote under current pricing.
+- Unknown service remained Custom Quote and did not inflate numeric totals.
+
+Actual outbox and RLS assertions:
+
+- `os_integration_outbox` recorded event type, payload version, related record IDs, idempotency key, processing status, retry count, failure fields, and timestamps.
+- Anon role could not read `os_integration_outbox`.
+- Anon role could not insert arbitrary outbox events.
+- Anon role could not read `os_contacts`.
+- Authorized local service-role execution could run `public.os_ingest_builder_submission`.
+- Outbox payload checks found no secrets or unnecessary private contact details.
+
+Actual catalog assertions:
+
+- Public catalog conversion included contract version, stable service ID, public name, public description, public pricing data, minimum hours, weekday rules, Custom Quote flag, public media, and active status.
+- Public catalog conversion excluded internal costs, margins, partner rates, internal notes, private staff notes, private equipment notes, and server-only metadata.
+- No Production Builder catalog cutover occurred.
+
+Actual failure and rollback assertions:
+
+- Invalid contact, missing services, invalid contract version, oversized notes, honeypot, unexpected privileged fields, duplicate submission, forced database failure, and transaction rollback paths passed.
+- Failure responses avoided false success, partial chains, SQL leakage, stack traces, and secret leakage.
+
+Actual project checks:
+
+- `npm install`: passed; 380 packages installed and 381 packages audited.
+- `npm run test`: passed; 4 contract tests passed.
+- `npm run lint:ci`: completed with the documented inherited `public/gigtracker-v1.js` parse error and inherited warnings. The CI wrapper accepted only the documented GigTracker parse error rather than claiming lint was clean.
+- `npm run build`: passed with Next.js 16.2.10 and generated `/`, `/_not-found`, `/admin`, `/api/health`, `/auth/callback`, and `/login`.
+- `npm audit`: reported 12 inherited high advisories and exited non-zero; the workflow records this as a documented inherited advisory condition without forcing risky dependency upgrades.
+
+Actual security result:
+
+- No Production Supabase secrets were used.
+- The local database URL was masked in workflow logs.
+- No command targeted Production project ref `cplpbzudjprzbnzocirc`.
+- No `supabase link`, remote `db push`, Vercel command, EventsGame command, or ECC/VINCE command ran.
+- No service-role values, local keys, env files with values, Host PIN secrets, or Production customer data were committed.
 
 Migration result expected in CI:
 
