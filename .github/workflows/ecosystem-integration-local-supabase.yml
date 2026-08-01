@@ -26,6 +26,8 @@ jobs:
     env:
       EVENTSIBLE_PRODUCTION_SUPABASE_REF: cplpbzudjprzbnzocirc
       SUPABASE_LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      LOCAL_VERIFICATION_SCHEMA: supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql
+      STAGED_LOCAL_MIGRATION: supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql
 
     steps:
       - name: Checkout
@@ -56,6 +58,15 @@ jobs:
 
       - name: Guard local-only Supabase commands
         run: npm run guard:local-supabase-ci
+
+      - name: Stage CI-local verification schema
+        run: |
+          test -f "$LOCAL_VERIFICATION_SCHEMA"
+          cp "$LOCAL_VERIFICATION_SCHEMA" "$STAGED_LOCAL_MIGRATION"
+          if grep -q "$EVENTSIBLE_PRODUCTION_SUPABASE_REF" "$STAGED_LOCAL_MIGRATION"; then
+            echo "Production Supabase ref appeared in staged local migration."
+            exit 1
+          fi
 
       - name: Start local Supabase
         run: |
