@@ -1,35 +1,33 @@
 # EVENTSible Ecosystem Integration Merge Review - 2026-07-31
 
-- Status: AUTHORIZATION GATE BLOCKED BY PRODUCTION MIGRATION REVIEW
+- Status: PRODUCTION-SAFE MIGRATION CORRECTION PREPARED / NEEDS EXACT-HEAD CI
 - Owner: EVENTSible OS
 - Canonical source: EVENTSible OS repository
 - Reviewed branch: `feat/ecosystem-integration-foundation`
-- Reviewed OS head before this report: `93690822e408fe68811d5c5d312bc23f2125204a`
+- Reviewed OS head before first report: `93690822e408fe68811d5c5d312bc23f2125204a`
 - Last implementation commit verified by CI: `c6c32de31bcc2a874a2c8c861707d04e16d47082`
-- Exact-head CI run reviewed: `30672248228`
-- Exact-head CI job reviewed: `91292225017`
+- Last known exact-head CI before correction: `30673643610`, job `91296336053`, commit `045e6989195fc1f51a05ee7a10c0f127d5f0129b`
 
 ## Repository Baseline
 
 | Repository | Branch | Expected/observed status |
 | --- | --- | --- |
-| EVENTSible OS | `feat/ecosystem-integration-foundation` | Remote feature branch had exact-head CI passing at `93690822e408fe68811d5c5d312bc23f2125204a`; local checkout remained clean at implementation commit `c6c32de31bcc2a874a2c8c861707d04e16d47082` because local `git fetch` is blocked in the Codex worker. |
+| EVENTSible OS | `feat/ecosystem-integration-foundation` | Remote feature branch had exact-head CI passing at `045e6989195fc1f51a05ee7a10c0f127d5f0129b` before the production-safe migration correction. Local checkout remained clean at implementation commit `c6c32de31bcc2a874a2c8c861707d04e16d47082` because local `git fetch` is blocked in the Codex worker. |
 | Event Builder | `feat/ecosystem-integration-foundation` | Local branch clean at `7abadbefbeeeb2737d65953efa065d27c6b97feb`. |
 | ECC/VINCE | `master` | Read-only and clean at `7c7c825aef6b3e51420c451dd8aae7db5285373c`. |
 
 Canonical documentation hub reviewed: `docs/README.md`. EVENTSible OS remains the business system of record.
 
-## Exact-Head CI Result
+## Exact-Head CI Result Before Correction
 
 | Field | Result |
 | --- | --- |
 | Workflow | `Ecosystem Integration Local Supabase` |
-| Run ID | `30672248228` |
-| Job ID | `91292225017` |
-| Commit | `93690822e408fe68811d5c5d312bc23f2125204a` |
+| Run ID | `30673643610` |
+| Job ID | `91296336053` |
+| Commit | `045e6989195fc1f51a05ee7a10c0f127d5f0129b` |
 | Branch | `feat/ecosystem-integration-foundation` |
 | Result | Success |
-| Duration shown | 2m 20s |
 
 The job completed successfully across checkout, Node setup, dependency install, Docker confirmation, Supabase CLI confirmation, local-only guard, local Supabase start, local target confirmation, local migration reset, ecosystem verification, contract tests, lint wrapper, build, audit, and Supabase cleanup.
 
@@ -62,36 +60,51 @@ Event Builder local checks, run on `7abadbefbeeeb2737d65953efa065d27c6b97feb`:
 
 No dependency upgrades were applied.
 
-## Migration Review
+## Migration Review Finding
 
-Migration under review: `supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql`.
+Original migration reviewed: `supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql`.
 
-Finding: do not apply this migration to Production as-is.
+Original finding: do not apply the pre-correction migration to Production as-is.
 
 Reasons:
 
-- The file header identifies it as a CI-local, synthetic-test-focused foundation.
-- It creates a full local verification schema for `os_contacts`, `os_events`, `os_builder_submissions`, `os_leads`, `os_quote_versions`, `os_quote_items`, `os_builder_activity`, and `os_integration_outbox`.
-- It uses `CREATE OR REPLACE FUNCTION public.os_ingest_builder_submission(payload jsonb)`, which would replace the live Builder intake function if applied to the Production project.
-- It revokes and grants privileges on core CRM/intake tables and drops/recreates service-role policies. These are not data-destructive, but they are Production access-control behavior changes.
-- It has no `DROP TABLE`, `TRUNCATE`, or `DELETE FROM` data-destruction statements, but replacing the live intake function is too high-risk without a production-schema-specific migration.
+- The file header identified it as a CI-local, synthetic-test-focused foundation.
+- It created a full local verification schema for `os_contacts`, `os_events`, `os_builder_submissions`, `os_leads`, `os_quote_versions`, `os_quote_items`, `os_builder_activity`, and `os_integration_outbox`.
+- It used `CREATE OR REPLACE FUNCTION public.os_ingest_builder_submission(payload jsonb)`, which would replace the live Builder intake function if applied to the Production project.
+- It revoked and granted privileges on core CRM/intake tables and dropped/recreated service-role policies. These are not data-destructive, but they are Production access-control behavior changes.
+- It had no `DROP TABLE`, `TRUNCATE`, or `DELETE FROM` data-destruction statements, but replacing the live intake function was too high-risk without a production-schema-specific migration.
 
-Potential Production objects affected if applied unchanged:
+## Production-Safe Migration Correction
 
-- Tables: `public.os_contacts`, `public.os_events`, `public.os_builder_submissions`, `public.os_leads`, `public.os_quote_versions`, `public.os_quote_items`, `public.os_builder_activity`, `public.os_integration_outbox`.
-- Functions: `public.os_known_builder_service_code(jsonb)`, `public.os_public_catalog_from_builder(jsonb)`, `public.os_enqueue_integration_event(text,text,text,jsonb,jsonb,text)`, `public.os_ingest_builder_submission(jsonb)`.
-- RLS/grants/policies on the tables above.
-- Indexes and constraints listed in the migration.
+Correction prepared after user approval for correction-only work:
 
-Safer Production migration candidate:
+- Moved the full synthetic local schema into `supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql`.
+- Replaced `supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql` with a production-safe additive outbox-only migration candidate.
+- Updated `.github/workflows/ecosystem-integration-local-supabase.yml` to copy the local-verification schema into `supabase/migrations` only inside the ephemeral GitHub-hosted runner before `supabase db reset --local`.
+- Hardened `scripts/guard-local-supabase-ci.mjs` so CI fails if `supabase/migrations/**` again contains the CI-local schema marker, `public.os_contacts` synthetic schema creation, or a `CREATE OR REPLACE FUNCTION public.os_ingest_builder_submission` replacement.
 
-- Treat `integrations/sql/ecosystem-integration-foundation.sql` as the production-oriented additive outbox foundation candidate, pending fresh review against the actual Production schema.
-- Keep the 691-line `supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql` as CI-local verification evidence only unless it is split or rewritten into a Production-safe migration.
+Production migration candidate now in `supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql`:
 
-## Risk Level
+- Creates `public.os_integration_outbox` if it does not exist.
+- Creates idempotency and retry/status indexes.
+- Enables RLS on `public.os_integration_outbox`.
+- Revokes anon/authenticated access and grants service-role access.
+- Creates service-role-only RLS policy for outbox management.
+- Creates or replaces `public.os_enqueue_integration_event(text,text,text,jsonb,jsonb,text)`.
+- Revokes public function execute and grants execute only to `service_role`.
 
-- Code merge risk: moderate, assuming branch protection is satisfied and database migrations are not applied automatically on merge.
-- Production database migration risk for `20260731000000_ecosystem_integration_local_foundation.sql` as-is: high.
+Production migration candidate intentionally does not:
+
+- Create or rewrite contact, event, lead, quote, quote item, builder submission, or builder activity tables.
+- Replace `public.os_ingest_builder_submission`.
+- Mutate Production customer data.
+- Drop, truncate, or delete data.
+- Add duplicate CRM, event, quote, booking, or catalog systems.
+
+## Risk Level After Correction
+
+- Code merge risk: moderate, pending exact-head CI after the correction and branch protection review.
+- Production database migration risk for the corrected outbox-only migration: lower than the original full local schema migration, but still requires live schema confirmation, backup/recovery confirmation, and explicit authorization before execution.
 - Production promotion risk before cloud readback QA: high.
 
 ## Rollback And Recovery Plan
@@ -99,21 +112,18 @@ Safer Production migration candidate:
 Before any authorized Production database change:
 
 1. Confirm current Supabase backup/PITR/recovery options for project `cplpbzudjprzbnzocirc` under the active plan.
-2. Capture existing definitions for affected functions, especially `public.os_ingest_builder_submission(jsonb)`.
-3. Capture current RLS policies and grants for affected tables.
-4. Apply only an additive, production-specific migration after review.
+2. Capture current definition, if any, for `public.os_integration_outbox` and `public.os_enqueue_integration_event`.
+3. Capture current RLS policies and grants for `public.os_integration_outbox`, if it exists.
+4. Apply only the reviewed additive outbox migration after explicit approval.
 5. Verify objects and run controlled synthetic QA with authorized readback.
-6. If a migration fails or behavior regresses, restore function/policy definitions from the captured pre-change SQL and use Supabase restore support/backups as the database-level recovery checkpoint.
+6. If a migration fails or behavior regresses, restore prior function/policy definitions from the captured pre-change SQL and use Supabase restore support/backups as the database-level recovery checkpoint.
 
 ## Authorization Decision
 
 No merge, cloud database migration, Vercel Production deployment, Preview promotion, or synthetic Production submission was performed.
 
-Authorization should not be requested for applying `supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql` to Production as-is. The next requested approval should be for either:
-
-1. A small corrective branch update that separates CI-local schema verification from the Production migration path, or
-2. A reviewed production-specific additive migration based on `integrations/sql/ecosystem-integration-foundation.sql` after confirming the live Production schema.
+After the correction, request authorization only after exact-head CI passes and the corrected migration is reviewed against the live Production schema.
 
 ## Recommended Next Step
 
-Prepare a production-safe migration package that does not replace the live intake function blindly, then rerun exact-head CI and repeat merge review before requesting merge/database/deployment authorization.
+Verify exact-head CI for the production-safe migration correction, then repeat the authorization-gate report. Do not apply the migration, merge, deploy, or submit synthetic Production data without explicit approval.
