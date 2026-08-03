@@ -6,6 +6,7 @@ const roots = [".github", "scripts", "supabase", "src/contracts", "docs/integrat
 const commandRoots = [".github", "scripts"];
 const productionMigrationRoot = "supabase/migrations";
 const outboxHelperGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_integration_event\s*\(\s*text\s*,\s*text\s*,\s*text\s*,\s*jsonb\s*,\s*jsonb\s*,\s*text\s*\)\s+to\s+(public|anon|authenticated)\b/i;
+const builderWiringGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_builder_submission_received_from_activity\s*\(\s*\)\s+to\s+(public|anon|authenticated)\b/i;
 const forbiddenSupabaseCommands = [
   /supabase\s+link/i,
   /supabase\s+db\s+push/i,
@@ -17,6 +18,9 @@ const forbiddenProductionMigrationPatterns = [
   /synthetic-test-focused/i,
   /create\s+table\s+if\s+not\s+exists\s+public\.os_contacts/i,
   /create\s+or\s+replace\s+function\s+public\.os_ingest_builder_submission/i,
+  /drop\s+table/i,
+  /truncate\s+table/i,
+  /delete\s+from\s+public\.os_(contacts|builder_submissions|leads|events|quote_versions|quote_items|bookings)\b/i,
 ];
 
 function filesUnder(path) {
@@ -57,11 +61,14 @@ for (const file of files) {
   if (isProductionMigration(file)) {
     for (const forbidden of forbiddenProductionMigrationPatterns) {
       if (forbidden.test(content)) {
-        throw new Error(`CI-local schema pattern appears in production migration path ${file}: ${forbidden}`);
+        throw new Error(`Forbidden production migration pattern appears in ${file}: ${forbidden}`);
       }
     }
     if (outboxHelperGrantPattern.test(content)) {
       throw new Error(`Outbox helper must not be granted to public, anon, or authenticated in ${file}.`);
+    }
+    if (builderWiringGrantPattern.test(content)) {
+      throw new Error(`Builder outbox wiring function must not be granted to public, anon, or authenticated in ${file}.`);
     }
   }
   if (!commandRoots.some((root) => file === root || file.startsWith(`${root}\\`) || file.startsWith(`${root}/`))) continue;
@@ -72,4 +79,4 @@ for (const file of files) {
   }
 }
 
-console.log("Local Supabase CI guard passed: no Production ref, remote Supabase commands, or public outbox-helper grants found.");
+console.log("Local Supabase CI guard passed: no Production ref, remote Supabase commands, unsafe migration patterns, or public outbox-helper grants found.");
