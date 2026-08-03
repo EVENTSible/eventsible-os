@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feat/ecosystem-integration-foundation
+      - fix/outbox-helper-grant-parity
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
@@ -87,6 +88,9 @@ jobs:
 
       - name: Run ecosystem integration verification
         run: npm run test:ecosystem:local-supabase
+
+      - name: Verify outbox helper grants
+        run: npm run test:outbox-helper-grants
 
       - name: Run contract tests
         run: npm run test
