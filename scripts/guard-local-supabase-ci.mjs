@@ -5,6 +5,7 @@ const productionRef = "cplpbzudjprzbnzocirc";
 const roots = [".github", "scripts", "supabase", "src/contracts", "docs/integrations"];
 const commandRoots = [".github", "scripts"];
 const productionMigrationRoot = "supabase/migrations";
+const outboxHelperGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_integration_event\s*\(\s*text\s*,\s*text\s*,\s*text\s*,\s*jsonb\s*,\s*jsonb\s*,\s*text\s*\)\s+to\s+(public|anon|authenticated)\b/i;
 const forbiddenSupabaseCommands = [
   /supabase\s+link/i,
   /supabase\s+db\s+push/i,
@@ -28,8 +29,9 @@ function isApprovedProductionRefMention(file) {
   return (
     file.endsWith("guard-local-supabase-ci.mjs") ||
     file.endsWith("ecosystem-local-supabase-verify.mjs") ||
+    file.endsWith("verify-outbox-helper-grants.mjs") ||
     file.endsWith("ecosystem-integration-local-supabase.yml") ||
-    /docs[\\/]integrations[\\/]ECOSYSTEM_INTEGRATION_[A-Z0-9_-]+\.md$/.test(file)
+    /docs[\\/]integrations[\\/]ECOSYSTEM_(INTEGRATION|OUTBOX)_[A-Z0-9_-]+\.md$/.test(file)
   );
 }
 
@@ -58,6 +60,9 @@ for (const file of files) {
         throw new Error(`CI-local schema pattern appears in production migration path ${file}: ${forbidden}`);
       }
     }
+    if (outboxHelperGrantPattern.test(content)) {
+      throw new Error(`Outbox helper must not be granted to public, anon, or authenticated in ${file}.`);
+    }
   }
   if (!commandRoots.some((root) => file === root || file.startsWith(`${root}\\`) || file.startsWith(`${root}/`))) continue;
   for (const forbidden of forbiddenSupabaseCommands) {
@@ -67,4 +72,4 @@ for (const file of files) {
   }
 }
 
-console.log("Local Supabase CI guard passed: no Production ref or remote Supabase commands found.");
+console.log("Local Supabase CI guard passed: no Production ref, remote Supabase commands, or public outbox-helper grants found.");
