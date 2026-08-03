@@ -1,0 +1,106 @@
+name: Ecosystem Integration Local Supabase
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/ecosystem-integration-foundation
+    paths:
+      - ".github/workflows/ecosystem-integration-local-supabase.yml"
+      - "supabase/**"
+      - "scripts/**"
+      - "src/contracts/**"
+      - "integrations/sql/**"
+      - "docs/integrations/**"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  local-supabase-verification:
+    name: Local Supabase integration verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EVENTSIBLE_PRODUCTION_SUPABASE_REF: cplpbzudjprzbnzocirc
+      SUPABASE_LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      LOCAL_VERIFICATION_SCHEMA: supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql
+      STAGED_LOCAL_MIGRATION: supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.1"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Confirm Docker availability
+        run: |
+          docker version
+          docker run --rm hello-world
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+          psql --version
+
+      - name: Confirm Supabase CLI
+        run: npx supabase@2.111.0 --version
+
+      - name: Guard local-only Supabase commands
+        run: npm run guard:local-supabase-ci
+
+      - name: Stage CI-local verification schema
+        run: |
+          test -f "$LOCAL_VERIFICATION_SCHEMA"
+          cp "$LOCAL_VERIFICATION_SCHEMA" "$STAGED_LOCAL_MIGRATION"
+          if grep -q "$EVENTSIBLE_PRODUCTION_SUPABASE_REF" "$STAGED_LOCAL_MIGRATION"; then
+            echo "Production Supabase ref appeared in staged local migration."
+            exit 1
+          fi
+
+      - name: Start local Supabase
+        run: |
+          npx supabase@2.111.0 start > supabase-start.log 2>&1
+          grep -E "Started|API URL|Studio URL" supabase-start.log || true
+
+      - name: Confirm local Supabase target
+        run: |
+          if printf '%s\n' "$SUPABASE_LOCAL_DB_URL" | grep -q "$EVENTSIBLE_PRODUCTION_SUPABASE_REF"; then
+            echo "Production Supabase ref appeared in local database URL."
+            exit 1
+          fi
+          pg_isready --dbname "$SUPABASE_LOCAL_DB_URL"
+          psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --command "select current_database(), inet_server_addr(), inet_server_port();" | sed -E 's/[[:space:]]+/ /g'
+
+      - name: Reset and apply local migrations
+        run: npx supabase@2.111.0 db reset --local
+
+      - name: Run ecosystem integration verification
+        run: npm run test:ecosystem:local-supabase
+
+      - name: Run contract tests
+        run: npm run test
+
+      - name: Run lint with documented inherited exception
+        run: npm run lint:ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit
+        run: npm audit
+        continue-on-error: true
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase@2.111.0 stop --no-backup
