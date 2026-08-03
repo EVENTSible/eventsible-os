@@ -248,8 +248,12 @@ create policy "Service role manages builder activity" on public.os_builder_activ
   for all to service_role using (true) with check (true);
 
 drop policy if exists "Service role manages integration outbox" on public.os_integration_outbox;
-create policy "Service role manages integration outbox" on public.os_integration_outbox
-  for all to service_role using (true) with check (true);
+create policy "Service role manages integration outbox"
+  on public.os_integration_outbox
+  for all
+  to service_role
+  using (true)
+  with check (true);
 
 create or replace function public.os_known_builder_service_code(_service jsonb)
 returns text
@@ -649,26 +653,17 @@ begin
     )
   );
 
-  outbox_id := public.os_enqueue_integration_event(
-    'builder.submission_received',
-    normalized->>'contract_version',
-    'event_builder',
-    jsonb_build_object(
-      'contact_id', contact_row.id,
-      'builder_submission_id', submission_row.id,
-      'lead_id', lead_row.id,
-      'event_id', event_row.id,
-      'quote_id', quote_row.quote_id,
-      'quote_version_id', quote_row.id
-    ),
-    jsonb_build_object(
-      'event_id', event_row.id,
-      'builder_submission_id', submission_row.id,
-      'contract_version', normalized->>'contract_version',
-      'service_count', jsonb_array_length(normalized->'selected_services')
-    ),
-    request_key
-  );
+  select id
+    into outbox_id
+    from public.os_integration_outbox
+   where idempotency_key = 'builder.submission_received:' || submission_row.id::text
+   limit 1;
+
+  if outbox_id is null then
+    raise exception using
+      errcode = 'XX000',
+      message = 'Builder submission outbox trigger did not create an integration event.';
+  end if;
 
   return jsonb_build_object(
     'ok', true,
