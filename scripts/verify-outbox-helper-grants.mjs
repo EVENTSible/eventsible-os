@@ -11,6 +11,7 @@ if (databaseUrl.includes(productionRef) || databaseUrl.includes("supabase.co")) 
 }
 
 const helperSignature = "public.os_enqueue_integration_event(text,text,text,jsonb,jsonb,text)";
+const wiringSignature = "public.os_enqueue_builder_submission_received_from_activity()";
 const intakeSignature = "public.os_ingest_builder_submission(jsonb)";
 
 const sql = String.raw`
@@ -20,6 +21,10 @@ do $$
 begin
   if to_regprocedure('public.os_enqueue_integration_event(text,text,text,jsonb,jsonb,text)') is null then
     raise exception 'Expected outbox helper signature is missing.';
+  end if;
+
+  if to_regprocedure('public.os_enqueue_builder_submission_received_from_activity()') is null then
+    raise exception 'Expected Builder submission outbox wiring trigger function is missing.';
   end if;
 
   if to_regprocedure('public.os_ingest_builder_submission(jsonb)') is null then
@@ -42,6 +47,22 @@ begin
     raise exception 'Outbox helper must be executable by service_role.';
   end if;
 
+  if has_function_privilege('public', 'public.os_enqueue_builder_submission_received_from_activity()', 'execute') then
+    raise exception 'Builder outbox wiring trigger function must not be executable by public.';
+  end if;
+
+  if has_function_privilege('anon', 'public.os_enqueue_builder_submission_received_from_activity()', 'execute') then
+    raise exception 'Builder outbox wiring trigger function must not be executable by anon.';
+  end if;
+
+  if has_function_privilege('authenticated', 'public.os_enqueue_builder_submission_received_from_activity()', 'execute') then
+    raise exception 'Builder outbox wiring trigger function must not be executable by authenticated.';
+  end if;
+
+  if not has_function_privilege('service_role', 'public.os_enqueue_builder_submission_received_from_activity()', 'execute') then
+    raise exception 'Builder outbox wiring trigger function must be executable by service_role.';
+  end if;
+
   if has_table_privilege('anon', 'public.os_integration_outbox', 'select') then
     raise exception 'Outbox table must not be selectable by anon.';
   end if;
@@ -55,7 +76,7 @@ begin
   end if;
 end $$;
 
-select 'outbox helper grant parity verified' as result;
+select 'outbox helper and Builder wiring grant parity verified' as result;
 `;
 
 const dir = mkdtempSync(join(tmpdir(), "eventsible-outbox-grants-"));
@@ -70,7 +91,7 @@ try {
       PGPASSWORD: process.env.PGPASSWORD ?? "postgres",
     },
   });
-  console.log(`Verified ${helperSignature} is service-role-only and ${intakeSignature} still exists.`);
+  console.log(`Verified ${helperSignature} and ${wiringSignature} are service-role-only and ${intakeSignature} still exists.`);
 } catch (error) {
   process.exitCode = error.status || 1;
 }
