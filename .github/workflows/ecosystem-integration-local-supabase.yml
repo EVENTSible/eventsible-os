@@ -72,7 +72,15 @@ jobs:
 
       - name: Start local Supabase
         run: |
+          set +e
           npx supabase@2.111.0 start > supabase-start.log 2>&1
+          start_status=$?
+          set -e
+          if [ "$start_status" -ne 0 ]; then
+            echo "Supabase local startup failed with exit status $start_status."
+            node scripts/sanitize-supabase-log.mjs supabase-start.log
+            exit "$start_status"
+          fi
           grep -E "Started|API URL|Studio URL" supabase-start.log || true
 
       - name: Confirm local Supabase target
