@@ -194,7 +194,7 @@ begin
        select 1
          from pg_trigger
         where tgname = 'os_activity_events_builder_submission_outbox_trg'
-          and tgrelid = 'public.os_activity_events'::regclass
+          and tgrelid = to_regclass('public.os_activity_events')
      ) then
     execute '
       create trigger os_activity_events_builder_submission_outbox_trg
@@ -210,7 +210,7 @@ begin
        select 1
          from pg_trigger
         where tgname = 'os_builder_activity_submission_outbox_trg'
-          and tgrelid = 'public.os_builder_activity'::regclass
+          and tgrelid = to_regclass('public.os_builder_activity')
      ) then
     execute '
       create trigger os_builder_activity_submission_outbox_trg
