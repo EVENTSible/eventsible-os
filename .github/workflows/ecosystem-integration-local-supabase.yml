@@ -6,6 +6,7 @@ on:
     branches:
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
+      - feat/builder-intake-outbox-wiring
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"

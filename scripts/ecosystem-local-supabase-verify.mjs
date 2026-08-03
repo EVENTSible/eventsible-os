@@ -252,9 +252,20 @@ begin
   perform public.ecosystem_ci_assert((second_result->>'event_id')::uuid <> first_event_id, 'Second submission reused the first event_id.');
   perform public.ecosystem_ci_assert(counts_after_second = '{"contacts":2,"builder_submissions":2,"leads":2,"events":2,"quote_versions":2,"quote_items":10,"builder_activity":2,"outbox":2}'::jsonb, 'Second submission did not create a second distinct chain.');
 
-  perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where event_type = 'builder.submission_received' and payload_version = 'builder_submission_v1' and source_application = 'event_builder' and status = 'pending' and attempt_count = 0 and failure_history = '[]'::jsonb) = 2, 'Outbox event fields were not initialized correctly.');
-  perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where related_record_ids ? 'event_id' and related_record_ids ? 'builder_submission_id' and related_record_ids ? 'quote_id') = 2, 'Outbox related IDs are incomplete.');
+  perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where event_type = 'builder.submission_received' and payload_version = 'builder_submission_received_v1' and source_application = 'eventsible-event-builder' and status = 'pending' and attempt_count = 0 and failure_history = '[]'::jsonb) = 2, 'Outbox event fields were not initialized correctly.');
+  perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where related_record_ids ? 'event_id' and related_record_ids ? 'builder_submission_id' and related_record_ids ? 'quote_version_id') = 2, 'Outbox related IDs are incomplete.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where payload::text ~* 'service_role|secret|password|token|private_email|primary_email|primary_phone') = 0, 'Outbox payload contains secret or unnecessary private contact fields.');
+  perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) = 1, 'Outbox idempotency key was not derived from builder_submission_id.');
+  perform public.ecosystem_ci_assert((select payload->>'contract_version' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) = 'builder_submission_v1', 'Outbox payload did not include Builder contract version.');
+  perform public.ecosystem_ci_assert((select (payload->'service_codes') ? 'dj_mc' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) is true, 'Outbox payload did not include known service codes.');
+  perform public.ecosystem_ci_assert((select (payload->'custom_quote_service_codes') ? 'live_performer' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) is true, 'Outbox payload did not preserve Custom Quote service flags.');
+
+  insert into public.os_builder_activity(contact_id, builder_submission_id, lead_id, event_id, activity_type, facts)
+  select contact_id, id, (first_result->>'lead_id')::uuid, event_id, 'builder.submission_received', jsonb_build_object('replay', true)
+    from public.os_builder_submissions
+   where id = (first_result->>'submission_id')::uuid
+  on conflict (builder_submission_id, activity_type) do nothing;
+  perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) = 1, 'Activity replay created duplicate outbox event.');
 
   public_catalog := public.os_public_catalog_from_builder(jsonb_build_object(
     'id', 'dj-mc-foundation',
