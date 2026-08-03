@@ -13,6 +13,7 @@ on:
       - "src/contracts/**"
       - "integrations/sql/**"
       - "docs/integrations/**"
+      - "docs/README.md"
       - "package.json"
       - "package-lock.json"
 
