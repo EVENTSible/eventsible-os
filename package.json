@@ -11,6 +11,7 @@
     "test": "node --test src/contracts/*.test.mjs",
     "test:ecosystem:local-supabase": "node scripts/ecosystem-local-supabase-verify.mjs",
     "test:outbox-helper-grants": "node scripts/verify-outbox-helper-grants.mjs",
+    "test:builder-outbox:production-quote-shape": "node scripts/verify-builder-outbox-production-quote-shape.mjs",
     "guard:local-supabase-ci": "node scripts/guard-local-supabase-ci.mjs"
   },
   "dependencies": {
