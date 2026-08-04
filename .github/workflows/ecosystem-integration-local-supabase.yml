@@ -9,6 +9,7 @@ on:
       - feat/builder-intake-outbox-wiring
       - fix/builder-outbox-production-quote-lookup
       - fix/builder-outbox-payload-parity
+      - fix/builder-event-staff-quote-label
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
@@ -103,6 +104,9 @@ jobs:
 
       - name: Verify Production-shaped Builder quote lookup
         run: npm run test:builder-outbox:production-quote-shape
+
+      - name: Verify Event Staff quote label normalization
+        run: npm run test:builder-event-staff-label
 
       - name: Verify outbox helper grants
         run: npm run test:outbox-helper-grants
