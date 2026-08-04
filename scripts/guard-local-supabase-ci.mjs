@@ -5,8 +5,10 @@ const productionRef = "cplpbzudjprzbnzocirc";
 const roots = [".github", "scripts", "supabase", "src/contracts", "docs/integrations"];
 const commandRoots = [".github", "scripts"];
 const productionMigrationRoot = "supabase/migrations";
+const historicalBuilderWiringMigration = "20260803223000_builder_submission_outbox_wiring.sql";
 const outboxHelperGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_integration_event\s*\(\s*text\s*,\s*text\s*,\s*text\s*,\s*jsonb\s*,\s*jsonb\s*,\s*text\s*\)\s+to\s+(public|anon|authenticated)\b/i;
 const builderWiringGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_builder_submission_received_from_activity\s*\(\s*\)\s+to\s+(public|anon|authenticated)\b/i;
+const builderQuoteIdPhysicalReferencePattern = /(\bq|\bos_quote_versions)\.quote_id\b/i;
 const forbiddenSupabaseCommands = [
   /supabase\s+link/i,
   /supabase\s+db\s+push/i,
@@ -34,6 +36,7 @@ function isApprovedProductionRefMention(file) {
     file.endsWith("guard-local-supabase-ci.mjs") ||
     file.endsWith("ecosystem-local-supabase-verify.mjs") ||
     file.endsWith("verify-outbox-helper-grants.mjs") ||
+    file.endsWith("verify-builder-outbox-production-quote-shape.mjs") ||
     file.endsWith("ecosystem-integration-local-supabase.yml") ||
     /docs[\\/]integrations[\\/]ECOSYSTEM_(INTEGRATION|OUTBOX|BUILDER)_[A-Z0-9_-]+\.md$/.test(file)
   );
@@ -41,6 +44,10 @@ function isApprovedProductionRefMention(file) {
 
 function isProductionMigration(file) {
   return file === productionMigrationRoot || file.startsWith(`${productionMigrationRoot}/`) || file.startsWith(`${productionMigrationRoot}\\`);
+}
+
+function isHistoricalBuilderWiringMigration(file) {
+  return file.endsWith(historicalBuilderWiringMigration);
 }
 
 const files = roots.flatMap((root) => {
@@ -70,6 +77,9 @@ for (const file of files) {
     if (builderWiringGrantPattern.test(content)) {
       throw new Error(`Builder outbox wiring function must not be granted to public, anon, or authenticated in ${file}.`);
     }
+    if (!isHistoricalBuilderWiringMigration(file) && builderQuoteIdPhysicalReferencePattern.test(content)) {
+      throw new Error(`Builder outbox quote lookup must not directly reference a physical quote_id column in ${file}.`);
+    }
   }
   if (!commandRoots.some((root) => file === root || file.startsWith(`${root}\\`) || file.startsWith(`${root}/`))) continue;
   for (const forbidden of forbiddenSupabaseCommands) {
@@ -79,4 +89,4 @@ for (const file of files) {
   }
 }
 
-console.log("Local Supabase CI guard passed: no Production ref, remote Supabase commands, unsafe migration patterns, or public outbox-helper grants found.");
+console.log("Local Supabase CI guard passed: no Production ref, remote Supabase commands, unsafe migration patterns, public outbox-helper grants, or unsafe Builder quote lookup references found.");
