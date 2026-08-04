@@ -3,7 +3,7 @@
 - Status: CANONICAL
 - Owner: EVENTSible
 - Canonical source: EVENTSible OS repository, `docs/`
-- Last verified: 2026-07-29
+- Last verified: 2026-08-04
 - Applies to: EVENTSible ecosystem repositories and app lanes
 - Supersedes: scattered cross-system plans in individual app repositories when they conflict with this hub
 - Related documents: `docs/ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md`, `docs/ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md`, `docs/EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md`
@@ -31,7 +31,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Builder outbox quote lookup forward-fix | [ECOSYSTEM_BUILDER_OUTBOX_QUOTE_LOOKUP_FIX_2026-08-03.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_QUOTE_LOOKUP_FIX_2026-08-03.md) |
 | Builder outbox payload parity forward-fix | [ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md) |
 | Builder Event Staff quote label forward-fix | [ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md) |
-| Builder outbox Production activation | [ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md) |
+| Builder outbox Production activation - PRODUCTION VERIFIED | [ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md) |
 | OS to ECC/VINCE integration | [OS_TO_ECC_VINCE.md](integrations/OS_TO_ECC_VINCE.md) |
 | OS to Client Portal integration | [OS_TO_CLIENT_PORTAL.md](integrations/OS_TO_CLIENT_PORTAL.md) |
 | OS to Content Factory integration | [OS_TO_CONTENT_FACTORY.md](integrations/OS_TO_CONTENT_FACTORY.md) |
