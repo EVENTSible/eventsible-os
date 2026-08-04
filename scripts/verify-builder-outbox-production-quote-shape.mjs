@@ -13,6 +13,9 @@ if (databaseUrl.includes(productionRef) || databaseUrl.includes("supabase.co")) 
 const sql = String.raw`
 \set ON_ERROR_STOP on
 
+drop index if exists public.os_quote_versions_quote_id_version_idx;
+alter table public.os_quote_versions drop column if exists quote_id;
+
 set role service_role;
 
 do $$
