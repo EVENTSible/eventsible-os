@@ -23,6 +23,7 @@ on:
       - fix/builder-outbox-production-quote-lookup
       - fix/builder-outbox-payload-parity
       - fix/builder-event-staff-quote-label
+      - fix/builder-event-staff-code-parity
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
