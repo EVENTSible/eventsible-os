@@ -40,8 +40,6 @@ begin
     raise exception 'Builder outbox wiring helper still contains a direct physical quote_id reference.';
   end if;
 
-  drop index if exists public.os_quote_versions_quote_id_version_idx;
-  alter table public.os_quote_versions drop column if exists quote_id;
 
   if exists (
     select 1
