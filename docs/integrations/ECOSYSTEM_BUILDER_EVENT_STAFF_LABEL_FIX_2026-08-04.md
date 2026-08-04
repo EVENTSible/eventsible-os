@@ -1,18 +1,20 @@
 # Builder Event Staff Quote Label Forward Fix - 2026-08-04
 
-- Status: PRODUCTION MIGRATION APPLIED / NEEDS FOLLOW-UP FIX
+- Status: FOLLOW-UP IMPLEMENTED ON BRANCH / NEEDS REVIEW AND PRODUCTION AUTHORIZATION
 - Repository: `EVENTSible/eventsible-os`
-- Branch merged through main commit `983068a5734a0c233aeef625c7f4d3221cb41e88`
+- Follow-up branch: `fix/builder-event-staff-code-parity`
+- Prior label-fix branch merged through main commit `983068a5734a0c233aeef625c7f4d3221cb41e88`
 - Production Supabase project: EVENTSible OS, ref `cplpbzudjprzbnzocirc`
 - Existing Builder intake: LIVE / RESTORED
 - Builder outbox emission: ACTIVE in Production from prior verified activation
-- End-to-end Integration Foundation classification: PARTIAL / NEEDS VERIFICATION
+- Event Staff label migration: APPLIED BUT INCOMPLETE
+- End-to-end Integration Foundation classification: NEEDS VERIFICATION
 
 ## Scope
 
 This forward-fix addressed the display-label defect found during controlled Builder intake-to-outbox Production QA: an Event Staff quote item could be stored with a machine-shaped value in `public.os_quote_items.service_name`.
 
-This branch did not modify Event Builder code, ECC/VINCE, EventsGame, Vercel environment variables, outbox consumers, or existing Production data.
+This work does not modify Event Builder code, ECC/VINCE, EventsGame, Vercel environment variables, outbox consumers, or existing Production data.
 
 ## Original Production Finding
 
@@ -36,9 +38,9 @@ Read-only Production function inspection showed the live intake inserts quote it
 
 Replacing `public.os_ingest_builder_submission(jsonb)` was intentionally avoided. Adding a quote identifier column or mutating Production quote schema was also intentionally avoided.
 
-## Forward-Fix Design
+## First Forward-Fix Design
 
-Migration candidate:
+Migration candidate applied to Production after review:
 
 `supabase/migrations/20260804153000_builder_quote_item_event_staff_label_fix.sql`
 
@@ -143,6 +145,42 @@ when (new.service_code = 'event_staff')
 
 Because Production currently writes the service code as `event-asst`, the trigger did not fire for this item. This is a narrow source/Production parity miss, not an intake-chain failure.
 
+## Code-Parity Follow-Up
+
+Branch:
+
+`fix/builder-event-staff-code-parity`
+
+Migration candidate:
+
+`supabase/migrations/20260804181000_builder_quote_item_event_staff_code_parity.sql`
+
+The follow-up migration replaces only `public.os_normalize_builder_quote_item_service_name()` and recreates only `os_quote_items_builder_service_name_trg` so future inserts fire for all known Event Staff code variants:
+
+- `event_staff`
+- `event-asst`
+- `event_asst`
+
+The helper still changes `service_name` to `Event Staff` only when the incoming value is blank or one of those machine labels.
+
+No Production action occurred while preparing this branch. The migration is a candidate only until separately reviewed, merged, and explicitly authorized for Production.
+
+## CI Coverage
+
+The local verifier now inserts synthetic quote items for all known Event Staff service-code variants and asserts each future insert stores:
+
+```text
+service_name = Event Staff
+```
+
+The workflow includes `fix/builder-event-staff-code-parity` in the push branch list and runs:
+
+```text
+npm run test:builder-event-staff-label
+```
+
+alongside the existing local Supabase migration, intake, quote lookup, outbox helper grants, contract, lint, build, and audit checks.
+
 ## Security
 
 The trigger helper uses `security invoker` and an explicit search path. Direct execution is not granted to public clients:
@@ -172,7 +210,7 @@ Authenticated Admin Leads visual QA was not completed in this pass because the l
 
 ## Recovery / Disable Plan
 
-If the normalization must be stopped, disable or drop only:
+If the normalization must be stopped, disable only:
 
 ```sql
 alter table public.os_quote_items
@@ -181,24 +219,26 @@ alter table public.os_quote_items
 
 or remove only the trigger/function with a reviewed forward-fix migration. Preserve all existing quote items, Builder intake records, and outbox rows.
 
-## Required Next Fix
+## Production Authorization Gate
 
-Prepare a narrow follow-up migration that expands the normalization trigger condition to include the actual Production Event Staff service code variants, including `event-asst` and `event_asst`, while preserving existing behavior for `event_staff`.
+No Production action is authorized by this branch alone.
 
-The follow-up migration should:
+Before Production verification resumes:
 
-- Replace only `public.os_normalize_builder_quote_item_service_name()` and/or the trigger condition.
-- Avoid modifying `public.os_ingest_builder_submission(jsonb)`.
-- Avoid updating existing quote rows unless separately authorized.
-- Avoid changing outbox helpers, outbox consumers, or Event Builder code.
-- Preserve grants: service-role allowed, anon/authenticated denied, public not granted.
-- Add Production-shaped CI coverage where `service_code = 'event-asst'` stores `service_name = 'Event Staff'`.
+1. Review the `fix/builder-event-staff-code-parity` pull request and exact-head CI.
+2. Merge only after approval.
+3. Separately authorize applying only `20260804181000_builder_quote_item_event_staff_code_parity.sql` to the EVENTSible OS Production project.
+4. Verify the trigger/function and grants.
+5. Submit one controlled Builder QA lead only after explicit authorization.
+6. Complete authenticated Admin Leads visual QA.
+7. Mark the Ecosystem Integration Foundation `PRODUCTION VERIFIED` only if the new QA chain, outbox event, Event Staff label mapping, totals, idempotency, RLS/grants, Admin display, and security checks all pass.
 
 ## Current Classification
 
 - Existing Builder intake: LIVE
 - Builder intake-to-outbox emission: ACTIVE
 - Event Staff label migration: APPLIED BUT INCOMPLETE
+- Event Staff code-parity fix: IMPLEMENTED ON BRANCH
 - End-to-end Integration Foundation: NEEDS VERIFICATION
 
 Do not mark the Ecosystem Integration Foundation `PRODUCTION VERIFIED` until the Event Staff label follow-up fix is reviewed, applied, and one final controlled Production QA submission plus Admin Leads visual QA passes.
