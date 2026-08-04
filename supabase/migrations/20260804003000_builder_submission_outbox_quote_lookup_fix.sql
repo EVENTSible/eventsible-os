@@ -2,7 +2,7 @@
 --
 -- Scope:
 -- - Replaces only public.os_enqueue_builder_submission_received_from_activity()
--- - Removes hard dependency on a physical public.os_quote_versions.quote_id column
+-- - Removes hard dependency on a physical quote identifier column in quote versions
 -- - Preserves the existing trigger object and its enabled/disabled state
 -- - Preserves fail-closed behavior and service-role-only helper execution
 -- - Does not mutate contacts, leads, events, quote records, bookings, or customer data
