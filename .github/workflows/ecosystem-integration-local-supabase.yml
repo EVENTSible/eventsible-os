@@ -7,6 +7,7 @@ on:
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
+      - fix/builder-outbox-production-quote-lookup
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
@@ -98,6 +99,9 @@ jobs:
 
       - name: Run ecosystem integration verification
         run: npm run test:ecosystem:local-supabase
+
+      - name: Verify Production-shaped Builder quote lookup
+        run: npm run test:builder-outbox:production-quote-shape
 
       - name: Verify outbox helper grants
         run: npm run test:outbox-helper-grants
