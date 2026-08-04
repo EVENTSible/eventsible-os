@@ -6,9 +6,11 @@ const roots = [".github", "scripts", "supabase", "src/contracts", "docs/integrat
 const commandRoots = [".github", "scripts"];
 const productionMigrationRoot = "supabase/migrations";
 const historicalBuilderWiringMigration = "20260803223000_builder_submission_outbox_wiring.sql";
+const historicalBuilderQuoteLookupMigration = "20260804003000_builder_submission_outbox_quote_lookup_fix.sql";
 const outboxHelperGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_integration_event\s*\(\s*text\s*,\s*text\s*,\s*text\s*,\s*jsonb\s*,\s*jsonb\s*,\s*text\s*\)\s+to\s+(public|anon|authenticated)\b/i;
 const builderWiringGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_builder_submission_received_from_activity\s*\(\s*\)\s+to\s+(public|anon|authenticated)\b/i;
 const builderQuoteIdPhysicalReferencePattern = /(\bq|\bos_quote_versions)\.quote_id\b/i;
+const builderActivityQuoteIdPromotionPattern = /quote_id_value\s*:=\s*coalesce\s*\([^;]*activity_quote_id_value/is;
 const forbiddenSupabaseCommands = [
   /supabase\s+link/i,
   /supabase\s+db\s+push/i,
@@ -50,6 +52,10 @@ function isHistoricalBuilderWiringMigration(file) {
   return file.endsWith(historicalBuilderWiringMigration);
 }
 
+function isHistoricalBuilderQuoteLookupMigration(file) {
+  return file.endsWith(historicalBuilderQuoteLookupMigration);
+}
+
 const files = roots.flatMap((root) => {
   try {
     return filesUnder(root);
@@ -80,6 +86,9 @@ for (const file of files) {
     if (!isHistoricalBuilderWiringMigration(file) && builderQuoteIdPhysicalReferencePattern.test(content)) {
       throw new Error(`Builder outbox quote lookup must not directly reference a physical quote_id column in ${file}.`);
     }
+    if (!isHistoricalBuilderQuoteLookupMigration(file) && builderActivityQuoteIdPromotionPattern.test(content)) {
+      throw new Error(`Builder outbox related quote_id must not be derived from activity quote_id in ${file}.`);
+    }
   }
   if (!commandRoots.some((root) => file === root || file.startsWith(`${root}\\`) || file.startsWith(`${root}/`))) continue;
   for (const forbidden of forbiddenSupabaseCommands) {
@@ -89,4 +98,4 @@ for (const file of files) {
   }
 }
 
-console.log("Local Supabase CI guard passed: no Production ref, remote Supabase commands, unsafe migration patterns, public outbox-helper grants, or unsafe Builder quote lookup references found.");
+console.log("Local Supabase CI guard passed: no Production ref, remote Supabase commands, unsafe migration patterns, public outbox-helper grants, unsafe Builder quote lookup references, or activity quote_id promotion found.");
