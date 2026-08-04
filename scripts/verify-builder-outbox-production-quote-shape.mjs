@@ -43,6 +43,9 @@ begin
     raise exception 'Builder outbox wiring helper still contains a direct physical quote_id reference.';
   end if;
 
+  if pg_get_functiondef('public.os_enqueue_builder_submission_received_from_activity()'::regprocedure) ~* 'quote_id_value\s*:=\s*coalesce\s*\([^;]*activity_quote_id_value' then
+    raise exception 'Builder outbox wiring helper still promotes activity quote_id into related quote_id.';
+  end if;
 
   if exists (
     select 1
@@ -88,14 +91,27 @@ begin
       'planning_stage', 'Ready for a quote',
       'date_confidence', 'confirmed',
       'recommended_package', jsonb_build_object('tier', 'premium'),
-      'selected_services', jsonb_build_array('dj_mc', 'selfie_booth_prints', 'live_performer', 'event_staff', 'unknown-synthetic-service')
+      'pricing', jsonb_build_object(
+        'subtotal', 790,
+        'package_savings', 63,
+        'travel_fee', 0,
+        'estimated_total', 727
+      ),
+      'selected_services', jsonb_build_array(
+        jsonb_build_object('id','dj-mc-foundation','code','dj_mc','service_code','dj_mc','name','DJ / MC','custom_quote',false,'line_total',285),
+        jsonb_build_object('id','selfie-booth-prints','code','selfie_booth_digital','service_code','selfie_booth_digital','name','Selfie Booth with Prints','custom_quote',false,'line_total',300),
+        jsonb_build_object('id','dance-lighting','code','dance-lighting','service_code','dance-lighting','name','Basic Dance Floor Lighting','custom_quote',false,'line_total',100),
+        jsonb_build_object('id','live-singer','code','live_performer','service_code','live_performer','name','Live Singer / Vocalist','custom_quote',true,'line_total',null),
+        jsonb_build_object('id','event-asst','code','event-asst','service_code','event-asst','name','Event Assistant','custom_quote',false,'line_total',105),
+        jsonb_build_object('id','unknown-synthetic-service','code','unknown-synthetic-service','service_code','unknown-synthetic-service','name','Synthetic Unknown Service','custom_quote',true,'line_total',null)
+      )
     ),
     'eventsible-event-builder'
   )
   returning id into submission_id_value;
 
   insert into public.os_leads(contact_id, event_id, builder_submission_id, status, source, inquiry_summary, estimated_value, metadata)
-  values (contact_id_value, event_id_value, submission_id_value, 'new', 'eventsible_event_builder', 'Synthetic Production quote-shape verification', 667, '{"synthetic":true}'::jsonb)
+  values (contact_id_value, event_id_value, submission_id_value, 'new', 'eventsible_event_builder', 'Synthetic Production quote-shape verification', 727, '{"synthetic":true}'::jsonb)
   returning id into lead_id_value;
 
   insert into public.os_quote_versions(lead_id, event_id, builder_submission_id, version_number, status, currency, subtotal_cents, package_savings_cents, travel_cents, total_cents, deposit_cents, metadata)
@@ -103,19 +119,48 @@ begin
   returning id into old_quote_version_id;
 
   insert into public.os_quote_versions(lead_id, event_id, builder_submission_id, version_number, status, currency, subtotal_cents, package_savings_cents, travel_cents, total_cents, deposit_cents, metadata)
-  values (lead_id_value, event_id_value, submission_id_value, 2, 'draft', 'USD', 73000, 6300, 0, 66700, 16675, '{"newest":true}'::jsonb)
+  values (
+    lead_id_value,
+    event_id_value,
+    submission_id_value,
+    2,
+    'draft',
+    'USD',
+    72700,
+    0,
+    0,
+    72700,
+    18175,
+    jsonb_build_object(
+      'newest', true,
+      'pricing', jsonb_build_object(
+        'subtotal', 790,
+        'package_savings', 63,
+        'travel_fee', 0,
+        'estimated_total', 727
+      ),
+      'recommended_package', jsonb_build_object('tier', 'premium')
+    )
+  )
   returning id into quote_version_id_value;
 
   insert into public.os_quote_items(quote_version_id, event_id, service_id, service_code, service_name, label, quantity, unit, unit_price_cents, line_total_cents, custom_quote, metadata)
   values
-    (quote_version_id_value, event_id_value, 'dj-mc-foundation', 'dj_mc', 'DJ / MC', 'DJ / MC', 1, 'event', 37500, 37500, false, '{"synthetic":true}'::jsonb),
-    (quote_version_id_value, event_id_value, 'selfie-booth-prints', 'selfie_booth_prints', 'Selfie Booth with Prints', 'Selfie Booth with Prints', 1, 'event', 25000, 25000, false, '{"synthetic":true}'::jsonb),
-    (quote_version_id_value, event_id_value, 'live-singer', 'live_performer', 'Live Singer', 'Live Singer', 1, 'custom', 0, 0, true, '{"builder_item":{"custom_quote":true}}'::jsonb),
-    (quote_version_id_value, event_id_value, 'event-asst', 'event_staff', 'Event Staff', 'Event Staff', 3, 'hour', 3500, 10500, false, '{"synthetic":true}'::jsonb),
-    (quote_version_id_value, event_id_value, 'unknown-synthetic-service', 'unknown-synthetic-service', 'Synthetic Unknown Service', 'Synthetic Unknown Service', 1, 'custom', 0, 0, true, '{"builder_item":{"custom_quote":true}}'::jsonb);
+    (quote_version_id_value, event_id_value, 'dj-mc-foundation', 'dj_mc', 'DJ / MC', 'DJ / MC', 1, 'event', 28500, 28500, false, '{"synthetic":true}'::jsonb),
+    (quote_version_id_value, event_id_value, 'selfie-booth-prints', 'selfie_booth_digital', 'Selfie Booth - Digital', 'Selfie Booth - Digital', 1, 'event', 30000, 30000, false, '{"builder_item":{"lovable_service_id":"selfie-booth-prints","service_code":"selfie_booth_digital","custom_quote":false}}'::jsonb),
+    (quote_version_id_value, event_id_value, 'dance-lighting', 'dance-lighting', 'dance-lighting', 'dance-lighting', 1, 'event', 10000, 10000, false, '{"synthetic":true}'::jsonb),
+    (quote_version_id_value, event_id_value, 'live-singer', 'live_performer', 'Live Performer / Singer', 'Live Performer / Singer', 1, 'custom', 0, 0, true, '{"builder_item":{"custom_quote":true}}'::jsonb),
+    (quote_version_id_value, event_id_value, 'event-asst', 'event-asst', 'event-asst', 'event-asst', 3, 'hour', 3500, 10500, false, '{"builder_item":{"lovable_service_id":"event-asst","service_code":"event-asst","custom_quote":false}}'::jsonb);
 
   insert into public.os_builder_activity(contact_id, builder_submission_id, lead_id, event_id, activity_type, facts)
-  values (contact_id_value, submission_id_value, lead_id_value, event_id_value, 'builder.submission_received', jsonb_build_object('source','production_quote_shape'))
+  values (
+    contact_id_value,
+    submission_id_value,
+    lead_id_value,
+    event_id_value,
+    'builder.submission_received',
+    jsonb_build_object('source','production_quote_shape','quote_id',quote_version_id_value::text)
+  )
   returning id into activity_id_value;
 
   select id, related_record_ids, payload
@@ -142,17 +187,20 @@ begin
 
   if outbox_payload->>'event_type' <> 'builder.submission_received'
      or outbox_payload->>'contract_version' <> 'builder_submission_v1'
-     or (outbox_payload->>'total_cents')::integer <> 66700
+     or (outbox_payload->>'total_cents')::integer <> 72700
      or (outbox_payload->>'package_savings_cents')::integer <> 6300
      or (outbox_payload->>'travel_cents')::integer <> 0 then
-    raise exception 'Outbox payload values were not preserved.';
+    raise exception 'Outbox payload values were not preserved. payload=%', outbox_payload;
   end if;
 
   if not ((outbox_payload->'service_codes') ? 'dj_mc')
      or not ((outbox_payload->'service_codes') ? 'selfie_booth_prints')
+     or not ((outbox_payload->'service_codes') ? 'event_staff')
+     or ((outbox_payload->'service_codes') ? 'selfie_booth_digital')
+     or ((outbox_payload->'service_codes') ? 'event-asst')
      or not ((outbox_payload->'custom_quote_service_codes') ? 'live_performer')
      or not ((outbox_payload->'custom_quote_service_codes') ? 'unknown-synthetic-service') then
-    raise exception 'Known or Custom Quote service codes were not preserved.';
+    raise exception 'Known or Custom Quote service codes were not canonicalized. payload=%', outbox_payload;
   end if;
 
   if outbox_payload::text ~* 'email|phone|primary_email|primary_phone|service_role|password|token|raw_payload' then
@@ -260,6 +308,8 @@ begin
     'counts_after', after_counts,
     'quote_version_id', quote_version_id_value,
     'quote_id_present', false,
+    'service_codes', outbox_payload->'service_codes',
+    'package_savings_cents', outbox_payload->>'package_savings_cents',
     'outbox_id', outbox_id_value,
     'idempotency', 'activity replay and duplicate outbox key preserved one event',
     'failure_paths', 'missing quote rollback verified',
