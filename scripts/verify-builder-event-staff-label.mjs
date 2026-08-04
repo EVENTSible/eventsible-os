@@ -21,6 +21,8 @@ declare
   event_id_value uuid;
   item_id_value uuid;
   normalized_name text;
+  normalized_results jsonb := '[]'::jsonb;
+  variant record;
 begin
   if to_regprocedure('public.os_normalize_builder_quote_item_service_name()') is null then
     raise exception 'Event Staff quote-item normalization helper is missing.';
@@ -49,39 +51,50 @@ begin
     raise exception 'Event Staff label verification requires an existing synthetic quote version.';
   end if;
 
-  insert into public.os_quote_items(
-    quote_version_id,
-    event_id,
-    service_id,
-    service_code,
-    service_name,
-    label,
-    quantity,
-    unit,
-    unit_price_cents,
-    line_total_cents,
-    custom_quote,
-    metadata
-  )
-  values (
-    quote_version_id_value,
-    event_id_value,
-    'event-asst-label-fixture',
-    'event_staff',
-    'event_staff',
-    'event_staff',
-    1,
-    'hour',
-    3500,
-    3500,
-    false,
-    jsonb_build_object('synthetic', true, 'fixture', 'event_staff_label')
-  )
-  returning id, service_name into item_id_value, normalized_name;
+  for variant in
+    select service_code
+      from (values ('event_staff'), ('event-asst'), ('event_asst')) as v(service_code)
+  loop
+    insert into public.os_quote_items(
+      quote_version_id,
+      event_id,
+      service_id,
+      service_code,
+      service_name,
+      label,
+      quantity,
+      unit,
+      unit_price_cents,
+      line_total_cents,
+      custom_quote,
+      metadata
+    )
+    values (
+      quote_version_id_value,
+      event_id_value,
+      'event-staff-label-fixture-' || replace(variant.service_code, '_', '-') || '-' || gen_random_uuid()::text,
+      variant.service_code,
+      variant.service_code,
+      variant.service_code,
+      1,
+      'hour',
+      3500,
+      3500,
+      false,
+      jsonb_build_object('synthetic', true, 'fixture', 'event_staff_label', 'service_code', variant.service_code)
+    )
+    returning id, service_name into item_id_value, normalized_name;
 
-  if normalized_name <> 'Event Staff' then
-    raise exception 'Event Staff service_name was not normalized. service_name=%', normalized_name;
-  end if;
+    if normalized_name <> 'Event Staff' then
+      raise exception 'Event Staff service_name was not normalized for service_code %. service_name=%', variant.service_code, normalized_name;
+    end if;
+
+    normalized_results := normalized_results || jsonb_build_object(
+      'quote_item_id', item_id_value,
+      'service_code', variant.service_code,
+      'service_name', normalized_name
+    );
+  end loop;
 
   if not has_function_privilege('service_role', 'public.os_normalize_builder_quote_item_service_name()', 'EXECUTE') then
     raise exception 'service_role cannot execute Event Staff normalization helper.';
@@ -96,9 +109,7 @@ begin
   end if;
 
   raise notice 'EVENTSIBLE_EVENT_STAFF_LABEL_SUMMARY %', jsonb_build_object(
-    'quote_item_id', item_id_value,
-    'service_code', 'event_staff',
-    'service_name', normalized_name,
+    'normalized_items', normalized_results,
     'scope', 'future quote-item insert only',
     'production_mutation', false
   );
