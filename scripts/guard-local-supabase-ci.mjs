@@ -39,6 +39,7 @@ function isApprovedProductionRefMention(file) {
     file.endsWith("ecosystem-local-supabase-verify.mjs") ||
     file.endsWith("verify-outbox-helper-grants.mjs") ||
     file.endsWith("verify-builder-outbox-production-quote-shape.mjs") ||
+    file.endsWith("verify-builder-event-staff-label.mjs") ||
     file.endsWith("ecosystem-integration-local-supabase.yml") ||
     /docs[\\/]integrations[\\/]ECOSYSTEM_(INTEGRATION|OUTBOX|BUILDER)_[A-Z0-9_-]+\.md$/.test(file)
   );
