@@ -8,6 +8,7 @@ on:
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
       - fix/builder-outbox-production-quote-lookup
+      - fix/builder-outbox-payload-parity
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
