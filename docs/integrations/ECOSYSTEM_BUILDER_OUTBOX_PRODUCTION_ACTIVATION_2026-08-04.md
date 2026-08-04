@@ -1,11 +1,12 @@
 # Builder Intake-To-Outbox Production Activation - 2026-08-04
 
-- Status: NEEDS VERIFICATION
+- Status: PRODUCTION VERIFIED
 - Repository: `EVENTSible/eventsible-os`
 - Production Supabase project: EVENTSible OS, ref `cplpbzudjprzbnzocirc`
 - EVENTSible OS main commit under activation: `d82ed58f806026b27fe9e5685c938de3ca9d9366`
 - Event Builder Production deployment observed: `dpl_DFZsX5gHRwkD8SLPRrRiyG54tCdV`
 - Event Builder Production URL: `https://build.eventsible.info`
+- Authenticated Admin Leads visual QA: PASSED on 2026-08-04
 - ECC/VINCE and EventsGame: unchanged
 
 ## Scope
@@ -13,6 +14,8 @@
 This activation applied only the reviewed Event Staff code-parity migration and ran one controlled Production Builder QA submission through the normal public Builder flow.
 
 No Event Builder code, ECC/VINCE code, EventsGame data, Vercel environment variables, domains, aliases, outbox consumers, or automatic dispatching were changed.
+
+Outbox processing and external dispatch remain future work. This verification proves intake-to-outbox event creation only.
 
 ## Migration Applied
 
@@ -195,6 +198,8 @@ Payload privacy checks passed:
 - No email pattern detected.
 - No phone pattern detected.
 
+The outbox event was not processed or dispatched during this verification.
+
 ## Idempotency Evidence
 
 No second Production submission replay was attempted because it would create or risk a second client-visible inquiry. Production idempotency is supported by:
@@ -238,24 +243,33 @@ Function execution grants:
 
 ## Admin Leads Visual QA
 
-Authenticated Admin Leads visual QA was not completed in this automated pass because both the in-app browser and Chrome were unauthenticated and stopped at the Staff sign-in screen.
+Authenticated Admin Leads visual QA was completed successfully on 2026-08-04.
 
-Manual staff/admin visual QA still needs to confirm the QA lead displays:
+Verified lead:
 
-- `EVENTSible Outbox Production QA 5`
-- Private Party
-- 2026-08-11
-- 3-hour service length
-- South Bend, IN
-- DJ / MC
-- Selfie Booth with Prints
-- Live Singer as Custom Quote
-- Event Staff
-- Recommended package
-- Subtotal, package savings, travel, and final estimate
-- Quote status
+`EVENTSible Outbox Production QA 5`
 
-Also confirm no duplicate lead, no duplicate services, no raw JSON block, no unnecessary internal IDs, no outbox payload shown, and no secret values.
+Confirmed visual checks:
+
+- Exactly one lead displayed.
+- Private Party event type displayed correctly.
+- Date and time displayed correctly.
+- Event length displayed as 3 hours.
+- South Bend location displayed correctly.
+- DJ/MC displayed.
+- Selfie Booth with Prints displayed.
+- Live Singer remained Custom Quote.
+- Event Staff displayed.
+- Final estimate displayed as `$727`.
+- Travel displayed as `$0`.
+- Package savings and quote status displayed correctly.
+- No duplicate lead existed.
+- No duplicated services existed.
+- No raw JSON displayed.
+- No outbox payload displayed.
+- No unnecessary internal IDs displayed.
+- No secrets displayed.
+- Admin route remained protected when signed out.
 
 ## Recovery Checkpoint
 
@@ -282,13 +296,10 @@ Preserve Builder intake, contacts, leads, events, quotes, activity records, and 
 - Event Staff code-parity migration: APPLIED
 - Controlled Production QA chain/outbox: PASSED
 - RLS/grants/security: PASSED
-- Authenticated Admin Leads visual QA: NEEDS VERIFICATION
-- Ecosystem Integration Foundation: NEEDS VERIFICATION
-
-Do not mark the Ecosystem Integration Foundation `PRODUCTION VERIFIED` until authenticated Admin Leads visual QA is completed and recorded.
+- Authenticated Admin Leads visual QA: PASSED
+- Outbox processing/external dispatch: FUTURE WORK / NOT ACTIVATED
+- Ecosystem Integration Foundation: PRODUCTION VERIFIED
 
 ## Recommended Next Phase
 
-1. Complete the manual authenticated Admin Leads visual QA checklist above.
-2. If Admin visual QA passes, update this document and the Event Builder app-specific documentation to mark the foundation `PRODUCTION VERIFIED`.
-3. After that status is reviewed, begin the next build phase: the `eventsible.info` public homepage and service website foundation.
+Build the `eventsible.info` public homepage and service website foundation.
