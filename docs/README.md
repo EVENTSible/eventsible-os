@@ -3,7 +3,7 @@
 - Status: CANONICAL
 - Owner: EVENTSible
 - Canonical source: EVENTSible OS repository, `docs/`
-- Last verified: 2026-08-04
+- Last verified: 2026-08-05
 - Applies to: EVENTSible ecosystem repositories and app lanes
 - Supersedes: scattered cross-system plans in individual app repositories when they conflict with this hub
 - Related documents: `docs/ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md`, `docs/ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md`, `docs/EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md`
@@ -32,6 +32,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Builder outbox payload parity forward-fix | [ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md) |
 | Builder Event Staff quote label forward-fix | [ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md) |
 | Builder outbox Production activation - PRODUCTION VERIFIED | [ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md) |
+| Builder submission email notifications | [ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md](integrations/ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md) |
 | OS to ECC/VINCE integration | [OS_TO_ECC_VINCE.md](integrations/OS_TO_ECC_VINCE.md) |
 | OS to Client Portal integration | [OS_TO_CLIENT_PORTAL.md](integrations/OS_TO_CLIENT_PORTAL.md) |
 | OS to Content Factory integration | [OS_TO_CONTENT_FACTORY.md](integrations/OS_TO_CONTENT_FACTORY.md) |
@@ -55,7 +56,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Cross-app architecture | `architecture/` |
 | Builder/OS/VINCE/client/shop/content handoffs | `integrations/` |
 | Ecosystem integration contracts and ID foundation | `integrations/ECOSYSTEM_INTEGRATION_FOUNDATION.md` |
-| Outbox Production verification, source parity, Builder intake wiring, containment, quote lookup fix, payload parity fix, Event Staff label fix, and Production activation | `integrations/ECOSYSTEM_OUTBOX_PRODUCTION_VERIFICATION_2026-08-03.md`, `integrations/ECOSYSTEM_OUTBOX_SOURCE_PARITY_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_INTAKE_OUTBOX_WIRING_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_CONTAINMENT_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_OUTBOX_QUOTE_LOOKUP_FIX_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md`, `integrations/ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md`, and `integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md` |
+| Outbox Production verification, source parity, Builder intake wiring, containment, quote lookup fix, payload parity fix, Event Staff label fix, Production activation, and Builder lead email notifications | `integrations/ECOSYSTEM_OUTBOX_PRODUCTION_VERIFICATION_2026-08-03.md`, `integrations/ECOSYSTEM_OUTBOX_SOURCE_PARITY_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_INTAKE_OUTBOX_WIRING_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_CONTAINMENT_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_OUTBOX_QUOTE_LOOKUP_FIX_2026-08-03.md`, `integrations/ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md`, `integrations/ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md`, `integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md`, and `integrations/ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md` |
 | Build order and roadmap | `roadmap/` |
 | Baseline follow-up tasks from this merge | `roadmap/EVENTSIBLE_BASELINE_FOLLOW_UP_TASKS.md` |
 | Locked decisions | `decisions/EVENTSIBLE_DECISION_LOG.md` |

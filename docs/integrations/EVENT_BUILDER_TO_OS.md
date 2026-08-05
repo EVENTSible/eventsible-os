@@ -14,6 +14,8 @@ The confirmed chain is:
 
 Contact -> Builder submission -> Lead -> Event -> Quote draft -> Quote items.
 
+After the chain succeeds, `builder.submission_received` is recorded in the OS integration outbox. Internal staff email notifications are planned through the OS-owned notification worker documented in `ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md`; email sending must remain outside the intake transaction.
+
 ## Current Known Warnings
 
 - Production Admin Leads visual QA still needs a fresh authenticated staff session.
