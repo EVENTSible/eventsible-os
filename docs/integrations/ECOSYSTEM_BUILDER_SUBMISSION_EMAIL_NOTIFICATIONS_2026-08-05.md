@@ -1,6 +1,6 @@
 # Builder Submission Email Notifications - 2026-08-05
 
-- Status: IMPLEMENTED / PREVIEW VERIFICATION PENDING
+- Status: IMPLEMENTED / PREVIEW VERIFIED
 - Repository: `EVENTSible/eventsible-os`
 - Branch: `feat/builder-submission-email-notifications`
 - Trigger source: `builder.submission_received`
@@ -153,7 +153,54 @@ Server-only:
 
 No Resend API key may use a browser-exposed environment prefix.
 
-## Verification Status
+## Preview Verification
+
+Exact-head pull request workflow:
+
+- PR: `EVENTSible/eventsible-os#7`
+- Run ID: `31024258688`
+- Job ID: `92368525134`
+- Result: success
+- Runner: Ubuntu 24.04
+- Docker: available; `hello-world` passed
+- Supabase CLI: `2.111.0`
+- Local Supabase target: localhost only
+
+The workflow verified:
+
+- migration from zero
+- ecosystem integration chain
+- production-shaped quote lookup
+- Event Staff quote label normalization
+- new Builder lead notification delivery log
+- outbox/helper grants
+- contract and email renderer tests
+- lint wrapper with documented inherited GigTracker parse issue
+- build
+- cleanup
+
+Notification-specific CI evidence:
+
+- provider: `resend-dry-run`
+- recipient: `firstfamdjs@gmail.com`
+- status: `dry_run`
+- idempotency key prefix: `builder-lead-email:`
+- outbox unchanged: true
+- RLS: anon/authenticated denied; service_role allowed
+
+Vercel Preview:
+
+- Deployment ID: `dpl_AgjCd6BtD8YUpqGGMPupZN9kF51d`
+- Preview URL: `https://eventsible-jo6mqvnuz-firstfamdjs-5913s-projects.vercel.app`
+- Target: preview
+- Status: READY
+- `/api/health`: HTTP 200, `ok: true`, service `EVENTSible OS Admin`
+- Unauthenticated POST to `/api/internal/builder-lead-notifications`: HTTP 401
+- Runtime logs checked after Preview: no logs found
+
+`npm audit` reported 4 high advisories. The fixes require dependency changes outside this narrow notification phase and were not applied.
+
+## Source Verification Coverage
 
 Local source checks added:
 
@@ -168,7 +215,7 @@ Local source checks added:
 - outbox event unchanged by notification processing
 - delivery-log RLS and service-role-only access in local Supabase CI
 
-Preview deployment and live dry-run evidence must be recorded before this phase may be called Preview verified.
+Preview deployment and dry-run delivery-log evidence are recorded above.
 
 ## Recovery Plan
 
@@ -199,6 +246,6 @@ Later Production sequence must be separately approved:
 
 - Builder intake: LIVE
 - Builder intake-to-outbox event creation: PRODUCTION VERIFIED
-- Internal email notification code: IMPLEMENTED
-- Preview email dry-run: PENDING
+- Internal email notification code: IMPLEMENTED / PREVIEW VERIFIED
+- Preview email dry-run: PASSED
 - Live email sending: NOT ACTIVATED

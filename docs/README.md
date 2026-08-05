@@ -3,7 +3,7 @@
 - Status: CANONICAL
 - Owner: EVENTSible
 - Canonical source: EVENTSible OS repository, `docs/`
-- Last verified: 2026-08-04
+- Last verified: 2026-08-05
 - Applies to: EVENTSible ecosystem repositories and app lanes
 - Supersedes: scattered cross-system plans in individual app repositories when they conflict with this hub
 - Related documents: `docs/ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md`, `docs/ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md`, `docs/EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md`
