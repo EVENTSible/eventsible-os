@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const productionRef = "cplpbzudjprzbnzocirc";
-const roots = [".github", "scripts", "supabase", "src/contracts", "docs/integrations"];
+const roots = [".github", "scripts", "supabase", "src/contracts", "src/lib", "src/app/api", "docs/integrations"];
 const commandRoots = [".github", "scripts"];
 const productionMigrationRoot = "supabase/migrations";
 const historicalBuilderWiringMigration = "20260803223000_builder_submission_outbox_wiring.sql";
@@ -11,6 +11,8 @@ const outboxHelperGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_e
 const builderWiringGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_builder_submission_received_from_activity\s*\(\s*\)\s+to\s+(public|anon|authenticated)\b/i;
 const builderQuoteIdPhysicalReferencePattern = /(\bq|\bos_quote_versions)\.quote_id\b/i;
 const builderActivityQuoteIdPromotionPattern = /quote_id_value\s*:=\s*coalesce\s*\([^;]*activity_quote_id_value/is;
+const resendPublicEnvPattern = new RegExp("\\bVITE_" + "RESEND_API_KEY\\b");
+const notificationDataMutationPattern = /\b(delete\s+from|truncate\s+table)\s+public\.os_notification_deliveries\b/i;
 const forbiddenSupabaseCommands = [
   /supabase\s+link/i,
   /supabase\s+db\s+push/i,
@@ -40,6 +42,8 @@ function isApprovedProductionRefMention(file) {
     file.endsWith("verify-outbox-helper-grants.mjs") ||
     file.endsWith("verify-builder-outbox-production-quote-shape.mjs") ||
     file.endsWith("verify-builder-event-staff-label.mjs") ||
+    file.endsWith("verify-builder-lead-notifications.mjs") ||
+    /src[\\/]lib[\\/]supabase[\\/]config\.ts$/.test(file) ||
     file.endsWith("ecosystem-integration-local-supabase.yml") ||
     /docs[\\/]integrations[\\/](ECOSYSTEM|BUILDER_OUTBOX)_[A-Z0-9_-]+\.md$/.test(file)
   );
@@ -66,11 +70,14 @@ const files = roots.flatMap((root) => {
 });
 
 for (const file of files) {
-  if (!/\.(ya?ml|mjs|js|sql|md|toml)$/.test(file)) continue;
+  if (!/\.(ya?ml|mjs|js|ts|tsx|sql|md|toml)$/.test(file)) continue;
   const content = readFileSync(file, "utf8");
   const mayMentionProductionRef = isApprovedProductionRefMention(file);
   if (content.includes(productionRef) && !mayMentionProductionRef) {
     throw new Error(`Production Supabase ref appears outside approved guard/report files: ${file}`);
+  }
+  if (resendPublicEnvPattern.test(content)) {
+    throw new Error(`Resend API keys must remain server-only; forbidden browser-prefixed Resend key appears in ${file}.`);
   }
   if (isProductionMigration(file)) {
     for (const forbidden of forbiddenProductionMigrationPatterns) {
@@ -83,6 +90,9 @@ for (const file of files) {
     }
     if (builderWiringGrantPattern.test(content)) {
       throw new Error(`Builder outbox wiring function must not be granted to public, anon, or authenticated in ${file}.`);
+    }
+    if (notificationDataMutationPattern.test(content)) {
+      throw new Error(`Notification delivery migrations must not destructively remove delivery records in ${file}.`);
     }
     if (!isHistoricalBuilderWiringMigration(file) && builderQuoteIdPhysicalReferencePattern.test(content)) {
       throw new Error(`Builder outbox quote lookup must not directly reference a physical quote_id column in ${file}.`);

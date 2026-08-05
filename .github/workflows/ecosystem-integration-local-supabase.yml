@@ -24,6 +24,7 @@ on:
       - fix/builder-outbox-payload-parity
       - fix/builder-event-staff-quote-label
       - fix/builder-event-staff-code-parity
+      - feat/builder-submission-email-notifications
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
@@ -121,6 +122,9 @@ jobs:
 
       - name: Verify Event Staff quote label normalization
         run: npm run test:builder-event-staff-label
+
+      - name: Verify Builder lead notification delivery log
+        run: npm run test:builder-lead-notifications
 
       - name: Verify outbox helper grants
         run: npm run test:outbox-helper-grants

@@ -1,0 +1,204 @@
+# Builder Submission Email Notifications - 2026-08-05
+
+- Status: IMPLEMENTED / PREVIEW VERIFICATION PENDING
+- Repository: `EVENTSible/eventsible-os`
+- Branch: `feat/builder-submission-email-notifications`
+- Trigger source: `builder.submission_received`
+- Recipient: `firstfamdjs@gmail.com`
+- Temporary sender: `EVENTSible Leads <thepartys@updates.eventsible.info>`
+- Desired eventual sender: `EVENTSible Leads <thepartys@eventsible.info>`
+- ECC/VINCE and EventsGame: unchanged
+
+## Scope
+
+This phase adds a narrow internal email notification worker for successful Event Builder submissions. It does not modify Event Builder behavior, ECC/VINCE, EventsGame, Production Supabase data, public DNS, Vercel Production environment variables, or live outbox dispatching.
+
+Email delivery is intentionally outside `public.os_ingest_builder_submission(jsonb)`. A Resend outage must not roll back a successful Builder intake or show a customer-facing failure.
+
+## Sender Domain Findings
+
+Resend account inspection on 2026-08-05 found one verified sending domain:
+
+- `updates.eventsible.info`: verified, sending enabled, receiving disabled, open/click tracking disabled.
+
+`eventsible.info` is not currently listed as a verified Resend sending domain. Public DNS inspection showed the root domain uses Porkbun forwarding MX records, one root SPF TXT for Porkbun, and a root DMARC TXT. Root-domain Resend verification should be handled later with the exact account-generated DNS records and must not create a second SPF TXT record at the same hostname.
+
+Until root sending is explicitly verified, the safe sender is:
+
+`EVENTSible Leads <thepartys@updates.eventsible.info>`
+
+## Architecture
+
+The worker processes existing `os_integration_outbox` rows where:
+
+- `event_type = builder.submission_received`
+- `payload_version = builder_submission_received_v1`
+- `source_application = eventsible-event-builder`
+
+It uses server-only Supabase service-role access and a server-only Resend API key. Resend is never called from the public browser and no browser-exposed Resend key is allowed.
+
+The protected internal route is:
+
+`/api/internal/builder-lead-notifications`
+
+It requires `EVENTSIBLE_NOTIFICATION_WORKER_SECRET` through an authorization header or worker header. If the secret is absent or incorrect, the route refuses the request.
+
+## Delivery Log
+
+Migration candidate:
+
+`supabase/migrations/20260805170000_builder_submission_email_notifications.sql`
+
+It creates only:
+
+- `public.os_notification_deliveries`
+- supporting indexes
+- RLS enabled
+- service-role-only policy and grants
+
+Tracked fields include:
+
+- `builder_submission_id`
+- `notification_key`
+- `notification_type`
+- `recipient_email`
+- `provider`
+- `provider_message_id`
+- `status`
+- `attempt_count`
+- `max_attempts`
+- `last_safe_error`
+- `next_attempt_at`
+- `sent_at`
+- timestamps
+
+The table does not store email API keys, full customer payloads, raw outbox payloads, or customer-facing secrets.
+
+## Idempotency
+
+The deterministic notification key is:
+
+`builder-lead-email:<builder_submission_id>`
+
+`public.os_notification_deliveries.notification_key` is unique. A sent or dry-run delivery causes later worker runs to skip the same Builder submission. Retry rows are not retried before `next_attempt_at`, and final failed rows are not retried automatically.
+
+## Retry Policy
+
+Default maximum attempts: `5`.
+
+Retry delay uses bounded exponential backoff:
+
+- attempt 1: about 5 minutes
+- attempt 2: about 10 minutes
+- attempt 3: about 20 minutes
+- attempt 4+: capped at about 60 minutes
+
+Failures store only sanitized error text. Notification failure does not mutate or roll back the Builder submission chain and does not change the integration outbox event.
+
+## Email Content
+
+The internal email includes HTML and plain-text versions with:
+
+- Client name
+- Email
+- Phone
+- Preferred contact method
+- Best contact time
+- Event type
+- Event date and confidence
+- Start/end time or duration
+- City and state
+- Planning stage
+- Selected services
+- Recommended package tier
+- Subtotal
+- Package savings
+- Travel
+- Final estimate
+- Custom Quote items
+- Lead/source label
+- Protected Admin Leads link
+
+The Admin link is:
+
+`https://build.eventsible.info/admin`
+
+The email excludes raw JSON, auth tokens, service-role values, database passwords, full outbox payloads, and unnecessary private metadata. Reply-To is included only when the lead email is present and valid.
+
+## Builder Usage Event Plan
+
+This phase sends only on submitted Builder leads, derived from `builder.submission_received`.
+
+Future usage events may include:
+
+- `builder.opened`
+- `builder.started`
+- `builder.contact_entered`
+- `builder.submitted`
+
+No real-time email should be sent for opens or page views. Contact details typed before submission should not be stored without a separately approved abandoned-builder policy. A later daily usage digest is preferred over real-time “opened Builder” alerts.
+
+## Environment Variables
+
+Server-only:
+
+- `RESEND_API_KEY`
+- `EVENTSIBLE_NOTIFICATION_WORKER_SECRET`
+- `EVENTSIBLE_LEAD_NOTIFICATION_TO`
+- `EVENTSIBLE_LEAD_NOTIFICATION_FROM`
+- `EVENTSIBLE_LEAD_NOTIFICATION_DRY_RUN`
+- `EVENTSIBLE_LEAD_NOTIFICATION_MAX_ATTEMPTS`
+- `EVENTSIBLE_ADMIN_LEADS_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+No Resend API key may use a browser-exposed environment prefix.
+
+## Verification Status
+
+Local source checks added:
+
+- email rendering with HTML and text
+- currency formatting
+- Custom Quote formatting
+- Date TBD formatting
+- Reply-To omission for missing or invalid lead email
+- duplicate-send prevention after success
+- retry and final-failure status behavior
+- safe provider error sanitization
+- outbox event unchanged by notification processing
+- delivery-log RLS and service-role-only access in local Supabase CI
+
+Preview deployment and live dry-run evidence must be recorded before this phase may be called Preview verified.
+
+## Recovery Plan
+
+If notification delivery causes problems after a later Production activation:
+
+1. Disable the scheduled caller or remove the worker secret from the runtime environment.
+2. Keep Builder intake active.
+3. Preserve existing `os_notification_deliveries` rows for audit.
+4. Preserve existing `os_integration_outbox` rows.
+5. Forward-fix the worker or delivery-log schema.
+6. Do not delete contacts, leads, events, quotes, submissions, activities, or outbox rows.
+
+## Production Authorization Gate
+
+No Production action is authorized by this branch.
+
+Later Production sequence must be separately approved:
+
+1. Review and merge this branch.
+2. Apply only the notification delivery-log migration.
+3. Configure server-only Vercel environment variables without printing values.
+4. Verify the protected worker route refuses unauthenticated requests.
+5. Run one controlled dry-run or test-recipient notification from an existing synthetic Builder outbox event.
+6. Confirm one delivery log row and no duplicate sends.
+7. Only then enable real Resend sending for Builder lead notifications.
+
+## Classification
+
+- Builder intake: LIVE
+- Builder intake-to-outbox event creation: PRODUCTION VERIFIED
+- Internal email notification code: IMPLEMENTED
+- Preview email dry-run: PENDING
+- Live email sending: NOT ACTIVATED
