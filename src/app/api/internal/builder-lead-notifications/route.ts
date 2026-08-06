@@ -24,6 +24,21 @@ async function single<T>(query: PromiseLike<{ data: T | null; error: { message: 
   return data;
 }
 
+function centsFromAmount(value: unknown) {
+  const amount = typeof value === "number" ? value : Number.parseFloat(String(value ?? ""));
+  return Number.isFinite(amount) ? Math.round(amount * 100) : undefined;
+}
+
+function normalizeQuoteVersion(row: Record<string, unknown>) {
+  return {
+    ...row,
+    subtotal_cents: centsFromAmount(row.subtotal),
+    package_savings_cents: centsFromAmount(row.discount_amount),
+    travel_cents: centsFromAmount(row.travel_amount),
+    total_cents: centsFromAmount(row.total_amount),
+  };
+}
+
 async function loadChain(supabase: ReturnType<typeof createAdminSupabase>, related: Record<string, string>) {
   const builderSubmissionId = related.builder_submission_id;
   const eventId = related.event_id;
@@ -33,7 +48,7 @@ async function loadChain(supabase: ReturnType<typeof createAdminSupabase>, relat
 
   const [submission, contact, event, lead, quoteVersion, quoteItems] = await Promise.all([
     single(
-      supabase.from("os_builder_submissions").select("id,contact_id,event_id,normalized_payload,submitted_from,submitted_at").eq("id", builderSubmissionId).maybeSingle(),
+      supabase.from("os_builder_submissions").select("id,contact_id,normalized_payload,submitted_from,created_at").eq("id", builderSubmissionId).maybeSingle(),
       "Builder submission",
     ),
     single(
@@ -49,12 +64,12 @@ async function loadChain(supabase: ReturnType<typeof createAdminSupabase>, relat
       "Lead",
     ),
     single(
-      supabase.from("os_quote_versions").select("id,subtotal_cents,package_savings_cents,travel_cents,total_cents,currency").eq("id", quoteVersionId).maybeSingle(),
+      supabase.from("os_quote_versions").select("id,subtotal,discount_amount,travel_amount,total_amount,currency").eq("id", quoteVersionId).maybeSingle(),
       "Quote version",
     ),
     supabase
       .from("os_quote_items")
-      .select("id,service_code,service_name,label,custom_quote,line_total_cents")
+      .select("id,service_code,service_name,line_total,metadata")
       .eq("quote_version_id", quoteVersionId)
       .order("created_at", { ascending: true }),
   ]);
@@ -66,7 +81,7 @@ async function loadChain(supabase: ReturnType<typeof createAdminSupabase>, relat
     contact,
     event,
     lead,
-    quoteVersion,
+    quoteVersion: normalizeQuoteVersion(quoteVersion as Record<string, unknown>),
     quoteItems: quoteItems.data ?? [],
   };
 }
