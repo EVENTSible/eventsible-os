@@ -33,6 +33,7 @@ yarn-error.log*
 # env files
 .env*
 worker-secret.txt
+dry-run-worker.ps1
 
 # vercel
 .vercel

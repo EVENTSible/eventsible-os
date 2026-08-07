@@ -32,7 +32,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Builder outbox payload parity forward-fix | [ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_PAYLOAD_PARITY_FIX_2026-08-04.md) |
 | Builder Event Staff quote label forward-fix | [ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_EVENT_STAFF_LABEL_FIX_2026-08-04.md) |
 | Builder outbox Production activation - PRODUCTION VERIFIED | [ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md](integrations/ECOSYSTEM_BUILDER_OUTBOX_PRODUCTION_ACTIVATION_2026-08-04.md) |
-| Builder submission email notifications | [ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md](integrations/ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md) |
+| Builder submission email notifications - PRODUCTION VERIFIED | [ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md](integrations/ECOSYSTEM_BUILDER_SUBMISSION_EMAIL_NOTIFICATIONS_2026-08-05.md) |
 | OS to ECC/VINCE integration | [OS_TO_ECC_VINCE.md](integrations/OS_TO_ECC_VINCE.md) |
 | OS to Client Portal integration | [OS_TO_CLIENT_PORTAL.md](integrations/OS_TO_CLIENT_PORTAL.md) |
 | OS to Content Factory integration | [OS_TO_CONTENT_FACTORY.md](integrations/OS_TO_CONTENT_FACTORY.md) |

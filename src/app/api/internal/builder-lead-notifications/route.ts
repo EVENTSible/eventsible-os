@@ -6,6 +6,7 @@ import {
   resolveNotificationConfig,
   sendWithResend,
 } from "@/lib/notifications/builder-lead-email.mjs";
+import { collectActionableNotificationCandidates } from "@/lib/notifications/builder-lead-queue.mjs";
 
 export const runtime = "nodejs";
 
@@ -89,53 +90,41 @@ async function loadChain(supabase: ReturnType<typeof createAdminSupabase>, relat
 async function processPending(limit = 5) {
   const supabase = createAdminSupabase();
   const config = resolveNotificationConfig();
-  const { data: outboxEvents, error } = await supabase
-    .from("os_integration_outbox")
-    .select("id,event_type,payload_version,source_application,related_record_ids,payload,status,created_at")
-    .eq("event_type", "builder.submission_received")
-    .in("status", ["pending", "retry"])
-    .order("created_at", { ascending: true })
-    .limit(limit);
+  const selection = await collectActionableNotificationCandidates({
+    limit,
+    batchSize: 25,
+    fetchOutboxBatch: async ({ offset, limit: batchLimit }: { offset: number; limit: number }) => {
+      const { data, error } = await supabase
+        .from("os_integration_outbox")
+        .select("id,event_type,payload_version,source_application,related_record_ids,payload,status,created_at")
+        .eq("event_type", "builder.submission_received")
+        .in("status", ["pending", "retry"])
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + batchLimit - 1);
 
-  if (error) throw new Error("Outbox lookup failed.");
+      if (error) throw new Error("Outbox lookup failed.");
+      return data ?? [];
+    },
+    fetchDeliveriesByNotificationKeys: async (notificationKeys: string[]) => {
+      const { data, error } = await supabase
+        .from("os_notification_deliveries")
+        .select("notification_key,status,attempt_count,max_attempts,next_attempt_at")
+        .in("notification_key", notificationKeys);
+
+      if (error) throw new Error("Notification delivery lookup failed.");
+      return data ?? [];
+    },
+  });
 
   const results = [];
-  for (const outboxEvent of outboxEvents ?? []) {
-    const builderSubmissionId = outboxEvent.related_record_ids?.builder_submission_id;
-    if (!builderSubmissionId) {
-      results.push({ outbox_event_id: outboxEvent.id, status: "skipped", reason: "missing builder_submission_id" });
-      continue;
-    }
-
-    const notificationKey = `builder-lead-email:${builderSubmissionId}`;
-    const existingResult = await supabase
-      .from("os_notification_deliveries")
-      .select("status,attempt_count,max_attempts,next_attempt_at")
-      .eq("notification_key", notificationKey)
-      .maybeSingle();
-
-    if (existingResult.error) throw new Error("Notification delivery lookup failed.");
-    if (existingResult.data?.status === "sent" || existingResult.data?.status === "dry_run") {
-      results.push({ outbox_event_id: outboxEvent.id, status: "skipped" });
-      continue;
-    }
-    if (existingResult.data?.status === "failed") {
-      results.push({ outbox_event_id: outboxEvent.id, status: "failed" });
-      continue;
-    }
-    if (
-      existingResult.data?.next_attempt_at &&
-      new Date(existingResult.data.next_attempt_at).getTime() > Date.now()
-    ) {
-      results.push({ outbox_event_id: outboxEvent.id, status: "retry_scheduled" });
-      continue;
-    }
-
+  for (const candidate of selection.actionable) {
+    const { outboxEvent, existingDelivery, notificationKey } = candidate;
     const chain = await loadChain(supabase, outboxEvent.related_record_ids);
     const result = await processBuilderLeadOutboxEvent({
       outboxEvent,
       chain,
-      existingDelivery: existingResult.data,
+      existingDelivery,
       config,
       sendEmail: sendWithResend,
       recordDelivery: async (record: Record<string, unknown>) => {
@@ -160,7 +149,11 @@ async function processPending(limit = 5) {
     });
   }
 
-  return results;
+  return {
+    scanned: selection.scanned,
+    skipped: selection.skipped,
+    results,
+  };
 }
 
 export async function POST(request: Request) {
@@ -171,12 +164,14 @@ export async function POST(request: Request) {
   try {
     const requestedLimit = Number(new URL(request.url).searchParams.get("limit") || "5");
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 25) : 5;
-    const results = await processPending(limit);
+    const pending = await processPending(limit);
 
     return NextResponse.json({
       ok: true,
-      processed: results.length,
-      results,
+      scanned: pending.scanned,
+      processed: pending.results.length,
+      skipped: pending.skipped,
+      results: pending.results,
     });
   } catch {
     return NextResponse.json({ ok: false, error: "Notification worker failed safely." }, { status: 500 });
