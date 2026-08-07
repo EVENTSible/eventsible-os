@@ -228,9 +228,9 @@ If notification delivery causes problems after a later Production activation:
 5. Forward-fix the worker or delivery-log schema.
 6. Do not delete contacts, leads, events, quotes, submissions, activities, or outbox rows.
 
-## Production Authorization Gate
+## Historical Production Authorization Gate
 
-No Production action is authorized by this branch.
+This gate is historical. The later approved Production activation, controlled real-send verification, and queue-selection hardening verification are recorded below.
 
 Later Production sequence must be separately approved:
 
@@ -311,10 +311,54 @@ Actionable states:
 
 The worker response now distinguishes raw scanning from actionable attempts with `scanned`, `processed`, and `skipped` counts. `processed` means actionable events attempted by this worker call, not terminal rows inspected and skipped.
 
+### Production Closeout
+
+PR #9 was merged to `main` and deployed to Production.
+
+- Merge commit: `c17a47de2a66b69b3ea4e7a827e25e39fb3f1f31`
+- Original queue-fix Production deployment: `dpl_9ejTwQDTLW5W2y8H2NRRLCA6XwuW`
+- Final post-secret-rotation Production verification deployment: `dpl_9fzuJeP4TMb6yMKikvWnHkFp9CT1`
+- Final verification URL: `https://eventsible-djfdksoy7-firstfamdjs-5913s-projects.vercel.app`
+- Production `/api/health`: HTTP 200, `ok: true`, service `EVENTSible OS Admin`
+
+Final protected Production worker verification was completed on 2026-08-07 after rotating only `EVENTSIBLE_NOTIFICATION_WORKER_SECRET` and redeploying the same merged source commit. `EVENTSIBLE_LEAD_NOTIFICATION_DRY_RUN` remained `false`.
+
+Read-only precheck before the worker call:
+
+- Actionable Builder notification count: `0`
+- Notification delivery rows: `8`
+- Delivery statuses: `7 dry_run`, `1 sent`
+- Duplicate `notification_key` rows: `0`
+- Resend sent-email count before verification: `5`
+
+Exactly one authenticated Production request was made:
+
+- Route: `POST /api/internal/builder-lead-notifications?limit=1`
+- HTTP status: `200`
+- `ok`: `true`
+- `scanned`: `8`
+- `skipped`: `8`
+- `processed`: `0`
+- Result rows: `0`
+
+Post-request read-only verification:
+
+- Resend sent-email count after verification: `5`
+- New email sent: no
+- Notification delivery rows remained: `8`
+- Delivery statuses remained: `7 dry_run`, `1 sent`
+- Duplicate `notification_key` rows remained: `0`
+- Controlled sent notification remained unchanged.
+- No new `sent` delivery row was created.
+- No manual Production database mutation was performed.
+
+This proves terminal notification rows are scanned and skipped without consuming the actionable processing limit. The underlying `os_integration_outbox` rows remain intentionally unchanged for future consumers. `os_notification_deliveries` remains the notification consumer and idempotency record.
+
 ## Classification
 - Builder intake: LIVE
 - Builder intake-to-outbox event creation: PRODUCTION VERIFIED
 - Internal email notification code: LIVE / PRODUCTION VERIFIED
 - Production dry-run: PASSED
+- Controlled real Production email: DELIVERED / PRODUCTION VERIFIED
 - Live internal email sending: PRODUCTION VERIFIED
-- Queue-selection hardening: IMPLEMENTED / PREVIEW VERIFIED pending merge and Production worker verification
+- Actionable queue selection: PRODUCTION VERIFIED
