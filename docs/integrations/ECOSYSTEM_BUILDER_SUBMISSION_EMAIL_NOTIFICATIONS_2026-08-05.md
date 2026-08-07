@@ -1,6 +1,6 @@
 # Builder Submission Email Notifications - 2026-08-05
 
-- Status: IMPLEMENTED / PREVIEW VERIFIED
+- Status: LIVE / PRODUCTION VERIFIED
 - Repository: `EVENTSible/eventsible-os`
 - Branch: `feat/builder-submission-email-notifications`
 - Trigger source: `builder.submission_received`
@@ -136,7 +136,7 @@ Future usage events may include:
 - `builder.contact_entered`
 - `builder.submitted`
 
-No real-time email should be sent for opens or page views. Contact details typed before submission should not be stored without a separately approved abandoned-builder policy. A later daily usage digest is preferred over real-time “opened Builder” alerts.
+No real-time email should be sent for opens or page views. Contact details typed before submission should not be stored without a separately approved abandoned-builder policy. A later daily usage digest is preferred over real-time "opened Builder" alerts.
 
 ## Environment Variables
 
@@ -256,10 +256,65 @@ The branch keeps the worker protected and dry-run gated, makes the worker select
 
 No Production worker retry, real email, environment change, Event Builder change, ECC/VINCE change, or database migration is included in this source fix. A new Preview and final Production dry-run remain separate gates.
 
-## Classification
 
+## Production Activation - 2026-08-07
+
+Production verification completed for the internal Builder lead notification flow after the Production-schema worker forward-fix was merged.
+
+Verified evidence:
+
+- Controlled real-send outbox event: `a0395959-9809-4cc4-b5ff-9b4e039a07e1`
+- Controlled real-send Builder submission: `6ddab5d3-3fb1-4860-acfd-a1bf41742d10`
+- Delivery status: `sent`
+- Recipient: `firstfamdjs@gmail.com`
+- Attempt count: `1`
+- Duplicate delivery row: none
+- Protected worker authentication: PASSED
+- Production dry-run: PASSED
+- Queue drain dry-runs for older synthetic events: PASSED
+- One controlled real Production email: DELIVERED
+- Resend delivery: VERIFIED
+- Production `os_notification_deliveries` readback: VERIFIED
+
+The notification remains an internal staff email only. It is not a customer autoresponder, abandoned-Builder message, daily digest, or broad outbox consumer.
+
+## Queue Starvation Hardening - 2026-08-07
+
+Production verification exposed a queue-selection bug in the worker, not in Builder intake or outbox creation.
+
+Root cause:
+
+The worker selected the oldest raw `builder.submission_received` outbox rows using the requested `limit`, then checked `os_notification_deliveries` afterward. Because outbox rows intentionally remain pending for future consumers, an old row with terminal notification state such as `dry_run` or `sent` could consume `?limit=1` forever and prevent the next actionable notification from being reached.
+
+Forward-fix:
+
+- Treat `limit` as the number of actionable notifications to process.
+- Scan pending/retry `builder.submission_received` outbox rows in deterministic oldest-first batches.
+- Resolve notification keys in batches instead of one delivery lookup per candidate.
+- Skip terminal notification states without consuming the actionable limit.
+- Skip retry rows whose `next_attempt_at` is still in the future without blocking later events.
+- Preserve eligible retry rows whose `next_attempt_at` is due.
+- Preserve `builder-lead-email:<builder_submission_id>` idempotency.
+- Preserve `os_integration_outbox` rows unchanged for future consumers.
+- Preserve `os_notification_deliveries` as the notification consumer/idempotency state.
+
+Terminal notification states for this worker:
+
+- `sent`
+- `dry_run`
+- `failed`
+
+Actionable states:
+
+- no delivery row
+- retry delivery row whose `next_attempt_at` is due
+
+The worker response now distinguishes raw scanning from actionable attempts with `scanned`, `processed`, and `skipped` counts. `processed` means actionable events attempted by this worker call, not terminal rows inspected and skipped.
+
+## Classification
 - Builder intake: LIVE
 - Builder intake-to-outbox event creation: PRODUCTION VERIFIED
-- Internal email notification code: IMPLEMENTED / PREVIEW VERIFIED; Production dry-run forward-fix in progress
-- Preview email dry-run: PASSED
-- Live email sending: NOT ACTIVATED
+- Internal email notification code: LIVE / PRODUCTION VERIFIED
+- Production dry-run: PASSED
+- Live internal email sending: PRODUCTION VERIFIED
+- Queue-selection hardening: IMPLEMENTED / PREVIEW VERIFIED pending merge and Production worker verification
