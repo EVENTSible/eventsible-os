@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   buildBuilderLeadEmail,
   createNotificationKey,
@@ -111,6 +112,49 @@ test("builds branded HTML and plain-text internal lead email", () => {
   assert.match(email.html, /Open protected Admin Leads/);
   assert.match(email.text, /https:\/\/build\.eventsible\.info\/admin/);
   assert.doesNotMatch(email.text + email.html, /raw_payload|service_role|password|token|outbox payload/i);
+});
+
+test("renders Production-shaped quote records without unsupported cent columns", () => {
+  const { outboxEvent, chain } = fixture();
+  chain.quoteVersion = {
+    id: outboxEvent.related_record_ids.quote_version_id,
+    subtotal: "790",
+    discount_amount: "63",
+    travel_amount: "0",
+    total_amount: "727",
+    currency: "USD",
+  };
+  chain.quoteItems = [
+    { service_code: "dj_mc", service_name: "DJ/MC" },
+    { service_code: "selfie_booth_prints", service_name: "Selfie Booth with Prints" },
+    { service_code: "live_performer", service_name: "Live Singer" },
+    { service_code: "event_staff", service_name: "Event Staff" },
+  ];
+
+  const email = buildBuilderLeadEmail({ outboxEvent, chain, config });
+
+  assert.match(email.text, /Subtotal: \$790/);
+  assert.match(email.text, /Package savings: -\$63/);
+  assert.match(email.text, /Travel: \$0/);
+  assert.match(email.text, /Final estimate: \$727/);
+  assert.match(email.text, /Live Singer \(Custom Quote\)/);
+});
+
+test("worker route avoids Production-missing select columns", () => {
+  const routeSource = readFileSync(
+    new URL("../../app/api/internal/builder-lead-notifications/route.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(routeSource, /os_builder_submissions"\)\.select\("[^"]*\bevent_id\b/);
+  assert.doesNotMatch(routeSource, /os_builder_submissions"\)\.select\("[^"]*\bsubmitted_at\b/);
+  assert.doesNotMatch(routeSource, /os_quote_versions"\)\.select\("[^"]*\bsubtotal_cents\b/);
+  assert.doesNotMatch(routeSource, /os_quote_versions"\)\.select\("[^"]*\bpackage_savings_cents\b/);
+  assert.doesNotMatch(routeSource, /os_quote_versions"\)\.select\("[^"]*\btravel_cents\b/);
+  assert.doesNotMatch(routeSource, /os_quote_versions"\)\.select\("[^"]*\btotal_cents\b/);
+  assert.doesNotMatch(routeSource, /os_quote_items"\)\s*\.select\("[^"]*\blabel\b/);
+  assert.doesNotMatch(routeSource, /os_quote_items"\)\s*\.select\("[^"]*\bcustom_quote\b/);
+  assert.doesNotMatch(routeSource, /os_quote_items"\)\s*\.select\("[^"]*\bline_total_cents\b/);
 });
 
 test("omits Reply-To when the client email is missing or invalid", () => {

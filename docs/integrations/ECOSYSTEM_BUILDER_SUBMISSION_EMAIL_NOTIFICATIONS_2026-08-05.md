@@ -242,10 +242,24 @@ Later Production sequence must be separately approved:
 6. Confirm one delivery log row and no duplicate sends.
 7. Only then enable real Resend sending for Builder lead notifications.
 
+## Production Dry-Run Compatibility Follow-Up - 2026-08-06
+
+The first authenticated Production dry-run request reached the protected worker and returned HTTP 500. The worker did not create a delivery row and Resend showed no new email, so no real notification was sent.
+
+Safe schema readback identified the failure class: the worker route selected several columns that are not present in the current Production schema, including Builder submission `event_id` / `submitted_at`, quote-version cent columns, and quote-item `label` / `custom_quote` / `line_total_cents`.
+
+Forward-fix branch:
+
+`fix/builder-lead-notification-production-schema`
+
+The branch keeps the worker protected and dry-run gated, makes the worker select only Production-supported columns, derives cent values from the existing dollar-shaped quote fields, preserves Custom Quote labeling from outbox payload service codes, and adds source tests that fail if unsupported Production-missing select columns return.
+
+No Production worker retry, real email, environment change, Event Builder change, ECC/VINCE change, or database migration is included in this source fix. A new Preview and final Production dry-run remain separate gates.
+
 ## Classification
 
 - Builder intake: LIVE
 - Builder intake-to-outbox event creation: PRODUCTION VERIFIED
-- Internal email notification code: IMPLEMENTED / PREVIEW VERIFIED
+- Internal email notification code: IMPLEMENTED / PREVIEW VERIFIED; Production dry-run forward-fix in progress
 - Preview email dry-run: PASSED
 - Live email sending: NOT ACTIVATED

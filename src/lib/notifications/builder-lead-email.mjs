@@ -65,17 +65,32 @@ function centsFromValue(value) {
   return Number.isFinite(numeric) ? Math.round(numeric * 100) : 0;
 }
 
+const QUOTE_AMOUNT_ALIASES = {
+  subtotal_cents: ["subtotal"],
+  package_savings_cents: ["package_savings", "discount_amount"],
+  travel_cents: ["travel", "travel_amount"],
+  total_cents: ["total", "total_amount"],
+};
+
 function quoteCents(quoteVersion, outboxPayload, name) {
-  return Number.isFinite(outboxPayload?.[name])
-    ? outboxPayload[name]
-    : Number.isFinite(quoteVersion?.[name])
-      ? quoteVersion[name]
-      : centsFromValue(quoteVersion?.[name.replace("_cents", "")]);
+  if (Number.isFinite(outboxPayload?.[name])) return outboxPayload[name];
+  if (Number.isFinite(quoteVersion?.[name])) return quoteVersion[name];
+
+  for (const alias of QUOTE_AMOUNT_ALIASES[name] ?? [name.replace("_cents", "")]) {
+    if (quoteVersion?.[alias] !== undefined && quoteVersion?.[alias] !== null) {
+      return centsFromValue(quoteVersion[alias]);
+    }
+  }
+
+  return 0;
 }
 
-function serviceLabel(item) {
+function serviceLabel(item, customQuoteCodes = new Set()) {
   const label = coalesce(item.service_name, item.name, item.label, item.service_code, item.code, "Custom service");
-  return item.custom_quote ? `${label} (Custom Quote)` : label;
+  const serviceCode = coalesce(item.service_code, item.code, item.id);
+  const metadata = item.metadata && typeof item.metadata === "object" ? item.metadata : {};
+  const customQuote = item.custom_quote || metadata.custom_quote || customQuoteCodes.has(serviceCode);
+  return customQuote ? `${label} (Custom Quote)` : label;
 }
 
 export function buildBuilderLeadEmail({ chain, outboxEvent, config = resolveNotificationConfig() }) {
@@ -103,11 +118,14 @@ export function buildBuilderLeadEmail({ chain, outboxEvent, config = resolveNoti
   const state = coalesce(venue.state, event.venue_state, normalized.state, "");
   const planningStage = coalesce(normalized.planning_stage, outboxPayload.planning_stage, lead.status, "Not specified");
   const packageTier = coalesce(normalized.recommended_package?.tier, outboxPayload.selected_package_tier, "Not selected");
-  const subtotalCents = Number.isFinite(quoteVersion.subtotal_cents) ? quoteVersion.subtotal_cents : centsFromValue(pricing.subtotal);
+  const subtotalCents = quoteCents(quoteVersion, outboxPayload, "subtotal_cents") || centsFromValue(pricing.subtotal);
   const packageSavingsCents = quoteCents(quoteVersion, outboxPayload, "package_savings_cents") || centsFromValue(pricing.package_savings);
   const travelCents = quoteCents(quoteVersion, outboxPayload, "travel_cents") || centsFromValue(pricing.travel_fee);
   const totalCents = quoteCents(quoteVersion, outboxPayload, "total_cents") || centsFromValue(pricing.estimated_total);
-  const selectedServices = quoteItems.length ? quoteItems.map(serviceLabel) : asArray(normalized.selected_services).map(serviceLabel);
+  const customQuoteCodes = new Set(asArray(outboxPayload.custom_quote_service_codes).map(String));
+  const selectedServices = quoteItems.length
+    ? quoteItems.map((item) => serviceLabel(item, customQuoteCodes))
+    : asArray(normalized.selected_services).map((item) => serviceLabel(item, customQuoteCodes));
   const customQuoteItems = selectedServices.filter((label) => /custom quote/i.test(label));
   const preferredContact = coalesce(contact.preferred_channel, contactPayload.preferred_contact_method, "Not specified");
   const bestContactTime = coalesce(contactPayload.best_contact_time, normalized.best_contact_time, "Not specified");

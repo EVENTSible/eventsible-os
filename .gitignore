@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files
 .env*
+worker-secret.txt
 
 # vercel
 .vercel
