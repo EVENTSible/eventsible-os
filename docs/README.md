@@ -3,12 +3,28 @@
 - Status: CANONICAL
 - Owner: EVENTSible
 - Canonical source: EVENTSible OS repository, `docs/`
-- Last verified: 2026-08-07
+- Last verified: 2026-08-13
 - Applies to: EVENTSible ecosystem repositories and app lanes
 - Supersedes: scattered cross-system plans in individual app repositories when they conflict with this hub
 - Related documents: `docs/ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md`, `docs/ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md`, `docs/EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md`
 
 This folder is the source of truth for cross-system EVENTSible documentation. App repositories may keep app-specific setup, status, and implementation docs, but ecosystem ownership, domain routing, roadmap order, and system-of-record decisions belong here.
+
+## Current Production Release Evidence
+
+- Status: LIVE / PRODUCTION VERIFIED
+- Verified at: 2026-08-13
+- `eventsible.app`: LIVE / PRODUCTION VERIFIED with healthy SSL
+- ECC / VINCE comic experience: LIVE
+- ECC final `master` SHA: `1d31fb1168df08bb0a775ba54b699953f0f84cad`
+- ECC Production deployment: `dpl_EdWFPwdYRPDBHgew3dRypCQX6Y6L`
+- `eventsible.info` Play / Connect: LIVE
+- Play / Connect destination: `https://eventsible.app`
+- Builder navigation escape/back improvements: LIVE in public `main`
+- Public Production deployment: `dpl_43T7hQbgNaVUMiivo9u5JeyZtQfr`
+- Public final `main` SHA: `f9d788f17272bb6748efa79d137f63ce65c21833`
+- Host protection remains intact.
+- ECC Player tabs remain exactly: Main, Tools, Info.
 
 ## Canonical Document Map
 
