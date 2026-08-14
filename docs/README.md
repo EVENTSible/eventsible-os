@@ -3,7 +3,7 @@
 - Status: CANONICAL
 - Owner: EVENTSible
 - Canonical source: EVENTSible OS repository, `docs/`
-- Last verified: 2026-08-13
+- Last verified: 2026-08-14
 - Applies to: EVENTSible ecosystem repositories and app lanes
 - Supersedes: scattered cross-system plans in individual app repositories when they conflict with this hub
 - Related documents: `docs/ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md`, `docs/ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md`, `docs/EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md`
@@ -13,16 +13,23 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 ## Current Production Release Evidence
 
 - Status: LIVE / PRODUCTION VERIFIED
-- Verified at: 2026-08-13
+- Verified at: 2026-08-14
 - `eventsible.app`: LIVE / PRODUCTION VERIFIED with healthy SSL
-- ECC / VINCE comic experience: LIVE
+- ECC / VINCE comic experience: LIVE / PRODUCTION VERIFIED
 - ECC final `master` SHA: `1d31fb1168df08bb0a775ba54b699953f0f84cad`
 - ECC Production deployment: `dpl_EdWFPwdYRPDBHgew3dRypCQX6Y6L`
+- `eventsible.info`: PRODUCTION VERIFIED
+- Public Production deployment: `dpl_6hrXt2ouaYp3iaDy6m5oVdS9FUQb`
+- Public final `main` SHA: `26a49f80bd47b68920d9c78cd4345545bafc2d9e`
+- `build.eventsible.info`: PRODUCTION VERIFIED
+- Builder Production deployment: `dpl_GdQPEB2geX2h7ur2Muvpdfy87Q7Q`
+- Builder Git source: `main`
+- Builder SHA: `26a49f80bd47b68920d9c78cd4345545bafc2d9e`
 - `eventsible.info` Play / Connect: LIVE
 - Play / Connect destination: `https://eventsible.app`
 - Builder navigation escape/back improvements: LIVE in public `main`
-- Public Production deployment: `dpl_43T7hQbgNaVUMiivo9u5JeyZtQfr`
-- Public final `main` SHA: `f9d788f17272bb6748efa79d137f63ce65c21833`
+- Public Build entry: `https://build.eventsible.info/build?start=choose`
+- Builder navigation includes Back to EVENTSible, logo to `eventsible.info`, and quote success to `eventsible.info`.
 - Host protection remains intact.
 - ECC Player tabs remain exactly: Main, Tools, Info.
 
