@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
+import { activateWeddingCompanionAction, approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
 import { LogoutButton } from "@/components/logout-button";
 import { Wordmark } from "@/components/wordmark";
 import { latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus } from "@/lib/mission-control.mjs";
@@ -349,6 +349,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <div className="event-list workspace-list">
             {bookedRows.length ? bookedRows.slice(0, 10).map((event) => {
               const booking = bookingsByEvent.get(event.event_id);
+              const isWedding = String(event.event_type ?? "").toLowerCase().includes("wedding");
+              const hasWeddingCompanion = isWedding && event.planning_template_name === "Wedding Hero" && Boolean(event.assignment_id);
               return (
                 <article className="event-row workspace-row" key={event.event_id ?? event.title}>
                   <div className="date-block"><b>{formatDate(event.starts_at).split(",")[0]}</b><span>{event.event_type ?? "Event"}</span></div>
@@ -359,6 +361,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <div className="workspace-status">
                     <span className="status-pill">{statusLabel(booking?.status ?? event.booking_status ?? event.event_status)}</span>
                     <small>Quote total: {formatMoney(booking?.total_amount)}</small>
+                    {hasWeddingCompanion ? (
+                      <a className="secondary-button compact-button" href={`/admin/wedding/${event.event_id}`}>Review Wedding Companion</a>
+                    ) : isWedding && event.event_id ? (
+                      <form action={activateWeddingCompanionAction}>
+                        <input type="hidden" name="event_id" value={event.event_id} />
+                        <button type="submit" className="primary-button compact-button">Activate & invite client</button>
+                      </form>
+                    ) : null}
                   </div>
                 </article>
               );
