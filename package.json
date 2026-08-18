@@ -14,13 +14,14 @@
     "test:builder-outbox:production-quote-shape": "node scripts/verify-builder-outbox-production-quote-shape.mjs",
     "test:builder-event-staff-label": "node scripts/verify-builder-event-staff-label.mjs",
     "test:builder-lead-notifications": "node scripts/verify-builder-lead-notifications.mjs",
+    "test:wedding-companion:routes": "node scripts/verify-wedding-companion-routes.mjs",
     "guard:local-supabase-ci": "node scripts/guard-local-supabase-ci.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.7",
     "geist": "1.7.2",
-    "next": "16.2.10",
+    "next": "16.3.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -30,7 +31,7 @@
     "@types/react": "19.1.16",
     "@types/react-dom": "19.1.9",
     "eslint": "9.36.0",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.3.1",
     "tailwindcss": "4.1.14",
     "typescript": "5.9.3"
   }

@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
+import { WEDDING_COMPANION_VERSION } from "@/lib/wedding-companion.mjs";
 import { bookingServicesFromQuoteItems, buildBookingPayload } from "@/lib/mission-control.mjs";
 
 function value(formData: FormData, name: string) {
@@ -24,6 +27,17 @@ async function requireStaffSupabase() {
   }
 
   return { supabase, user };
+}
+
+async function clientPortalOrigin() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  if (configured) return configured;
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host?.includes("localhost") ? "http" : "https");
+  if (!host) throw new Error("The client portal URL is not configured.");
+  return `${protocol}://${host}`;
 }
 
 async function recordActivity(
@@ -169,4 +183,136 @@ export async function convertToGigAction(formData: FormData) {
 
   revalidatePath("/admin");
   adminRedirect("Converted to booked gig.");
+}
+
+export async function activateWeddingCompanionAction(formData: FormData) {
+  const eventId = value(formData, "event_id");
+  if (!eventId) adminRedirect("Wedding Companion activation was missing the event.", "error");
+
+  const { supabase, user } = await requireStaffSupabase();
+  const eventResult = await supabase
+    .from("os_events")
+    .select("id,title,event_type,primary_contact_id")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (eventResult.error || !eventResult.data) adminRedirect("The wedding event could not be loaded.", "error");
+  if (!String(eventResult.data.event_type ?? "").toLowerCase().includes("wedding")) {
+    adminRedirect("Wedding Companion can only be activated for a wedding event.", "error");
+  }
+
+  const contactId = String(eventResult.data.primary_contact_id ?? "");
+  if (!contactId) adminRedirect("Add a primary client to this wedding before activation.", "error");
+
+  const contactResult = await supabase
+    .from("os_contacts")
+    .select("id,primary_email")
+    .eq("id", contactId)
+    .maybeSingle();
+  const clientEmail = String(contactResult.data?.primary_email ?? "").trim().toLowerCase();
+  if (contactResult.error || !clientEmail) adminRedirect("Add the client email before activating Wedding Companion.", "error");
+
+  let successMessage = "Wedding Companion activated.";
+
+  try {
+    const admin = createAdminSupabase();
+    const templateResult = await admin
+      .from("os_planning_templates")
+      .select("id")
+      .eq("slug", "wedding-hero")
+      .eq("status", "published")
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (templateResult.error || !templateResult.data) throw new Error("The published Wedding Hero template is unavailable.");
+
+    const usersResult = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (usersResult.error) throw usersResult.error;
+
+    let clientUser = usersResult.data.users.find((candidate) => candidate.email?.trim().toLowerCase() === clientEmail) ?? null;
+    let inviteSent = false;
+
+    if (!clientUser) {
+      const portalOrigin = await clientPortalOrigin();
+      const inviteResult = await admin.auth.admin.inviteUserByEmail(clientEmail, {
+        redirectTo: `${portalOrigin}/auth/callback?next=/client`,
+        data: { source: WEDDING_COMPANION_VERSION },
+      });
+      if (inviteResult.error || !inviteResult.data.user) throw inviteResult.error ?? new Error("The client invitation could not be created.");
+      clientUser = inviteResult.data.user;
+      inviteSent = true;
+    }
+
+    const contactLink = await admin.from("os_contact_users").upsert({
+      contact_id: contactId,
+      user_id: clientUser.id,
+      relationship: "self",
+      is_primary: true,
+    }, { onConflict: "contact_id,user_id" });
+    if (contactLink.error) throw contactLink.error;
+
+    const memberResult = await admin
+      .from("os_event_members")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("user_id", clientUser.id)
+      .maybeSingle();
+    if (memberResult.error) throw memberResult.error;
+
+    const memberPayload = {
+      event_id: eventId,
+      user_id: clientUser.id,
+      contact_id: contactId,
+      member_role: "client",
+      is_active: true,
+      invited_at: new Date().toISOString(),
+      permissions: { planning: "edit", source: WEDDING_COMPANION_VERSION },
+    };
+    const memberWrite = memberResult.data
+      ? await admin.from("os_event_members").update(memberPayload).eq("id", memberResult.data.id)
+      : await admin.from("os_event_members").insert(memberPayload);
+    if (memberWrite.error) throw memberWrite.error;
+
+    const assignmentResult = await admin
+      .from("os_planning_assignments")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("template_id", templateResult.data.id)
+      .maybeSingle();
+    if (assignmentResult.error) throw assignmentResult.error;
+
+    if (!assignmentResult.data) {
+      const assignmentWrite = await admin.from("os_planning_assignments").insert({
+        event_id: eventId,
+        template_id: templateResult.data.id,
+        status: "assigned",
+        progress_percent: 0,
+        current_section_key: "event_basics",
+        settings: { source: WEDDING_COMPANION_VERSION },
+      });
+      if (assignmentWrite.error) throw assignmentWrite.error;
+    }
+
+    await admin.from("os_activity_events").insert({
+      event_id: eventId,
+      actor_user_id: user.id,
+      contact_id: contactId,
+      event_type: "client.portal_ready",
+      visibility: "staff",
+      payload: {
+        summary: inviteSent ? "Wedding Companion activated and client invitation sent." : "Wedding Companion access activated for an existing client user.",
+        source: WEDDING_COMPANION_VERSION,
+      },
+    });
+
+    successMessage = inviteSent
+      ? "Wedding Companion activated and the secure client invitation was sent."
+      : "Wedding Companion activated. The client can use the Client Portal sign-in page.";
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Wedding Companion could not be activated.";
+    adminRedirect(message, "error");
+  }
+
+  revalidatePath("/admin");
+  adminRedirect(successMessage);
 }

@@ -4,6 +4,7 @@ export type EventDashboardRow = {
   event_id: string | null;
   lead_id?: string | null;
   booking_id?: string | null;
+  assignment_id?: string | null;
   primary_contact_id?: string | null;
   title: string | null;
   event_type: string | null;
@@ -18,6 +19,8 @@ export type EventDashboardRow = {
   contract_status: string | null;
   payment_status: string | null;
   progress_percent: number | null;
+  planning_status?: string | null;
+  current_section_key?: string | null;
   planning_template_name: string | null;
   last_activity_type: string | null;
   last_activity_at: string | null;
