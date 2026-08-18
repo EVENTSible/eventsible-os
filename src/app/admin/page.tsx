@@ -1,14 +1,21 @@
 import { redirect } from "next/navigation";
+import { approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
 import { LogoutButton } from "@/components/logout-button";
 import { Wordmark } from "@/components/wordmark";
+import { latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus } from "@/lib/mission-control.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { EventDashboardRow, isStaffRole } from "@/lib/types";
 
 export const metadata = {
-  title: "Admin | EVENTSible OS",
+  title: "Mission Control | EVENTSible OS",
 };
 
-function formatDate(value: string | null) {
+type AnyRow = Record<string, unknown>;
+type AdminPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function formatDate(value: unknown) {
   if (!value) return "Date not set";
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Indiana/Indianapolis",
@@ -17,14 +24,132 @@ function formatDate(value: string | null) {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(new Date(String(value)));
 }
 
-function statusLabel(value: string | null) {
-  return value ? value.replaceAll("_", " ") : "Not started";
+function statusLabel(value: unknown) {
+  return value ? String(value).replaceAll("_", " ") : "Not started";
 }
 
-export default async function AdminPage() {
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function idValue(row: AnyRow | null | undefined, key: string) {
+  return stringValue(row?.[key]);
+}
+
+function eventTitle(event: EventDashboardRow | AnyRow | undefined, fallback = "EVENTSible event") {
+  return stringValue(event?.title) ?? fallback;
+}
+
+function eventMeta(event: EventDashboardRow | AnyRow | undefined) {
+  return [
+    stringValue(event?.event_type) ?? "Event type not set",
+    formatDate(event?.starts_at),
+    stringValue(event?.venue_name) ?? "Venue not entered",
+  ].join(" / ");
+}
+
+async function optionalRows<T extends AnyRow>(
+  query: PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  label: string,
+) {
+  const { data, error } = await query;
+  return {
+    rows: data ?? [],
+    warning: error ? `${label}: ${error.message}` : null,
+  };
+}
+
+function noticeText(params: Record<string, string | string[] | undefined>, key: string) {
+  const value = params[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function quoteItemsFor(quoteItemsByQuote: Map<string, AnyRow[]>, quoteId: string | null) {
+  return quoteId ? quoteItemsByQuote.get(quoteId) ?? [] : [];
+}
+
+function LeadStatusForm({ lead, eventId }: { lead: AnyRow; eventId: string | null }) {
+  const leadId = idValue(lead, "id");
+  if (!leadId) return null;
+
+  return (
+    <form action={updateLeadStatusAction} className="inline-form">
+      <input type="hidden" name="lead_id" value={leadId} />
+      <input type="hidden" name="event_id" value={eventId ?? ""} />
+      <label>
+        <span>Lead status</span>
+        <select name="status" defaultValue={String(lead.status ?? "new")}>
+          {["new", "qualifying", "quoted", "follow_up", "won", "lost", "archived"].map((status) => (
+            <option key={status} value={status}>{statusLabel(status)}</option>
+          ))}
+        </select>
+      </label>
+      <button type="submit" className="secondary-button">Save</button>
+    </form>
+  );
+}
+
+function QuoteActionForms({ lead, event, quote }: { lead: AnyRow; event?: EventDashboardRow; quote?: AnyRow }) {
+  const leadId = idValue(lead, "id");
+  const eventId = idValue(lead, "event_id") ?? event?.event_id ?? null;
+  const quoteVersionId = idValue(quote, "id");
+
+  if (!leadId || !eventId || !quoteVersionId) {
+    return <p className="panel-note">A draft quote is required before this lead can be approved or converted.</p>;
+  }
+
+  return (
+    <div className="action-row">
+      <form action={approveQuoteAction}>
+        <input type="hidden" name="lead_id" value={leadId} />
+        <input type="hidden" name="event_id" value={eventId} />
+        <input type="hidden" name="quote_version_id" value={quoteVersionId} />
+        <button type="submit" className="secondary-button">Approve quote</button>
+      </form>
+      <form action={convertToGigAction}>
+        <input type="hidden" name="lead_id" value={leadId} />
+        <input type="hidden" name="event_id" value={eventId} />
+        <input type="hidden" name="quote_version_id" value={quoteVersionId} />
+        <button type="submit" className="primary-button">Convert to Gig</button>
+      </form>
+    </div>
+  );
+}
+
+function QuoteSummary({ quote, items }: { quote?: AnyRow; items: AnyRow[] }) {
+  if (!quote) {
+    return (
+      <div className="quote-card muted-card">
+        <b>No draft quote found</b>
+        <span>Review the Builder submission and prepare a quote before conversion.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="quote-card">
+      <div>
+        <span className="eyebrow">Quote review</span>
+        <h4>{formatMoney(quote.total_amount, String(quote.currency ?? "USD"))}</h4>
+      </div>
+      <span className="status-pill">{statusLabel(quote.status)}</span>
+      <ul className="quote-items">
+        {items.length ? items.slice(0, 5).map((item) => (
+          <li key={String(item.id ?? item.service_code)}>
+            <span>{String(item.service_name ?? item.service_code ?? "Custom service")}</span>
+            <b>{formatMoney(item.line_total, String(quote.currency ?? "USD"))}</b>
+          </li>
+        )) : <li><span>Quote items are not available.</span></li>}
+      </ul>
+    </div>
+  );
+}
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
+  const params = searchParams ? await searchParams : {};
   const supabase = await createServerSupabase();
   const { data: authData } = await supabase.auth.getUser();
   const user = authData.user;
@@ -34,16 +159,78 @@ export default async function AdminPage() {
   const role = user.app_metadata?.role;
   if (!isStaffRole(role)) redirect("/login?error=access");
 
-  const { data, error } = await supabase
+  const dashboardResult = await supabase
     .from("os_event_dashboard_v")
     .select("*")
     .order("starts_at", { ascending: true, nullsFirst: false });
 
-  const events = (data ?? []) as EventDashboardRow[];
-  const leads = events.filter((event) => ["new", "qualifying", "quoted", "follow_up"].includes(event.lead_status ?? ""));
-  const booked = events.filter((event) => ["confirmed", "completed"].includes(event.booking_status ?? ""));
+  const events = (dashboardResult.data ?? []) as EventDashboardRow[];
+  const dashboardWarning = dashboardResult.error ? `Dashboard: ${dashboardResult.error.message}` : null;
+
+  const [leadResult, quoteResult, itemResult, bookingResult] = await Promise.all([
+    optionalRows<AnyRow>(
+      supabase
+        .from("os_leads")
+        .select("id,event_id,contact_id,builder_submission_id,status,source,inquiry_summary,estimated_value,next_follow_up_at,created_at,metadata")
+        .order("created_at", { ascending: false })
+        .limit(30),
+      "Leads",
+    ),
+    optionalRows<AnyRow>(
+      supabase
+        .from("os_quote_versions")
+        .select("id,lead_id,event_id,builder_submission_id,version_number,status,currency,subtotal,discount_amount,travel_amount,total_amount,deposit_amount,created_at,metadata")
+        .order("created_at", { ascending: false })
+        .limit(60),
+      "Quotes",
+    ),
+    optionalRows<AnyRow>(
+      supabase
+        .from("os_quote_items")
+        .select("id,quote_version_id,service_id,service_code,service_name,quantity,unit,line_total,metadata")
+        .order("created_at", { ascending: true })
+        .limit(300),
+      "Quote items",
+    ),
+    optionalRows<AnyRow>(
+      supabase
+        .from("os_bookings")
+        .select("id,event_id,status,contract_status,payment_status,total_amount,deposit_amount,balance_due,booked_at,created_at,metadata")
+        .order("created_at", { ascending: false })
+        .limit(40),
+      "Bookings",
+    ),
+  ]);
+
+  const warnings = [dashboardWarning, leadResult.warning, quoteResult.warning, itemResult.warning, bookingResult.warning].filter(Boolean);
+  const eventsById = new Map(events.map((event) => [event.event_id, event]));
+  const latestQuotes = latestQuoteByLead(quoteResult.rows);
+  const quoteItemsByQuote = new Map<string, AnyRow[]>();
+  for (const item of itemResult.rows) {
+    const quoteId = idValue(item, "quote_version_id");
+    if (!quoteId) continue;
+    quoteItemsByQuote.set(quoteId, [...(quoteItemsByQuote.get(quoteId) ?? []), item]);
+  }
+
+  const bookingsByEvent = new Map(bookingResult.rows.map((booking) => [idValue(booking, "event_id"), booking]));
+  const activeLeads = leadResult.rows.filter((lead) => isActiveLeadStatus(lead.status));
+  const fallbackLeads = events
+    .filter((event) => isActiveLeadStatus(event.lead_status))
+    .map((event) => ({
+      id: event.lead_id,
+      event_id: event.event_id,
+      status: event.lead_status,
+      inquiry_summary: event.title,
+      source: "dashboard_view",
+      created_at: event.starts_at,
+    }))
+    .filter((lead) => lead.id);
+  const leadRows = activeLeads.length ? activeLeads : fallbackLeads;
+  const bookedRows = events.filter((event) => isBookedStatus(event.booking_status) || bookingsByEvent.has(event.event_id));
   const planning = events.filter((event) => ["assigned", "opened", "in_progress", "reopened"].includes(event.event_status ?? "") || (event.progress_percent ?? 0) > 0);
   const attention = events.filter((event) => event.contract_status === "sent" || event.payment_status === "deposit_due" || event.last_activity_type?.includes("help"));
+  const notice = noticeText(params, "notice");
+  const errorNotice = noticeText(params, "error");
 
   return (
     <div className="admin-shell">
@@ -53,12 +240,11 @@ export default async function AdminPage() {
           <span>Operating System</span>
         </div>
         <nav>
-          <a className="active" href="/admin">Overview</a>
-          <a href="#events">Events</a>
-          <a href="#leads">Leads & Quotes</a>
-          <a href="#heroes">Wedding & Event Hero</a>
-          <a href="#messages">Messages</a>
-          <a href="#automations">Automations</a>
+          <a className="active" href="/admin">Mission Control</a>
+          <a href="#lead-review">Lead Review</a>
+          <a href="#quote-review">Quotes</a>
+          <a href="#gig-workspace">Booked Gigs</a>
+          <a href="#automation">Automation</a>
         </nav>
         <div className="sidebar-footer">
           <span className="role-pill">{String(role)}</span>
@@ -67,74 +253,123 @@ export default async function AdminPage() {
       </aside>
 
       <main className="admin-main">
-        <header className="admin-header">
+        <header className="admin-header mission-header">
           <div>
-            <span className="eyebrow">Owner dashboard</span>
-            <h1>Good to see you, Travis.</h1>
-            <p>Here is the current pulse of EVENTSible.</p>
+            <span className="eyebrow">Mission Control</span>
+            <h1>Lead-to-Gig command center.</h1>
+            <p>Review Builder leads, approve the draft quote, and start the booked Gig workspace from the same OS records.</p>
           </div>
           <div className="header-actions">
-            <button type="button" className="secondary-button">Import gig</button>
-            <button type="button" className="primary-button">New lead</button>
+            <a className="secondary-button" href="#lead-review">Review leads</a>
+            <a className="primary-button" href="#quote-review">Approve quotes</a>
           </div>
         </header>
 
-        {error ? <div className="alert error">Dashboard data could not be loaded: {error.message}</div> : null}
+        {notice ? <div className="alert success">{notice}</div> : null}
+        {errorNotice ? <div className="alert error">{errorNotice}</div> : null}
+        {warnings.length ? (
+          <div className="alert warning">
+            <b>Some OS surfaces need verification.</b>
+            <ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+          </div>
+        ) : null}
 
         <section className="metrics" aria-label="Business overview">
-          <article><span>Active leads</span><b>{leads.length}</b><small>Builder and direct inquiries</small></article>
-          <article><span>Booked events</span><b>{booked.length}</b><small>Confirmed in the system</small></article>
-          <article><span>Planning now</span><b>{planning.length}</b><small>Hero work in progress</small></article>
-          <article><span>Needs attention</span><b>{attention.length}</b><small>Payments, contracts, or help</small></article>
+          <article><span>Active leads</span><b>{leadRows.length}</b><small>Builder and direct inquiries</small></article>
+          <article><span>Quotes to review</span><b>{quoteResult.rows.filter((quote) => ["draft", "ready"].includes(String(quote.status ?? ""))).length}</b><small>Draft and approved quotes</small></article>
+          <article><span>Booked gigs</span><b>{bookedRows.length}</b><small>Confirmed or workspace-ready</small></article>
+          <article><span>Needs attention</span><b>{attention.length}</b><small>Contracts, deposits, or follow-up</small></article>
         </section>
 
-        <section className="dashboard-grid">
-          <article className="panel event-panel" id="events">
+        <section className="mission-grid">
+          <article className="panel lead-panel" id="lead-review">
             <div className="panel-heading">
-              <div><span className="eyebrow">GigTracker</span><h2>Upcoming events</h2></div>
-              <button type="button" className="text-button">View calendar</button>
+              <div><span className="eyebrow">Builder lead review</span><h2>New and active leads</h2></div>
+              <span className="status-dot">OS-owned</span>
             </div>
-            {events.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">✦</div>
-                <h3>Your connected event list starts here.</h3>
-                <p>When Event Builder submissions and existing GigTracker records are connected, leads and bookings will appear automatically.</p>
-                <div className="empty-actions">
-                  <button type="button" className="primary-button">Connect Event Builder</button>
-                  <button type="button" className="secondary-button">Import existing gigs</button>
-                </div>
-              </div>
-            ) : (
-              <div className="event-list">
-                {events.slice(0, 8).map((event) => (
-                  <article className="event-row" key={event.event_id ?? event.title}>
-                    <div className="date-block"><b>{formatDate(event.starts_at).split(",")[0]}</b><span>{event.event_type ?? "Event"}</span></div>
-                    <div className="event-copy"><h3>{event.title}</h3><p>{event.primary_contact_name ?? "Client not entered"} · {event.venue_name ?? "Venue not entered"}</p></div>
-                    <div className="event-status"><span>{statusLabel(event.booking_status ?? event.event_status)}</span><small>{event.progress_percent ?? 0}% planned</small></div>
+            <div className="lead-list">
+              {leadRows.length ? leadRows.slice(0, 8).map((lead) => {
+                const leadId = idValue(lead, "id");
+                const eventId = idValue(lead, "event_id");
+                const event = eventId ? eventsById.get(eventId) : undefined;
+                const quote = leadId ? latestQuotes.get(leadId) : undefined;
+                const quoteId = idValue(quote, "id");
+                const quoteItems = quoteItemsFor(quoteItemsByQuote, quoteId);
+                return (
+                  <article className="mission-card" key={String(lead.id ?? eventId)}>
+                    <div className="mission-card-main">
+                      <span className="eyebrow">{statusLabel(lead.source ?? "eventsible_os")}</span>
+                      <h3>{eventTitle(event, String(lead.inquiry_summary ?? "Builder inquiry"))}</h3>
+                      <p>{eventMeta(event)} · {statusLabel(lead.status)}</p>
+                      <p>{String(lead.inquiry_summary ?? "Review contact details, event fit, and package notes before approval.")}</p>
+                      <LeadStatusForm lead={lead} eventId={eventId} />
+                    </div>
+                    <div className="mission-card-side">
+                      <QuoteSummary quote={quote} items={quoteItems} />
+                      <QuoteActionForms lead={lead} event={event} quote={quote} />
+                    </div>
                   </article>
-                ))}
-              </div>
-            )}
+                );
+              }) : (
+                <div className="empty-state compact">
+                  <div className="empty-icon">✦</div>
+                  <h3>No active Builder leads are waiting.</h3>
+                  <p>New public-site and Builder submissions will appear here after the OS intake creates the canonical lead, event, and draft quote.</p>
+                </div>
+              )}
+            </div>
           </article>
 
           <aside className="stack">
-            <article className="panel" id="heroes">
-              <div className="panel-heading"><div><span className="eyebrow">Hero center</span><h2>Planning progress</h2></div></div>
-              <div className="mini-stat"><span>Wedding Hero</span><b>{events.filter((event) => event.planning_template_name === "Wedding Hero").length}</b></div>
-              <div className="mini-stat"><span>Event Hero</span><b>{events.filter((event) => event.planning_template_name === "Event Hero").length}</b></div>
-              <p className="panel-note">Client answers will update the same event record used by GigTracker and host tools.</p>
+            <article className="panel" id="quote-review">
+              <div className="panel-heading"><div><span className="eyebrow">Quote approval</span><h2>Approval lane</h2></div></div>
+              <p className="panel-note">Approval marks the quote ready and keeps final booking authority inside EVENTSible OS. Convert to Gig creates or updates the OS booking and service workspace.</p>
+              <div className="mini-stat"><span>Draft quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "draft").length}</b></div>
+              <div className="mini-stat"><span>Ready quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "ready").length}</b></div>
+              <div className="mini-stat"><span>Accepted quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "accepted").length}</b></div>
             </article>
 
-            <article className="panel" id="automations">
+            <article className="panel" id="automation">
               <div className="panel-heading"><div><span className="eyebrow">Automation</span><h2>System status</h2></div><span className="status-dot">Live</span></div>
               <ul className="check-list">
-                <li>Builder facts sync</li>
-                <li>Quote-to-booking lifecycle</li>
-                <li>Hero auto-assignment</li>
-                <li>Portal workspace creation</li>
+                <li>Builder intake chain remains OS-owned</li>
+                <li>Quote approval updates existing quote versions</li>
+                <li>Convert to Gig reuses OS booking tables</li>
+                <li>Event workspace uses canonical event IDs</li>
               </ul>
             </article>
           </aside>
+        </section>
+
+        <section className="panel gig-panel" id="gig-workspace">
+          <div className="panel-heading">
+            <div><span className="eyebrow">Booked Gig workspace</span><h2>Confirmed and workspace-ready events</h2></div>
+            <span className="status-dot">{planning.length} planning</span>
+          </div>
+          <div className="event-list workspace-list">
+            {bookedRows.length ? bookedRows.slice(0, 10).map((event) => {
+              const booking = bookingsByEvent.get(event.event_id);
+              return (
+                <article className="event-row workspace-row" key={event.event_id ?? event.title}>
+                  <div className="date-block"><b>{formatDate(event.starts_at).split(",")[0]}</b><span>{event.event_type ?? "Event"}</span></div>
+                  <div className="event-copy">
+                    <h3>{event.title}</h3>
+                    <p>{event.primary_contact_name ?? "Client not entered"} · {event.venue_name ?? "Venue not entered"}</p>
+                  </div>
+                  <div className="workspace-status">
+                    <span className="status-pill">{statusLabel(booking?.status ?? event.booking_status ?? event.event_status)}</span>
+                    <small>Quote total: {formatMoney(booking?.total_amount)}</small>
+                  </div>
+                </article>
+              );
+            }) : (
+              <div className="empty-state compact">
+                <div className="empty-icon">✓</div>
+                <h3>Booked Gig workspaces start after conversion.</h3>
+                <p>Use Convert to Gig from a reviewed lead to create the booking record and seed booked services from the approved quote.</p>
+              </div>
+            )}
+          </div>
         </section>
       </main>
     </div>

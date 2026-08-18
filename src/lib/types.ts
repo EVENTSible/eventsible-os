@@ -2,6 +2,9 @@ export type StaffRole = "owner" | "manager" | "staff" | "host";
 
 export type EventDashboardRow = {
   event_id: string | null;
+  lead_id?: string | null;
+  booking_id?: string | null;
+  primary_contact_id?: string | null;
   title: string | null;
   event_type: string | null;
   event_status: string | null;
