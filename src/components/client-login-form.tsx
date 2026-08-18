@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
-export function ClientLoginForm() {
+export function ClientLoginForm({ nextPath = "/client" }: { nextPath?: string }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -15,10 +15,11 @@ export function ClientLoginForm() {
 
     try {
       const supabase = getBrowserSupabase();
-      const redirectTo = `${window.location.origin}/auth/callback?next=/client`;
+      const safeNext = nextPath.startsWith("/client") && !nextPath.startsWith("//") ? nextPath : "/client";
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        options: { shouldCreateUser: false, emailRedirectTo: redirectTo },
+        options: { shouldCreateUser: true, emailRedirectTo: redirectTo },
       });
       if (error) throw error;
 
@@ -32,7 +33,7 @@ export function ClientLoginForm() {
 
   return (
     <form className="client-login-form" onSubmit={handleSubmit}>
-      <label htmlFor="client-email">Email connected to your booking</label>
+      <label htmlFor="client-email">Your email address</label>
       <input
         id="client-email"
         name="email"
@@ -47,7 +48,7 @@ export function ClientLoginForm() {
         {status === "sending" ? "Sending secure link…" : "Email my sign-in link"}
       </button>
       {message ? <p className={`form-message ${status}`}>{message}</p> : null}
-      <p className="login-help">No password to remember. Access is limited to email addresses connected to an EVENTSible booking.</p>
+      <p className="login-help">No password to remember. Booked clients, legacy GigSalad clients, and people planning a new event can all start here.</p>
     </form>
   );
 }

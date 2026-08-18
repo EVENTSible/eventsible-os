@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const requestedNext = searchParams.get("next") ?? "/admin";
-  const next = requestedNext.startsWith("/") ? requestedNext : "/admin";
+  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/admin";
 
   if (code) {
     const supabase = await createServerSupabase();
@@ -18,5 +18,6 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+  const failurePath = next.startsWith("/client") ? "/client/login?error=auth" : "/login?error=auth";
+  return NextResponse.redirect(`${origin}${failurePath}`);
 }
