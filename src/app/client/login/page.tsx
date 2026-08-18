@@ -1,41 +1,129 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClientLoginForm } from "@/components/client-login-form";
-import { Wordmark } from "@/components/wordmark";
+import { WeddingHeroMark } from "@/components/wedding-hero-mark";
 import { createServerSupabase } from "@/lib/supabase/server";
 
-export const metadata = { title: "Client sign in | EVENTSible" };
+export const metadata = {
+  title: "Wedding Hero | EVENTSible",
+  description: "Plan your wedding your way with the EVENTSible Wedding Hero interactive wedding companion.",
+};
 
-type PageProps = { searchParams: Promise<{ next?: string | string[]; error?: string | string[] }> };
+type PageProps = { searchParams: Promise<{ next?: string | string[]; error?: string | string[]; method?: string | string[] }> };
+
+const METHODS = {
+  guided: {
+    eyebrow: "Recommended",
+    title: "Interactive Companion",
+    action: "Guide me step by step",
+    description: "Move through the wedding one moment at a time with helpful prompts, smart follow-ups, and save-as-you-go planning.",
+    icon: "✦",
+  },
+  form: {
+    eyebrow: "Straightforward",
+    title: "Traditional Form",
+    action: "Open the full form",
+    description: "See the familiar planning sections together and work through them like a traditional wedding questionnaire.",
+    icon: "✓",
+  },
+  print: {
+    eyebrow: "Paper friendly",
+    title: "Printable Planner",
+    action: "Use the printable version",
+    description: "Print or download the planner, complete it away from the screen, then return it to the same Wedding Hero workspace.",
+    icon: "⇩",
+  },
+} as const;
+
+type MethodKey = keyof typeof METHODS;
+
+function methodKey(value: string | string[] | undefined): MethodKey {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return candidate === "form" || candidate === "print" ? candidate : "guided";
+}
 
 export default async function ClientLoginPage({ searchParams }: PageProps) {
   const supabase = await createServerSupabase();
   const { data } = await supabase.auth.getUser();
   const query = await searchParams;
   const requestedNext = Array.isArray(query.next) ? query.next[0] : query.next;
-  const nextPath = requestedNext?.startsWith("/client") && !requestedNext.startsWith("//") ? requestedNext : "/client";
+  const selectedMethod = methodKey(query.method);
+  const nextPath = requestedNext?.startsWith("/client") && !requestedNext.startsWith("//")
+    ? requestedNext
+    : `/client/start/wedding?method=${selectedMethod}`;
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   if (data.user) redirect(nextPath);
 
   return (
-    <main className="client-login-shell">
-      <section className="client-login-story">
-        <Wordmark />
-        <div>
-          <span className="eyebrow">Wedding Companion + Event Hero</span>
-          <h1>Your details. Your vision. Your event.</h1>
-          <p>Start planning before you book, reconnect a legacy GigSalad event, or continue an existing EVENTSible workspace.</p>
+    <main className="wedding-hero-entry">
+      <nav className="wedding-hero-entry-nav">
+        <WeddingHeroMark compact />
+        <a href="#hero-access">Already started? <b>Continue your plan</b></a>
+      </nav>
+
+      <section className="wedding-hero-intro">
+        <div className="wedding-hero-intro-copy">
+          <span className="wedding-kicker">Your wedding. Your people. Your soundtrack.</span>
+          <WeddingHeroMark />
+          <h1>Plan the day your way.</h1>
+          <p>Wedding Hero keeps your timeline, music, introductions, ceremony details, vendor information, and big ideas together without making wedding planning feel like homework.</p>
+          <a className="wedding-hero-primary" href="#choose-your-way">Choose how you want to plan <span aria-hidden="true">↓</span></a>
         </div>
-        <small>Excellence in Event Entertainment</small>
+        <div className="wedding-hero-preview" aria-label="Wedding Hero planning preview">
+          <div className="hero-preview-card hero-preview-main">
+            <span>YOUR DAY AT A GLANCE</span>
+            <b>Ceremony</b><small>4:30 PM · Music + cues ready</small>
+            <b>Grand entrance</b><small>6:15 PM · Names + song ready</small>
+            <b>First dance</b><small>6:25 PM · Song selected</small>
+          </div>
+          <div className="hero-preview-card hero-preview-note"><span>♫</span><b>Your must-plays</b><small>Keep every request in one place.</small></div>
+          <div className="hero-preview-card hero-preview-people"><span>3</span><b>Planning together</b><small>Couple · Planner · EVENTSible</small></div>
+        </div>
       </section>
-      <section className="client-login-panel">
-        <div>
-          <span className="eyebrow">Secure event access</span>
-          <h2>Start or open your event</h2>
-          <p>Verify your email, then choose Wedding Companion or Event Hero. You do not need an existing EVENTSible booking.</p>
-          {error ? <div className="alert error">That sign-in link could not be completed. Request a fresh link below.</div> : null}
+
+      <section className="wedding-method-section" id="choose-your-way">
+        <header>
+          <span className="wedding-kicker">One Wedding Hero. Three ways to use it.</span>
+          <h2>How would you like to plan?</h2>
+          <p>Pick what feels easiest today. Your answers belong to the same Wedding Hero plan, so you can switch methods later.</p>
+        </header>
+        <div className="wedding-method-grid">
+          {(Object.entries(METHODS) as [MethodKey, typeof METHODS[MethodKey]][]).map(([key, method], index) => (
+            <article className={`wedding-method-card${key === selectedMethod ? " selected" : ""}`} key={key}>
+              <div className="wedding-method-icon" aria-hidden="true">{method.icon}</div>
+              <span>{method.eyebrow}</span>
+              <p className="wedding-method-number">0{index + 1}</p>
+              <h3>{method.title}</h3>
+              <p>{method.description}</p>
+              <Link href={`/client/login?method=${key}#hero-access`}>{method.action} <span aria-hidden="true">→</span></Link>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="wedding-hero-access" id="hero-access">
+        <div className="wedding-access-copy">
+          <span className="wedding-kicker">Save, share, and come back anytime</span>
+          <h2>{METHODS[selectedMethod].action}.</h2>
+          <p>Enter your email to create or reopen your private Wedding Hero plan. This is not a paywall, and you do not need an existing EVENTSible booking.</p>
+          <ul>
+            <li>Potential clients can start planning</li>
+            <li>Legacy GigSalad clients are welcome</li>
+            <li>No password and no payment required</li>
+          </ul>
+        </div>
+        <div className="wedding-access-form-card">
+          <span className="wedding-kicker">Your private planning link</span>
+          <h3>Where should we send it?</h3>
+          {error ? <div className="alert error">That link could not be completed. Request a fresh one below.</div> : null}
           <ClientLoginForm nextPath={nextPath} />
         </div>
       </section>
+
+      <footer className="wedding-hero-footer">
+        <WeddingHeroMark compact />
+        <p>Powered by EVENTSible · Excellence in Event Entertainment</p>
+      </footer>
     </main>
   );
 }

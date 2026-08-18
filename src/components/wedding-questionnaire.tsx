@@ -33,7 +33,10 @@ type Props = {
   initialProgress: number;
   initialSectionKey?: string | null;
   initialStatus?: string | null;
+  initialMode?: PlanningMode;
 };
+
+type PlanningMode = "guided" | "form" | "print";
 
 const sections = WEDDING_SECTIONS as WeddingSection[];
 
@@ -48,6 +51,7 @@ export function WeddingQuestionnaire({
   initialProgress,
   initialSectionKey,
   initialStatus,
+  initialMode = "guided",
 }: Props) {
   const initialIndex = Math.max(0, sections.findIndex((section) => section.key === initialSectionKey));
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -56,6 +60,7 @@ export function WeddingQuestionnaire({
   const [saveState, setSaveState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   const [message, setMessage] = useState(initialStatus === "submitted" ? "Submitted to EVENTSible" : "All changes saved");
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [planningMode, setPlanningMode] = useState<PlanningMode>(initialMode);
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
   const currentSection = sections[currentIndex];
@@ -97,14 +102,51 @@ export function WeddingQuestionnaire({
     return result;
   }, [answers, assignmentId, currentIndex, eventId]);
 
+  const persistAll = useCallback(async (submit = false) => {
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    dirtyRef.current = false;
+    setSaveState("saving");
+    setMessage(submit ? "Submitting…" : "Saving the full form…");
+
+    let finalResult: Awaited<ReturnType<typeof saveWeddingSectionAction>> | null = null;
+    for (let index = 0; index < sections.length; index += 1) {
+      const section = sections[index];
+      const sectionAnswers = Object.fromEntries(section.questions.map((question) => [question.key, answers[question.key] ?? null]));
+      finalResult = await saveWeddingSectionAction({
+        eventId,
+        assignmentId,
+        sectionKey: section.key,
+        answers: sectionAnswers,
+        submit: submit && index === sections.length - 1,
+      });
+      if (!finalResult.ok) {
+        setSaveState("error");
+        setMessage(finalResult.message);
+        return finalResult;
+      }
+    }
+
+    setProgress(finalResult?.progress ?? weddingProgress(answers));
+    setLastSaved(finalResult?.savedAt ?? null);
+    setSaveState("saved");
+    setMessage(finalResult?.message ?? "Saved.");
+    return finalResult ?? { ok: true, message: "Saved." };
+  }, [answers, assignmentId, eventId]);
+
   useEffect(() => {
     if (!dirtyRef.current) return;
     if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
-    autosaveTimerRef.current = window.setTimeout(() => void persist(false), 1400);
+    autosaveTimerRef.current = window.setTimeout(() => {
+      if (planningMode === "form") void persistAll(false);
+      else void persist(false);
+    }, 1400);
     return () => {
       if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [answers, persist]);
+  }, [answers, persist, persistAll, planningMode]);
 
   const sectionCompletion = useMemo(() => sections.map((section) => {
     const required = section.questions.filter((question) => question.required && isQuestionVisible(question, answers));
@@ -128,13 +170,56 @@ export function WeddingQuestionnaire({
   }
 
   async function submit() {
-    const result = await persist(true);
+    const result = planningMode === "form" ? await persistAll(true) : await persist(true);
     if (result.ok) window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function chooseMode(mode: PlanningMode) {
+    if (mode === planningMode) return;
+    if (dirtyRef.current) {
+      const result = planningMode === "form" ? await persistAll(false) : await persist(false);
+      if (!result.ok) return;
+    }
+    setPlanningMode(mode);
+    window.history.replaceState(null, "", `${window.location.pathname}?mode=${mode}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
-    <div className="wedding-workspace">
-      <aside className="wedding-sections" aria-label="Wedding Companion sections">
+    <>
+      <nav className="wedding-mode-toolbar" aria-label="Choose a Wedding Hero planning method">
+        <div><span className="wedding-kicker">Plan your way</span><b>Switch methods anytime</b></div>
+        <div>
+          <button type="button" className={planningMode === "guided" ? "active" : ""} onClick={() => void chooseMode("guided")}><span>✦</span> Interactive</button>
+          <button type="button" className={planningMode === "form" ? "active" : ""} onClick={() => void chooseMode("form")}><span>✓</span> Full form</button>
+          <button type="button" className={planningMode === "print" ? "active" : ""} onClick={() => void chooseMode("print")}><span>⇩</span> Printable</button>
+        </div>
+      </nav>
+
+      {planningMode === "print" ? (
+        <main className="wedding-print-workspace">
+          <header className="wedding-print-controls">
+            <div><span className="wedding-kicker">Printable Wedding Hero</span><h2>Take the planner offline.</h2><p>Print the answers you have already entered, with writing space left wherever a question is still blank. Your online Wedding Hero remains the shared source of truth.</p></div>
+            <button type="button" className="wedding-print-button" onClick={() => window.print()}>Print or save as PDF</button>
+          </header>
+          <div className="wedding-print-sheet">
+            <header><b>EVENTSIBLE WEDDING HERO</b><span>Interactive Wedding Companion · Printable Planner</span></header>
+            {sections.map((section) => (
+              <section key={section.key}>
+                <h3>{section.title}</h3>
+                {section.questions.filter((question) => isQuestionVisible(question, answers)).map((question) => (
+                  <div className="wedding-print-question" key={question.key}>
+                    <b>{question.label}</b>
+                    <p>{answerHasValue(answers[question.key]) ? answerText(answers[question.key]) : "________________________________________________________________"}</p>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        </main>
+      ) : (
+        <div className={`wedding-workspace${planningMode === "form" ? " full-form-mode" : ""}`}>
+      <aside className="wedding-sections" aria-label="Wedding Hero planning sections">
         <div className="wedding-progress-card">
           <span>Planning progress</span>
           <b>{progress}%</b>
@@ -148,6 +233,10 @@ export function WeddingQuestionnaire({
               className={index === currentIndex ? "active" : ""}
               key={section.key}
               onClick={async () => {
+                if (planningMode === "form") {
+                  document.getElementById(`wedding-section-${section.key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  return;
+                }
                 if (index === currentIndex) return;
                 if (dirtyRef.current) {
                   const result = await persist(false);
@@ -164,7 +253,7 @@ export function WeddingQuestionnaire({
         </nav>
       </aside>
 
-      <main className="wedding-form-card">
+      {planningMode === "guided" ? <main className="wedding-form-card">
         <header>
           <span className="eyebrow">Section {currentIndex + 1} of {sections.length}</span>
           <h2>{currentSection.title}</h2>
@@ -195,8 +284,29 @@ export function WeddingQuestionnaire({
             <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>Submit to EVENTSible</button>
           )}
         </footer>
-      </main>
-    </div>
+      </main> : (
+        <main className="wedding-form-card wedding-full-form">
+          <header><span className="wedding-kicker">Traditional planning form</span><h2>The complete Wedding Hero form.</h2><p>Every applicable section is open below. Work from top to bottom or jump around. Changes save while you plan.</p></header>
+          {sections.map((section, index) => (
+            <section className="wedding-full-section" id={`wedding-section-${section.key}`} key={section.key}>
+              <header><span>Section {index + 1}</span><h3>{section.title}</h3><p>{section.description}</p></header>
+              <div className="wedding-question-list">
+                {section.questions.filter((question) => isQuestionVisible(question, answers)).map((question) => (
+                  <QuestionField key={question.key} question={question} value={answers[question.key]} onChange={(value) => updateAnswer(question.key, value)} />
+                ))}
+              </div>
+            </section>
+          ))}
+          {saveState === "error" ? <div className="wedding-save-error">{message}</div> : null}
+          <footer className="wedding-form-actions">
+            <button type="button" className="secondary-button" disabled={saveState === "saving"} onClick={() => void persistAll(false)}>{saveState === "saving" ? "Saving…" : "Save for later"}</button>
+            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>Submit to EVENTSible</button>
+          </footer>
+        </main>
+      )}
+        </div>
+      )}
+    </>
   );
 }
 

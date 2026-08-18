@@ -2,13 +2,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { startHeroWorkspaceAction } from "@/app/client/start/actions";
 import { ClientLogoutButton } from "@/components/client-logout-button";
+import { WeddingHeroMark } from "@/components/wedding-hero-mark";
 import { Wordmark } from "@/components/wordmark";
 import { HERO_RELATIONSHIPS, heroConfig } from "@/lib/hero-self-start.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 type PageProps = {
   params: Promise<{ hero: string }>;
-  searchParams: Promise<{ error?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; method?: string | string[] }>;
 };
 
 const EVENT_TYPES = ["Birthday", "Corporate Event", "Anniversary", "Graduation", "School Event", "Community Event", "Private Party", "Other"];
@@ -28,17 +29,20 @@ export default async function StartHeroPage({ params, searchParams }: PageProps)
 
   const query = await searchParams;
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
+  const requestedMethod = Array.isArray(query.method) ? query.method[0] : query.method;
+  const planningMethod = hero.key === "wedding" && (requestedMethod === "form" || requestedMethod === "print") ? requestedMethod : "guided";
+  const methodLabel = planningMethod === "form" ? "Traditional Form" : planningMethod === "print" ? "Printable Planner" : "Interactive Companion";
   const fullName = String(authData.user.user_metadata?.full_name ?? authData.user.user_metadata?.name ?? "");
 
   return (
     <div className="client-shell start-hero-shell">
       <nav className="client-nav">
-        <div><Wordmark compact /><span>{hero.title}</span></div>
+        <div>{hero.key === "wedding" ? <WeddingHeroMark compact /> : <Wordmark compact />}<span>{hero.key === "wedding" ? "Interactive Wedding Companion" : hero.title}</span></div>
         <div className="client-nav-actions"><Link href="/client">My events</Link><ClientLogoutButton /></div>
       </nav>
       <main className="start-hero-main">
         <header className="start-hero-header">
-          <span className="eyebrow">Start your protected workspace</span>
+          <span className="eyebrow">{hero.key === "wedding" ? `${methodLabel} selected` : "Start your protected workspace"}</span>
           <h1>{hero.key === "wedding" ? "Tell us about your wedding." : "Tell us about your event."}</h1>
           <p>This quick setup works for new prospects, current clients, and legacy GigSalad bookings. Your verified email keeps your answers private.</p>
         </header>
@@ -46,6 +50,7 @@ export default async function StartHeroPage({ params, searchParams }: PageProps)
         {error ? <div className="alert error">{error}</div> : null}
         <form action={startHeroWorkspaceAction} className="start-hero-form">
           <input type="hidden" name="hero_key" value={hero.key} />
+          <input type="hidden" name="planning_method" value={planningMethod} />
           <section>
             <div><span className="eyebrow">You</span><h2>Who is planning?</h2></div>
             <label><span>Your name *</span><input name="client_name" required defaultValue={fullName} autoComplete="name" /></label>

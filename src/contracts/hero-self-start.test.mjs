@@ -9,6 +9,8 @@ import {
 } from "../lib/hero-self-start.mjs";
 
 test("maps the two self-start Hero experiences", () => {
+  assert.equal(heroConfig("wedding")?.title, "Wedding Hero");
+  assert.equal(heroConfig("wedding")?.description, "Interactive Wedding Companion");
   assert.equal(heroConfig("wedding")?.templateName, "Wedding Hero");
   assert.equal(heroConfig("event")?.routeSegment, "event");
   assert.equal(heroConfig("unknown"), null);

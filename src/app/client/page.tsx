@@ -56,9 +56,9 @@ export default async function ClientHomePage() {
         <section className="hero-starter-grid" aria-label="Start a planning workspace">
           <article className="hero-starter-card wedding-starter">
             <span className="eyebrow">Weddings</span>
-            <h2>Start Wedding Companion</h2>
-            <p>Build your timeline, music, ceremony details, introductions, special dances, and planning notes.</p>
-            <Link className="primary-button" href="/client/start/wedding">Start my wedding</Link>
+            <h2>Open Wedding Hero</h2>
+            <p>Your interactive wedding companion for the timeline, music, ceremony, introductions, special dances, vendors, and planning notes.</p>
+            <Link className="primary-button" href="/client/start/wedding">Start Wedding Hero</Link>
           </article>
           <article className="hero-starter-card event-starter">
             <span className="eyebrow">Parties + events</span>
@@ -76,7 +76,7 @@ export default async function ClientHomePage() {
         <section className="client-event-grid">
           {events.length ? events.map((event) => {
             const route = event.planning_template_name === "Wedding Hero" ? "wedding" : "event";
-            const label = route === "wedding" ? "Open Wedding Companion" : "Open Event Hero";
+            const label = route === "wedding" ? "Open Wedding Hero" : "Open Event Hero";
             return (
               <article className="client-event-card" key={event.event_id}>
                 <span className="eyebrow">{event.event_type ?? "EVENTSible event"}</span>

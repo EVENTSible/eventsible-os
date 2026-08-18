@@ -20,8 +20,13 @@ function startRedirect(heroKey: string, message: string): never {
   redirect(`/client/start/${safeHero}?error=${encodeURIComponent(message)}`);
 }
 
+function planningMethod(value: string) {
+  return value === "form" || value === "print" ? value : "guided";
+}
+
 export async function startHeroWorkspaceAction(formData: FormData) {
   const heroKey = cleanText(formValue(formData, "hero_key"), 20);
+  const selectedPlanningMethod = planningMethod(cleanText(formValue(formData, "planning_method"), 20));
   const normalized = normalizeHeroStartInput(heroKey, {
     clientName: formValue(formData, "client_name"),
     phone: formValue(formData, "phone"),
@@ -117,6 +122,7 @@ export async function startHeroWorkspaceAction(formData: FormData) {
       hero_self_start: true,
       declared_relationship: input.relationship,
       requested_hero: input.hero.templateName,
+      requested_planning_method: selectedPlanningMethod,
       verified_email: email,
     },
     created_by: user.id,
@@ -146,6 +152,7 @@ export async function startHeroWorkspaceAction(formData: FormData) {
       source: "hero_self_start",
       declared_relationship: input.relationship,
       needs_staff_review: true,
+      requested_planning_method: selectedPlanningMethod,
     },
   }).select("id").single();
   if (assignmentWrite.error || !assignmentWrite.data) startRedirect(heroKey, "The event was started, but the planning form could not be opened. Contact EVENTSible.");
@@ -173,11 +180,13 @@ export async function startHeroWorkspaceAction(formData: FormData) {
       summary: `${input.hero.title} started by a verified client.`,
       declared_relationship: input.relationship,
       lead_created: !leadWrite.error,
+      requested_planning_method: selectedPlanningMethod,
       source: "hero_self_start",
     },
   });
 
   revalidatePath("/client");
   revalidatePath("/admin");
-  redirect(`/client/${input.hero.routeSegment}/${eventId}`);
+  const modeQuery = input.hero.key === "wedding" ? `?mode=${selectedPlanningMethod}` : "";
+  redirect(`/client/${input.hero.routeSegment}/${eventId}${modeQuery}`);
 }

@@ -1,7 +1,8 @@
 export const HERO_CONFIG = Object.freeze({
   wedding: Object.freeze({
     key: "wedding",
-    title: "Wedding Companion",
+    title: "Wedding Hero",
+    description: "Interactive Wedding Companion",
     templateName: "Wedding Hero",
     templateSlug: "wedding-hero",
     eventType: "Wedding",
@@ -88,7 +89,7 @@ export function heroEventTitle(hero, suppliedTitle, displayName) {
 
 export function normalizeHeroStartInput(heroKey, values) {
   const hero = heroConfig(heroKey);
-  if (!hero) return { ok: false, message: "Choose Wedding Companion or Event Hero." };
+  if (!hero) return { ok: false, message: "Choose Wedding Hero or Event Hero." };
 
   const clientName = cleanText(values?.clientName, 160);
   const eventType = hero.eventType ?? cleanText(values?.eventType, 80);

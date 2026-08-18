@@ -45,10 +45,10 @@ export function ClientLoginForm({ nextPath = "/client" }: { nextPath?: string })
         placeholder="you@example.com"
       />
       <button type="submit" disabled={status === "sending"}>
-        {status === "sending" ? "Sending secure link…" : "Email my sign-in link"}
+        {status === "sending" ? "Sending your link…" : "Send my Wedding Hero link"}
       </button>
       {message ? <p className={`form-message ${status}`}>{message}</p> : null}
-      <p className="login-help">No password to remember. Booked clients, legacy GigSalad clients, and people planning a new event can all start here.</p>
+      <p className="login-help">We use a private email link so your wedding details stay with the right people. No password to remember.</p>
     </form>
   );
 }

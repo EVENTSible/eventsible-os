@@ -345,7 +345,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <section className="panel gig-panel" id="hero-workspaces">
           <div className="panel-heading">
-            <div><span className="eyebrow">Client planning</span><h2>Wedding Companion + Event Hero</h2></div>
+            <div><span className="eyebrow">Client planning</span><h2>Wedding Hero + Event Hero</h2></div>
             <span className="status-dot">{heroRows.length} workspace{heroRows.length === 1 ? "" : "s"}</span>
           </div>
           <p className="panel-note">Includes booked clients, legacy GigSalad clients, and prospective clients who started with a verified email. A self-reported booking stays an inquiry until EVENTSible confirms it.</p>
@@ -363,7 +363,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <div className="workspace-status">
                     <span className="status-pill">{event.progress_percent ?? 0}% · {statusLabel(event.planning_status)}</span>
                     <small>{statusLabel(event.event_status)}</small>
-                    <a className="secondary-button compact-button" href={`/admin/${route}/${event.event_id}`}>Review {isWeddingHero ? "Wedding Companion" : "Event Hero"}</a>
+                    <a className="secondary-button compact-button" href={`/admin/${route}/${event.event_id}`}>Review {isWeddingHero ? "Wedding Hero" : "Event Hero"}</a>
                   </div>
                 </article>
               );
@@ -394,7 +394,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <span className="status-pill">{statusLabel(booking?.status ?? event.booking_status ?? event.event_status)}</span>
                     <small>Quote total: {formatMoney(booking?.total_amount)}</small>
                     {hasWeddingCompanion ? (
-                      <a className="secondary-button compact-button" href={`/admin/wedding/${event.event_id}`}>Review Wedding Companion</a>
+                      <a className="secondary-button compact-button" href={`/admin/wedding/${event.event_id}`}>Review Wedding Hero</a>
                     ) : isWedding && event.event_id ? (
                       <form action={activateWeddingCompanionAction}>
                         <input type="hidden" name="event_id" value={event.event_id} />
