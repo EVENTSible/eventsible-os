@@ -10,11 +10,12 @@ import {
   WEDDING_SECTIONS,
 } from "../lib/wedding-companion.mjs";
 
-test("Wedding Companion provides six focused planning sections", () => {
+test("Wedding Companion provides seven focused planning sections", () => {
   assert.deepEqual(WEDDING_SECTIONS.map((section) => section.key), [
     "event_basics",
     "ceremony",
     "reception",
+    "songs_and_dances",
     "music",
     "logistics",
     "services",
@@ -34,6 +35,19 @@ test("Wedding Companion condition hides ceremony details when ceremony service i
   const ceremonyLocation = weddingQuestionMap().get("ceremony_location");
   assert.equal(isQuestionVisible(ceremonyLocation, { ceremony_included: false }), false);
   assert.equal(isQuestionVisible(ceremonyLocation, { ceremony_included: true }), true);
+});
+
+test("Wedding Companion keeps song moments together and reveals selected special-dance songs", () => {
+  const songSection = WEDDING_SECTIONS.find((section) => section.key === "songs_and_dances");
+  const songKeys = new Set(songSection.questions.map((question) => question.key));
+  assert.ok(songKeys.has("first_dance_song"));
+  assert.ok(songKeys.has("must_play_list"));
+  assert.ok(songKeys.has("ceremony_processional_music"));
+  assert.ok(songKeys.has("couple_entrance_song"));
+
+  const cakeSong = weddingQuestionMap().get("cake_cutting_song");
+  assert.equal(isQuestionVisible(cakeSong, { formal_moments: [] }), false);
+  assert.equal(isQuestionVisible(cakeSong, { formal_moments: ["Cake cutting"] }), true);
 });
 
 test("Wedding Companion normalizes boolean, numeric, repeater, and text answers", () => {

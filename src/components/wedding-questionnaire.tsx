@@ -16,7 +16,7 @@ type WeddingQuestion = {
   required: boolean;
   helpText?: string | null;
   options?: string[];
-  condition?: { answer?: string; equals?: unknown };
+  condition?: { answer?: string; equals?: unknown; includes?: string };
 };
 
 type WeddingSection = {
@@ -40,6 +40,7 @@ type Props = {
 type PlanningMode = "guided" | "form" | "print";
 
 const sections = WEDDING_SECTIONS as WeddingSection[];
+const songsSectionIndex = sections.findIndex((section) => section.key === "songs_and_dances");
 const PUBLIC_DRAFT_KEY = "eventsible:wedding-hero:draft:v1";
 
 function answerText(value: unknown) {
@@ -68,9 +69,18 @@ export function WeddingQuestionnaire({
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [planningMode, setPlanningMode] = useState<PlanningMode>(initialMode);
   const [draftReady, setDraftReady] = useState(!publicDraft);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
   const currentSection = sections[currentIndex];
+  const currentGuidedQuestions = useMemo(
+    () => currentSection.questions.filter((question) => isQuestionVisible(question, answers)),
+    [answers, currentSection],
+  );
+  const guidedQuestionIndex = Math.min(currentQuestionIndex, Math.max(0, currentGuidedQuestions.length - 1));
+  const currentGuidedQuestion = currentGuidedQuestions[guidedQuestionIndex];
+  const guidedAtStart = currentIndex === 0 && guidedQuestionIndex === 0;
+  const guidedAtEnd = currentIndex === sections.length - 1 && guidedQuestionIndex === currentGuidedQuestions.length - 1;
 
   useEffect(() => {
     if (!publicDraft) return;
@@ -234,12 +244,40 @@ export function WeddingQuestionnaire({
     setAnswers((current) => ({ ...current, [key]: value }));
   }
 
-  async function move(direction: -1 | 1) {
+  async function moveGuided(direction: -1 | 1) {
     if (dirtyRef.current) {
       const result = await persist(false);
       if (!result.ok) return;
     }
-    setCurrentIndex((index) => Math.max(0, Math.min(sections.length - 1, index + direction)));
+
+    if (direction === 1 && guidedQuestionIndex < currentGuidedQuestions.length - 1) {
+      setCurrentQuestionIndex(guidedQuestionIndex + 1);
+    } else if (direction === 1 && currentIndex < sections.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setCurrentQuestionIndex(0);
+    } else if (direction === -1 && guidedQuestionIndex > 0) {
+      setCurrentQuestionIndex(guidedQuestionIndex - 1);
+    } else if (direction === -1 && currentIndex > 0) {
+      const previousIndex = currentIndex - 1;
+      const previousQuestions = sections[previousIndex].questions.filter((question) => isQuestionVisible(question, answers));
+      setCurrentIndex(previousIndex);
+      setCurrentQuestionIndex(Math.max(0, previousQuestions.length - 1));
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function goToSection(sectionIndex: number) {
+    if (planningMode === "form") {
+      document.getElementById(`wedding-section-${sections[sectionIndex].key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (sectionIndex === currentIndex && currentQuestionIndex === 0) return;
+    if (dirtyRef.current) {
+      const result = await persist(false);
+      if (!result.ok) return;
+    }
+    setCurrentIndex(sectionIndex);
+    setCurrentQuestionIndex(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -305,25 +343,21 @@ export function WeddingQuestionnaire({
           <div className="wedding-progress"><span style={{ width: `${progress}%` }} /></div>
           <small>{message}{lastSaved ? ` · ${new Date(lastSaved).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}</small>
         </div>
+        <button
+          type="button"
+          className="wedding-song-shortcut"
+          onClick={() => void goToSection(songsSectionIndex)}
+        >
+          <span aria-hidden="true">♫</span>
+          <div><b>Songs & Special Dances</b><small>Jump straight to the soundtrack</small></div>
+        </button>
         <nav>
           {sections.map((section, index) => (
             <button
               type="button"
               className={index === currentIndex ? "active" : ""}
               key={section.key}
-              onClick={async () => {
-                if (planningMode === "form") {
-                  document.getElementById(`wedding-section-${section.key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  return;
-                }
-                if (index === currentIndex) return;
-                if (dirtyRef.current) {
-                  const result = await persist(false);
-                  if (!result.ok) return;
-                }
-                setCurrentIndex(index);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
+              onClick={() => void goToSection(index)}
             >
               <span>{sectionCompletion[index] ? "✓" : index + 1}</span>
               <div><b>{section.title}</b><small>{sectionCompletion[index] ? "Core details complete" : "Ready when you are"}</small></div>
@@ -332,33 +366,43 @@ export function WeddingQuestionnaire({
         </nav>
       </aside>
 
-      {planningMode === "guided" ? <main className="wedding-form-card">
+      {planningMode === "guided" ? <main className="wedding-form-card wedding-guided-card">
         <header>
-          <span className="eyebrow">Section {currentIndex + 1} of {sections.length}</span>
-          <h2>{currentSection.title}</h2>
-          <p>{currentSection.description}</p>
+          <div className="wedding-guided-heading">
+            <div>
+              <span className="eyebrow">Guided moment · Section {currentIndex + 1} of {sections.length}</span>
+              <h2>{currentSection.title}</h2>
+              <p>{currentSection.description}</p>
+            </div>
+            <span className="wedding-guided-count">{guidedQuestionIndex + 1}<small>of {currentGuidedQuestions.length}</small></span>
+          </div>
+          <div className="wedding-guided-progress" aria-label={`Question ${guidedQuestionIndex + 1} of ${currentGuidedQuestions.length}`}>
+            <span style={{ width: `${((guidedQuestionIndex + 1) / Math.max(1, currentGuidedQuestions.length)) * 100}%` }} />
+          </div>
         </header>
 
-        <div className="wedding-question-list">
-          {currentSection.questions.filter((question) => isQuestionVisible(question, answers)).map((question) => (
+        <div className="wedding-guided-prompt">
+          <span className="wedding-kicker">One thing at a time</span>
+          {currentGuidedQuestion ? (
             <QuestionField
-              key={question.key}
-              question={question}
-              value={answers[question.key]}
-              onChange={(value) => updateAnswer(question.key, value)}
+              key={currentGuidedQuestion.key}
+              question={currentGuidedQuestion}
+              value={answers[currentGuidedQuestion.key]}
+              onChange={(value) => updateAnswer(currentGuidedQuestion.key, value)}
             />
-          ))}
+          ) : <p>This section is ready. Continue to the next part of your wedding.</p>}
+          <small className="wedding-guided-help">Skip anything you do not know yet. Wedding Hero will keep your place.</small>
         </div>
 
         {saveState === "error" ? <div className="wedding-save-error">{message}</div> : null}
 
         <footer className="wedding-form-actions">
-          <button type="button" className="secondary-button" disabled={currentIndex === 0 || saveState === "saving"} onClick={() => void move(-1)}>Back</button>
+          <button type="button" className="secondary-button" disabled={guidedAtStart || saveState === "saving"} onClick={() => void moveGuided(-1)}>Back</button>
           <button type="button" className="secondary-button" disabled={saveState === "saving"} onClick={() => void persist(false)}>
             {saveState === "saving" ? "Saving…" : "Save for later"}
           </button>
-          {currentIndex < sections.length - 1 ? (
-            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void move(1)}>Save & continue</button>
+          {!guidedAtEnd ? (
+            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void moveGuided(1)}>{currentGuidedQuestion && answerHasValue(answers[currentGuidedQuestion.key]) ? "Save & next" : "Skip for now"}</button>
           ) : (
             <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>{publicDraft ? "Review printable copy" : "Submit to EVENTSible"}</button>
           )}
