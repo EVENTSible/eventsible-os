@@ -17,6 +17,7 @@ export function ClientLoginForm({ nextPath = "/client" }: { nextPath?: string })
       const supabase = getBrowserSupabase();
       const safeNext = nextPath.startsWith("/client") && !nextPath.startsWith("//") ? nextPath : "/client";
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
+      document.cookie = `eventsible_client_next=${encodeURIComponent(safeNext)}; Path=/; Max-Age=1800; SameSite=Lax`;
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: { shouldCreateUser: true, emailRedirectTo: redirectTo },
@@ -45,10 +46,10 @@ export function ClientLoginForm({ nextPath = "/client" }: { nextPath?: string })
         placeholder="you@example.com"
       />
       <button type="submit" disabled={status === "sending"}>
-        {status === "sending" ? "Sending your link…" : "Send my Wedding Hero link"}
+        {status === "sending" ? "Sending your link…" : "Email my private access link"}
       </button>
       {message ? <p className={`form-message ${status}`}>{message}</p> : null}
-      <p className="login-help">We use a private email link so your wedding details stay with the right people. No password to remember.</p>
+      <p className="login-help">This is optional. It is for an online saved plan, cross-device access, and future collaboration. No password to remember.</p>
     </form>
   );
 }

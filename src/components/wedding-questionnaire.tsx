@@ -27,18 +27,20 @@ type WeddingSection = {
 };
 
 type Props = {
-  eventId: string;
-  assignmentId: string;
+  eventId?: string;
+  assignmentId?: string;
   initialAnswers: Record<string, unknown>;
   initialProgress: number;
   initialSectionKey?: string | null;
   initialStatus?: string | null;
   initialMode?: PlanningMode;
+  publicDraft?: boolean;
 };
 
 type PlanningMode = "guided" | "form" | "print";
 
 const sections = WEDDING_SECTIONS as WeddingSection[];
+const PUBLIC_DRAFT_KEY = "eventsible:wedding-hero:draft:v1";
 
 function answerText(value: unknown) {
   return Array.isArray(value) ? value.join("\n") : String(value ?? "");
@@ -52,18 +54,73 @@ export function WeddingQuestionnaire({
   initialSectionKey,
   initialStatus,
   initialMode = "guided",
+  publicDraft = false,
 }: Props) {
   const initialIndex = Math.max(0, sections.findIndex((section) => section.key === initialSectionKey));
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [answers, setAnswers] = useState<Record<string, unknown>>(initialAnswers);
   const [progress, setProgress] = useState(Math.max(initialProgress, weddingProgress(initialAnswers)));
   const [saveState, setSaveState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
-  const [message, setMessage] = useState(initialStatus === "submitted" ? "Submitted to EVENTSible" : "All changes saved");
+  const [message, setMessage] = useState(initialStatus === "submitted"
+    ? "Submitted to EVENTSible"
+    : publicDraft ? "Saved on this device" : "All changes saved");
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [planningMode, setPlanningMode] = useState<PlanningMode>(initialMode);
+  const [draftReady, setDraftReady] = useState(!publicDraft);
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
   const currentSection = sections[currentIndex];
+
+  useEffect(() => {
+    if (!publicDraft) return;
+
+    let restoredAnswers: Record<string, unknown> | null = null;
+    let restoredAt: string | null = null;
+    let restoreMessage = "Saved on this device";
+    try {
+      const storedDraft = window.localStorage.getItem(PUBLIC_DRAFT_KEY);
+      if (storedDraft) {
+        const parsed = JSON.parse(storedDraft) as { answers?: Record<string, unknown>; updatedAt?: string };
+        if (parsed.answers && typeof parsed.answers === "object") {
+          restoredAnswers = parsed.answers;
+          restoredAt = parsed.updatedAt ?? null;
+          restoreMessage = "Draft restored on this device";
+        }
+      }
+    } catch {
+      restoreMessage = "Start anywhere. Your draft will save on this device.";
+    }
+
+    const restoreTimer = window.setTimeout(() => {
+      if (restoredAnswers) {
+        setAnswers((current) => ({ ...current, ...restoredAnswers }));
+        setProgress(weddingProgress(restoredAnswers));
+        setLastSaved(restoredAt);
+      }
+      setMessage(restoreMessage);
+      setDraftReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(restoreTimer);
+  }, [publicDraft]);
+
+  const savePublicDraft = useCallback(() => {
+    const savedAt = new Date().toISOString();
+    const nextProgress = weddingProgress(answers);
+
+    try {
+      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({ version: 1, answers, updatedAt: savedAt }));
+      setProgress(nextProgress);
+      setLastSaved(savedAt);
+      setSaveState("saved");
+      setMessage("Saved on this device");
+      return { ok: true as const, message: "Saved on this device", progress: nextProgress, savedAt };
+    } catch {
+      setSaveState("error");
+      setMessage("This browser could not save the draft. You can still print or save it as a PDF.");
+      return { ok: false as const, message: "This browser could not save the draft." };
+    }
+  }, [answers]);
 
   const persist = useCallback(async (submit = false, sectionIndex = currentIndex) => {
     if (autosaveTimerRef.current !== null) {
@@ -74,7 +131,15 @@ export function WeddingQuestionnaire({
     const sectionAnswers = Object.fromEntries(section.questions.map((question) => [question.key, answers[question.key] ?? null]));
     dirtyRef.current = false;
     setSaveState("saving");
-    setMessage(submit ? "Submitting…" : "Saving…");
+    setMessage(publicDraft ? "Saving on this device…" : submit ? "Submitting…" : "Saving…");
+
+    if (publicDraft) return savePublicDraft();
+    if (!eventId || !assignmentId) {
+      const result = { ok: false as const, message: "This saved workspace is missing its event connection." };
+      setSaveState("error");
+      setMessage(result.message);
+      return result;
+    }
 
     const result = await saveWeddingSectionAction({
       eventId,
@@ -100,7 +165,7 @@ export function WeddingQuestionnaire({
     setSaveState("saved");
     setMessage(result.message);
     return result;
-  }, [answers, assignmentId, currentIndex, eventId]);
+  }, [answers, assignmentId, currentIndex, eventId, publicDraft, savePublicDraft]);
 
   const persistAll = useCallback(async (submit = false) => {
     if (autosaveTimerRef.current !== null) {
@@ -109,7 +174,15 @@ export function WeddingQuestionnaire({
     }
     dirtyRef.current = false;
     setSaveState("saving");
-    setMessage(submit ? "Submitting…" : "Saving the full form…");
+    setMessage(publicDraft ? "Saving on this device…" : submit ? "Submitting…" : "Saving the full form…");
+
+    if (publicDraft) return savePublicDraft();
+    if (!eventId || !assignmentId) {
+      const result = { ok: false as const, message: "This saved workspace is missing its event connection." };
+      setSaveState("error");
+      setMessage(result.message);
+      return result;
+    }
 
     let finalResult: Awaited<ReturnType<typeof saveWeddingSectionAction>> | null = null;
     for (let index = 0; index < sections.length; index += 1) {
@@ -134,10 +207,10 @@ export function WeddingQuestionnaire({
     setSaveState("saved");
     setMessage(finalResult?.message ?? "Saved.");
     return finalResult ?? { ok: true, message: "Saved." };
-  }, [answers, assignmentId, eventId]);
+  }, [answers, assignmentId, eventId, publicDraft, savePublicDraft]);
 
   useEffect(() => {
-    if (!dirtyRef.current) return;
+    if (!dirtyRef.current || !draftReady) return;
     if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => {
       if (planningMode === "form") void persistAll(false);
@@ -146,7 +219,7 @@ export function WeddingQuestionnaire({
     return () => {
       if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [answers, persist, persistAll, planningMode]);
+  }, [answers, draftReady, persist, persistAll, planningMode]);
 
   const sectionCompletion = useMemo(() => sections.map((section) => {
     const required = section.questions.filter((question) => question.required && isQuestionVisible(question, answers));
@@ -170,8 +243,13 @@ export function WeddingQuestionnaire({
   }
 
   async function submit() {
-    const result = planningMode === "form" ? await persistAll(true) : await persist(true);
-    if (result.ok) window.scrollTo({ top: 0, behavior: "smooth" });
+    const result = planningMode === "form" ? await persistAll(!publicDraft) : await persist(!publicDraft);
+    if (!result.ok) return;
+    if (publicDraft) {
+      setPlanningMode("print");
+      window.history.replaceState(null, "", `${window.location.pathname}?mode=print`);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function chooseMode(mode: PlanningMode) {
@@ -188,7 +266,7 @@ export function WeddingQuestionnaire({
   return (
     <>
       <nav className="wedding-mode-toolbar" aria-label="Choose a Wedding Hero planning method">
-        <div><span className="wedding-kicker">Plan your way</span><b>Switch methods anytime</b></div>
+        <div><span className="wedding-kicker">Plan your way</span><b>{publicDraft ? "Start now. No email required." : "Switch methods anytime"}</b></div>
         <div>
           <button type="button" className={planningMode === "guided" ? "active" : ""} onClick={() => void chooseMode("guided")}><span>✦</span> Interactive</button>
           <button type="button" className={planningMode === "form" ? "active" : ""} onClick={() => void chooseMode("form")}><span>✓</span> Full form</button>
@@ -199,7 +277,7 @@ export function WeddingQuestionnaire({
       {planningMode === "print" ? (
         <main className="wedding-print-workspace">
           <header className="wedding-print-controls">
-            <div><span className="wedding-kicker">Printable Wedding Hero</span><h2>Take the planner offline.</h2><p>Print the answers you have already entered, with writing space left wherever a question is still blank. Your online Wedding Hero remains the shared source of truth.</p></div>
+            <div><span className="wedding-kicker">Printable Wedding Hero</span><h2>Take the planner offline.</h2><p>Print the answers you have already entered, with writing space left wherever a question is still blank. You can also save this page as a PDF and send it to EVENTSible.</p></div>
             <button type="button" className="wedding-print-button" onClick={() => window.print()}>Print or save as PDF</button>
           </header>
           <div className="wedding-print-sheet">
@@ -281,7 +359,7 @@ export function WeddingQuestionnaire({
           {currentIndex < sections.length - 1 ? (
             <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void move(1)}>Save & continue</button>
           ) : (
-            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>Submit to EVENTSible</button>
+            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>{publicDraft ? "Review printable copy" : "Submit to EVENTSible"}</button>
           )}
         </footer>
       </main> : (
@@ -300,7 +378,7 @@ export function WeddingQuestionnaire({
           {saveState === "error" ? <div className="wedding-save-error">{message}</div> : null}
           <footer className="wedding-form-actions">
             <button type="button" className="secondary-button" disabled={saveState === "saving"} onClick={() => void persistAll(false)}>{saveState === "saving" ? "Saving…" : "Save for later"}</button>
-            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>Submit to EVENTSible</button>
+            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>{publicDraft ? "Review printable copy" : "Submit to EVENTSible"}</button>
           </footer>
         </main>
       )}

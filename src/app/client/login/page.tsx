@@ -58,7 +58,7 @@ export default async function ClientLoginPage({ searchParams }: PageProps) {
     <main className="wedding-hero-entry">
       <nav className="wedding-hero-entry-nav">
         <WeddingHeroMark compact />
-        <a href="#hero-access">Already started? <b>Continue your plan</b></a>
+        <a href="#hero-access">Already saved online? <b>Open your private plan</b></a>
       </nav>
 
       <section className="wedding-hero-intro">
@@ -95,7 +95,7 @@ export default async function ClientLoginPage({ searchParams }: PageProps) {
               <p className="wedding-method-number">0{index + 1}</p>
               <h3>{method.title}</h3>
               <p>{method.description}</p>
-              <Link href={`/client/login?method=${key}#hero-access`}>{method.action} <span aria-hidden="true">→</span></Link>
+              <Link href={`/client/wedding?mode=${key}`}>{method.action} <span aria-hidden="true">→</span></Link>
             </article>
           ))}
         </div>
@@ -103,18 +103,18 @@ export default async function ClientLoginPage({ searchParams }: PageProps) {
 
       <section className="wedding-hero-access" id="hero-access">
         <div className="wedding-access-copy">
-          <span className="wedding-kicker">Save, share, and come back anytime</span>
-          <h2>{METHODS[selectedMethod].action}.</h2>
-          <p>Enter your email to create or reopen your private Wedding Hero plan. This is not a paywall, and you do not need an existing EVENTSible booking.</p>
+          <span className="wedding-kicker">Optional private access</span>
+          <h2>Want your plan on every device?</h2>
+          <p>You can plan without signing in. Use a private email link only when you want to reopen an online plan, save across devices, or add collaborators later.</p>
           <ul>
-            <li>Potential clients can start planning</li>
-            <li>Legacy GigSalad clients are welcome</li>
+            <li>Planning starts before any email screen</li>
             <li>No password and no payment required</li>
+            <li>Booked, GigSalad, and potential clients are welcome</li>
           </ul>
         </div>
         <div className="wedding-access-form-card">
-          <span className="wedding-kicker">Your private planning link</span>
-          <h3>Where should we send it?</h3>
+          <span className="wedding-kicker">Only if you want it</span>
+          <h3>Open a private saved plan</h3>
           {error ? <div className="alert error">That link could not be completed. Request a fresh one below.</div> : null}
           <ClientLoginForm nextPath={nextPath} />
         </div>
