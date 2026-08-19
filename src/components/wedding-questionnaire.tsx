@@ -43,6 +43,7 @@ const sections = WEDDING_SECTIONS as WeddingSection[];
 const PUBLIC_DRAFT_KEY = "eventsible:wedding-hero:draft:v1";
 
 function answerText(value: unknown) {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
   return Array.isArray(value) ? value.join("\n") : String(value ?? "");
 }
 
