@@ -37,7 +37,31 @@ async function verify() {
   assert.match(loginHtml, /Interactive Wedding Companion/);
   assert.match(loginHtml, /Traditional Form/);
   assert.match(loginHtml, /Printable Planner/);
-  assert.match(loginHtml, /Send my Wedding Hero link/);
+  assert.match(loginHtml, /Email my private access link/);
+  assert.match(loginHtml, /\/client\/wedding\?mode=guided/);
+  assert.match(loginHtml, /Wedding Resources/);
+  assert.match(loginHtml, /Meeting Companion/);
+
+  const publicPlanner = await fetch(`${origin}/client/wedding?mode=form`, { redirect: "manual" });
+  assert.equal(publicPlanner.status, 200);
+  const publicPlannerHtml = await publicPlanner.text();
+  assert.match(publicPlannerHtml, /No account or email required/);
+  assert.match(publicPlannerHtml, /Traditional planning form/);
+  assert.match(publicPlannerHtml, /Must-play songs or artists/);
+
+  const resources = await fetch(`${origin}/client/wedding/resources`, { redirect: "manual" });
+  assert.equal(resources.status, 200);
+  const resourcesHtml = await resources.text();
+  assert.match(resourcesHtml, /Wedding Hero Resources/);
+  assert.match(resourcesHtml, /Budget Tracker/);
+  assert.match(resourcesHtml, /Guestbook Starter/);
+
+  const meetingCompanion = await fetch(`${origin}/client/wedding/resources/meeting-companion`, { redirect: "manual" });
+  assert.equal(meetingCompanion.status, 200);
+  const meetingCompanionHtml = await meetingCompanion.text();
+  assert.match(meetingCompanionHtml, /Wedding Planning Meeting Companion/);
+  assert.match(meetingCompanionHtml, /Ceremony walkthrough/);
+  assert.match(meetingCompanionHtml, /Print or save as PDF/);
 
   const client = await fetch(`${origin}/client`, { redirect: "manual" });
   assert.ok([302, 303, 307, 308].includes(client.status));

@@ -59,7 +59,7 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
     <div className="wedding-shell">
       <nav className="wedding-nav">
         <div><WeddingHeroMark compact /><span>Interactive Wedding Companion</span></div>
-        <div className="client-nav-actions"><Link href="/client">My events</Link><ClientLogoutButton /></div>
+        <div className="client-nav-actions"><Link href="/client/wedding/resources">Wedding resources</Link><Link href="/client">My events</Link><ClientLogoutButton /></div>
       </nav>
       <header className="wedding-hero">
         <div>

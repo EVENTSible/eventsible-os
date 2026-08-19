@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ClientLoginForm } from "@/components/client-login-form";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { FEATURED_WEDDING_RESOURCES } from "@/lib/wedding-resources";
 
 export const metadata = {
   title: "Wedding Hero | EVENTSible",
@@ -58,7 +59,7 @@ export default async function ClientLoginPage({ searchParams }: PageProps) {
     <main className="wedding-hero-entry">
       <nav className="wedding-hero-entry-nav">
         <WeddingHeroMark compact />
-        <a href="#hero-access">Already saved online? <b>Open your private plan</b></a>
+        <div><Link href="/client/wedding/resources">Wedding resources</Link><a href="#hero-access">Already saved online? <b>Open your private plan</b></a></div>
       </nav>
 
       <section className="wedding-hero-intro">
@@ -99,6 +100,23 @@ export default async function ClientLoginPage({ searchParams }: PageProps) {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="wedding-home-resources">
+        <header>
+          <div><span className="wedding-kicker">Wedding Resources</span><h2>Planning help that goes beyond the DJ form.</h2></div>
+          <p>Printable meeting guides, trackers, timelines, writing prompts, and idea starters for couples, planners, and the EVENTSible team.</p>
+        </header>
+        <div>
+          {FEATURED_WEDDING_RESOURCES.map((resource) => (
+            <article key={resource.slug}>
+              <span className="wedding-resource-icon" aria-hidden="true">{resource.icon}</span>
+              <div><small>{resource.badge}</small><h3>{resource.shortTitle}</h3><p>{resource.description}</p></div>
+              <Link href={`/client/wedding/resources/${resource.slug}`} aria-label={`Open ${resource.title}`}>→</Link>
+            </article>
+          ))}
+        </div>
+        <Link className="wedding-resource-library-link" href="/client/wedding/resources">Explore all Wedding Hero resources <span aria-hidden="true">→</span></Link>
       </section>
 
       <section className="wedding-hero-access" id="hero-access">
