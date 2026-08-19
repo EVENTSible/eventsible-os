@@ -48,6 +48,16 @@ async function verify() {
   assert.match(publicPlannerHtml, /No account or email required/);
   assert.match(publicPlannerHtml, /Traditional planning form/);
   assert.match(publicPlannerHtml, /Must-play songs or artists/);
+  assert.match(publicPlannerHtml, /Day-of Cheat Sheet/);
+  assert.match(publicPlannerHtml, /Helpful right now/);
+  assert.match(publicPlannerHtml, /Song &amp; Moment Guide/);
+
+  const dayOfSheet = await fetch(`${origin}/client/wedding?mode=print&view=day-of`, { redirect: "manual" });
+  assert.equal(dayOfSheet.status, 200);
+  const dayOfSheetHtml = await dayOfSheet.text();
+  assert.match(dayOfSheetHtml, /Day-of Production Cheat Sheet/);
+  assert.match(dayOfSheetHtml, /Still needs confirmation/);
+  assert.match(dayOfSheetHtml, /View full planner/);
 
   const resources = await fetch(`${origin}/client/wedding/resources`, { redirect: "manual" });
   assert.equal(resources.status, 200);

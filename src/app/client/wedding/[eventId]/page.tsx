@@ -9,7 +9,7 @@ export const metadata = { title: "Wedding Hero | EVENTSible", description: "Your
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ mode?: string | string[] }>;
+  searchParams: Promise<{ mode?: string | string[]; view?: string | string[] }>;
 };
 
 function formatDate(value: unknown) {
@@ -25,7 +25,9 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
   const { eventId } = await params;
   const query = await searchParams;
   const requestedMode = Array.isArray(query.mode) ? query.mode[0] : query.mode;
+  const requestedView = Array.isArray(query.view) ? query.view[0] : query.view;
   const initialMode = requestedMode === "form" || requestedMode === "print" ? requestedMode : "guided";
+  const initialPrintView = requestedView === "day-of" ? "day-of" : "planner";
   const supabase = await createServerSupabase();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect(`/client/login`);
@@ -78,6 +80,7 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
         initialSectionKey={assignmentResult.data.current_section_key}
         initialStatus={assignmentResult.data.status}
         initialMode={initialMode}
+        initialPrintView={initialPrintView}
       />
     </div>
   );
