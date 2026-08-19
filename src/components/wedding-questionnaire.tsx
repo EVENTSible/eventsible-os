@@ -500,6 +500,7 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
 
   const inputType = question.fieldType === "number" ? "number"
     : question.fieldType === "time" ? "time"
+      : question.fieldType === "date" ? "date"
       : question.fieldType === "phone" ? "tel"
         : "text";
   return (

@@ -37,6 +37,19 @@ test("Wedding Companion condition hides ceremony details when ceremony service i
   assert.equal(isQuestionVisible(ceremonyLocation, { ceremony_included: true }), true);
 });
 
+test("Wedding Companion requires the wedding date only after it is confirmed", () => {
+  const weddingDate = weddingQuestionMap().get("event_date");
+  assert.equal(weddingDate.fieldType, "date");
+  assert.equal(weddingDate.required, true);
+  assert.equal(isQuestionVisible(weddingDate, { event_date_confirmed: false }), false);
+  assert.equal(isQuestionVisible(weddingDate, { event_date_confirmed: true }), true);
+
+  const unconfirmedKeys = requiredQuestionKeys({ event_date_confirmed: false, ceremony_included: false });
+  const confirmedKeys = requiredQuestionKeys({ event_date_confirmed: true, ceremony_included: false });
+  assert.equal(unconfirmedKeys.includes("event_date"), false);
+  assert.equal(confirmedKeys.includes("event_date"), true);
+});
+
 test("Wedding Companion keeps song moments together and reveals selected special-dance songs", () => {
   const songSection = WEDDING_SECTIONS.find((section) => section.key === "songs_and_dances");
   const songKeys = new Set(songSection.questions.map((question) => question.key));

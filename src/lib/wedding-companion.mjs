@@ -7,6 +7,9 @@ export const WEDDING_SECTIONS = [
     description: "The people, priorities, and essentials behind the day.",
     questions: [
       question("event_date_confirmed", "Is your wedding date confirmed?", "yes_no", true),
+      question("event_date", "Wedding date", "date", true, {
+        condition: { answer: "event_date_confirmed", equals: true },
+      }),
       question("partner_one_name", "Partner one name", "short_text", true),
       question("partner_two_name", "Partner two name", "short_text", true),
       question("guest_count", "Estimated guest count", "number", true),
