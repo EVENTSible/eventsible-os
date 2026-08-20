@@ -35,7 +35,7 @@ export default async function ClientHomePage() {
   const { data, error } = await supabase
     .from("os_client_portal_v")
     .select("event_id,title,event_type,starts_at,venue_name,booking_status,planning_template_name,planning_status,progress_percent")
-    .eq("planning_template_name", "Wedding Hero")
+    .in("planning_template_name", ["Wedding Hero", "Event Hero"])
     .order("starts_at", { ascending: true, nullsFirst: false });
   const events = (data ?? []) as ClientEvent[];
 
@@ -49,14 +49,34 @@ export default async function ClientHomePage() {
         <header className="client-hero">
           <span className="eyebrow">Your EVENTSible workspace</span>
           <h1>Let&apos;s get your event ready.</h1>
-          <p>Choose your event to continue planning. Your answers save to the same workspace the EVENTSible team uses.</p>
+          <p>Continue an event or start a new planning workspace. You can begin before booking, and legacy GigSalad clients can reconnect here.</p>
         </header>
 
         {error ? <div className="alert error">Your events could not be loaded. Please contact EVENTSible for help.</div> : null}
+        <section className="hero-starter-grid" aria-label="Start a planning workspace">
+          <article className="hero-starter-card wedding-starter">
+            <span className="eyebrow">Weddings</span>
+            <h2>Open Wedding Hero</h2>
+            <p>Your interactive wedding companion for the timeline, music, ceremony, introductions, special dances, vendors, and planning notes.</p>
+            <Link className="primary-button" href="/client/start/wedding">Start Wedding Hero</Link>
+          </article>
+          <article className="hero-starter-card event-starter">
+            <span className="eyebrow">Parties + events</span>
+            <h2>Start Event Hero</h2>
+            <p>Share the event vision, guest experience, entertainment preferences, announcements, and venue logistics.</p>
+            <Link className="primary-button" href="/client/start/event">Start my event</Link>
+          </article>
+        </section>
+
+        <div className="client-section-heading">
+          <span className="eyebrow">Your saved workspaces</span>
+          <h2>{events.length ? "Pick up where you left off" : "No saved workspace yet"}</h2>
+          {!events.length ? <p>Choose either option above. We will create the workspace and alert the EVENTSible team.</p> : null}
+        </div>
         <section className="client-event-grid">
           {events.length ? events.map((event) => {
-            const isWedding = String(event.event_type ?? "").toLowerCase().includes("wedding");
-            const active = isWedding && event.planning_template_name === "Wedding Hero";
+            const route = event.planning_template_name === "Wedding Hero" ? "wedding" : "event";
+            const label = route === "wedding" ? "Open Wedding Hero" : "Open Event Hero";
             return (
               <article className="client-event-card" key={event.event_id}>
                 <span className="eyebrow">{event.event_type ?? "EVENTSible event"}</span>
@@ -66,17 +86,13 @@ export default async function ClientHomePage() {
                   <span><b>{event.progress_percent ?? 0}%</b> planning complete</span>
                   <div><span style={{ width: `${event.progress_percent ?? 0}%` }} /></div>
                 </div>
-                {active ? (
-                  <Link className="primary-button" href={`/client/wedding/${event.event_id}`}>Open Wedding Companion</Link>
-                ) : (
-                  <p className="client-pending">Your planning workspace is being prepared. Contact EVENTSible if you need immediate access.</p>
-                )}
+                <Link className="primary-button" href={`/client/${route}/${event.event_id}`}>{label}</Link>
               </article>
             );
           }) : (
             <div className="client-empty">
-              <h2>No connected events yet</h2>
-              <p>Your invitation may still be processing, or this email has not been connected to the booking. Contact EVENTSible and we&apos;ll get it fixed.</p>
+              <h2>Ready when you are</h2>
+              <p>You do not need to wait for EVENTSible to connect a booking. Start above and your verified workspace will appear here.</p>
             </div>
           )}
         </section>

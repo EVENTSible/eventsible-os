@@ -5,7 +5,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
 import { formatWeddingAnswer, WEDDING_SECTIONS } from "@/lib/wedding-companion.mjs";
 
-export const metadata = { title: "Wedding Companion review | EVENTSible OS" };
+export const metadata = { title: "Wedding Hero review | EVENTSible OS" };
 
 type PageProps = { params: Promise<{ eventId: string }> };
 
@@ -48,7 +48,7 @@ export default async function WeddingCompanionReviewPage({ params }: PageProps) 
   return (
     <div className="review-shell">
       <nav className="review-nav">
-        <div><Wordmark compact /><span>Wedding Companion review</span></div>
+        <div><Wordmark compact /><span>Wedding Hero review</span></div>
         <div><Link href="/admin">Back to Mission Control</Link><Link href={`/client/wedding/${eventId}`}>Open client preview</Link></div>
       </nav>
       <main className="review-main">

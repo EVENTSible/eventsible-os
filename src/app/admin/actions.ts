@@ -187,7 +187,7 @@ export async function convertToGigAction(formData: FormData) {
 
 export async function activateWeddingCompanionAction(formData: FormData) {
   const eventId = value(formData, "event_id");
-  if (!eventId) adminRedirect("Wedding Companion activation was missing the event.", "error");
+  if (!eventId) adminRedirect("Wedding Hero activation was missing the event.", "error");
 
   const { supabase, user } = await requireStaffSupabase();
   const eventResult = await supabase
@@ -198,7 +198,7 @@ export async function activateWeddingCompanionAction(formData: FormData) {
 
   if (eventResult.error || !eventResult.data) adminRedirect("The wedding event could not be loaded.", "error");
   if (!String(eventResult.data.event_type ?? "").toLowerCase().includes("wedding")) {
-    adminRedirect("Wedding Companion can only be activated for a wedding event.", "error");
+    adminRedirect("Wedding Hero can only be activated for a wedding event.", "error");
   }
 
   const contactId = String(eventResult.data.primary_contact_id ?? "");
@@ -210,9 +210,9 @@ export async function activateWeddingCompanionAction(formData: FormData) {
     .eq("id", contactId)
     .maybeSingle();
   const clientEmail = String(contactResult.data?.primary_email ?? "").trim().toLowerCase();
-  if (contactResult.error || !clientEmail) adminRedirect("Add the client email before activating Wedding Companion.", "error");
+  if (contactResult.error || !clientEmail) adminRedirect("Add the client email before activating Wedding Hero.", "error");
 
-  let successMessage = "Wedding Companion activated.";
+  let successMessage = "Wedding Hero activated.";
 
   try {
     const admin = createAdminSupabase();
@@ -300,16 +300,16 @@ export async function activateWeddingCompanionAction(formData: FormData) {
       event_type: "client.portal_ready",
       visibility: "staff",
       payload: {
-        summary: inviteSent ? "Wedding Companion activated and client invitation sent." : "Wedding Companion access activated for an existing client user.",
+        summary: inviteSent ? "Wedding Hero activated and client invitation sent." : "Wedding Hero access activated for an existing client user.",
         source: WEDDING_COMPANION_VERSION,
       },
     });
 
     successMessage = inviteSent
-      ? "Wedding Companion activated and the secure client invitation was sent."
-      : "Wedding Companion activated. The client can use the Client Portal sign-in page.";
+      ? "Wedding Hero activated and the secure client invitation was sent."
+      : "Wedding Hero activated. The client can use the Wedding Hero access page.";
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Wedding Companion could not be activated.";
+    const message = error instanceof Error ? error.message : "Wedding Hero could not be activated.";
     adminRedirect(message, "error");
   }
 

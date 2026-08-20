@@ -38,7 +38,7 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
   const assignmentId = safeId(input?.assignmentId);
   const section = WEDDING_SECTIONS.find((candidate) => candidate.key === input?.sectionKey);
   if (!eventId || !assignmentId || !section || !input.answers || typeof input.answers !== "object") {
-    return { ok: false, message: "This Wedding Companion save request was incomplete." };
+    return { ok: false, message: "This Wedding Hero save request was incomplete." };
   }
 
   const supabase = await createServerSupabase();
@@ -84,7 +84,7 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
     ? await supabase.from("os_planning_questions").select("id,question_key").in("section_id", sectionIds)
     : { data: [], error: null };
   if (sectionResult.error || databaseQuestions.error) {
-    return { ok: false, message: "Wedding Companion question details could not be loaded." };
+    return { ok: false, message: "Wedding Hero question details could not be loaded." };
   }
 
   const questionIds = new Map((databaseQuestions.data ?? []).map((row) => [row.question_key, row.id]));
@@ -150,7 +150,7 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
       actor_user_id: user.id,
       event_type: "planning.submitted",
       visibility: "staff",
-      payload: { summary: "Wedding Companion submitted for EVENTSible review.", source: WEDDING_COMPANION_VERSION },
+      payload: { summary: "Wedding Hero submitted for EVENTSible review.", source: WEDDING_COMPANION_VERSION },
     });
   }
 
@@ -163,6 +163,6 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
     progress,
     savedAt,
     status,
-    message: input.submit ? "Wedding Companion submitted to EVENTSible." : "Saved.",
+    message: input.submit ? "Wedding Hero submitted to EVENTSible." : "Saved.",
   };
 }

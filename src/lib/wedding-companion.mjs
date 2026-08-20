@@ -1,4 +1,4 @@
-export const WEDDING_COMPANION_VERSION = "wedding-companion-mvp-v1";
+export const WEDDING_COMPANION_VERSION = "wedding-hero-v2";
 
 export const WEDDING_SECTIONS = [
   {
@@ -6,7 +6,10 @@ export const WEDDING_SECTIONS = [
     title: "Your Wedding",
     description: "The people, priorities, and essentials behind the day.",
     questions: [
-      question("event_date_confirmed", "Is the wedding date shown above correct?", "yes_no", true),
+      question("event_date_confirmed", "Is your wedding date confirmed?", "yes_no", true),
+      question("event_date", "Wedding date", "date", true, {
+        condition: { answer: "event_date_confirmed", equals: true },
+      }),
       question("partner_one_name", "Partner one name", "short_text", true),
       question("partner_two_name", "Partner two name", "short_text", true),
       question("guest_count", "Estimated guest count", "number", true),
@@ -32,9 +35,6 @@ export const WEDDING_SECTIONS = [
         ...ceremonyCondition(),
         helpText: "One person, couple, or group per line, in entrance order.",
       }),
-      question("ceremony_processional_music", "Processional songs and who enters to each", "repeater", false, ceremonyCondition()),
-      question("ceremony_special_music", "Unity ceremony, live performer, or other special music", "long_text", false, ceremonyCondition()),
-      question("ceremony_recessional_song", "Recessional song", "song", false, ceremonyCondition()),
       question("ceremony_notes", "Other ceremony cues or instructions", "long_text", false, ceremonyCondition()),
     ],
   },
@@ -49,38 +49,55 @@ export const WEDDING_SECTIONS = [
         condition: { answer: "wedding_party_introductions", equals: true },
         helpText: "One person, couple, or group per line.",
       }),
-      question("introduction_song", "Wedding-party introduction song", "song", false, {
-        condition: { answer: "wedding_party_introductions", equals: true },
-      }),
-      question("first_dance_song", "First dance song", "song", true),
-      question("parent_dances", "Parent or family dances", "repeater", false, {
-        helpText: "Include the people involved and the song for each dance.",
-      }),
       question("blessing_and_toasts", "Blessing, welcome, and toast speakers", "repeater"),
-      question("formal_moments", "Formal moments you want included", "multi_select", false, {
-        options: ["Cake cutting", "Bouquet toss", "Garter tradition", "Anniversary dance", "Money dance", "Group photo", "Private last dance", "Grand exit"],
-      }),
       question("reception_timeline", "Known timeline, meal service, and formal-moment times", "long_text", true),
-      question("last_dance_and_exit", "Last dance, private dance, and exit music or instructions", "long_text"),
       question("reception_notes", "Other reception traditions, surprises, or MC instructions", "long_text"),
     ],
   },
   {
+    key: "songs_and_dances",
+    title: "Songs & Special Dances",
+    description: "Every entrance, ceremony cue, special dance, and must-play in one easy-to-find place.",
+    questions: [
+      question("ceremony_processional_music", "Ceremony processional songs and who enters to each", "repeater", false, ceremonyCondition()),
+      question("ceremony_special_music", "Unity ceremony, interlude, live performer, or other ceremony music", "long_text", false, ceremonyCondition()),
+      question("ceremony_recessional_song", "Ceremony recessional song", "song", false, ceremonyCondition()),
+      question("introduction_song", "Wedding-party introduction song", "song", false, {
+        condition: { answer: "wedding_party_introductions", equals: true },
+      }),
+      question("couple_entrance_song", "Couple's grand entrance song", "song"),
+      question("first_dance_song", "First dance song", "song", true),
+      question("parent_dances", "Parent and family dances", "repeater", false, {
+        helpText: "One dance per line. Include the people involved, relationship, song title, and artist.",
+      }),
+      question("formal_moments", "Special moments you want included", "multi_select", false, {
+        options: ["Cake cutting", "Bouquet toss", "Garter tradition", "Anniversary dance", "Money dance", "Group photo", "Private last dance", "Grand exit"],
+      }),
+      question("cake_cutting_song", "Cake-cutting song", "song", false, momentCondition("Cake cutting")),
+      question("bouquet_toss_song", "Bouquet-toss song", "song", false, momentCondition("Bouquet toss")),
+      question("garter_toss_song", "Garter tradition song", "song", false, momentCondition("Garter tradition")),
+      question("anniversary_dance_song", "Anniversary-dance song", "song", false, momentCondition("Anniversary dance")),
+      question("private_last_dance_song", "Private last-dance song", "song", false, momentCondition("Private last dance")),
+      question("last_dance_and_exit", "Public last dance, grand exit song, or exit instructions", "long_text"),
+      question("line_dances", "Line dances and group dances", "multi_select", false, {
+        options: ["Cupid Shuffle", "Cha Cha Slide", "Electric Slide", "Wobble", "Macarena", "YMCA", "Other", "None"],
+      }),
+      question("must_play_list", "Must-play songs or artists", "repeater", true),
+      question("do_not_play_list", "Do-not-play songs or artists", "repeater"),
+      question("special_dance_notes", "Other special dances, dedications, or song notes", "long_text"),
+    ],
+  },
+  {
     key: "music",
-    title: "Music & Vibe",
-    description: "The songs that make the room move, and the ones that absolutely should not.",
+    title: "Dance Floor & Requests",
+    description: "The overall party energy, guest-request rules, favorite styles, and dance-floor direction.",
     questions: [
       question("music_vibe", "Describe the overall music vibe", "long_text", true),
       question("clean_music_required", "Are clean or radio-edit versions required?", "yes_no", true),
       question("favorite_genres", "Favorite genres, eras, and artists", "repeater", true),
       question("avoid_genres", "Genres, eras, or artists to avoid", "repeater"),
-      question("must_play_list", "Must-play songs or artists", "repeater", true),
-      question("do_not_play_list", "Do-not-play songs or artists", "repeater"),
       question("guest_requests", "May guests make song requests?", "single_select", true, {
         options: ["Yes, use DJ judgment", "Yes, play most reasonable requests", "Only requests approved by us", "No guest requests"],
-      }),
-      question("line_dances", "Line dances and group dances", "multi_select", false, {
-        options: ["Cupid Shuffle", "Cha Cha Slide", "Electric Slide", "Wobble", "Macarena", "YMCA", "Other", "None"],
       }),
       question("cultural_music", "Cultural, traditional, religious, or language-specific music", "long_text"),
       question("dance_floor_balance", "Dance-floor balance", "single_select", true, {
@@ -136,6 +153,10 @@ function ceremonyCondition() {
   return { condition: { answer: "ceremony_included", equals: true } };
 }
 
+function momentCondition(moment) {
+  return { condition: { answer: "formal_moments", includes: moment } };
+}
+
 export function weddingQuestionMap() {
   return new Map(WEDDING_SECTIONS.flatMap((section) => section.questions.map((questionItem) => [questionItem.key, questionItem])));
 }
@@ -150,6 +171,10 @@ export function answerHasValue(value) {
 export function isQuestionVisible(questionItem, answers = {}) {
   const condition = questionItem?.condition ?? {};
   if (!condition.answer) return true;
+  if (condition.includes) {
+    const selected = Array.isArray(answers[condition.answer]) ? answers[condition.answer] : [];
+    return selected.includes(condition.includes);
+  }
   return answers[condition.answer] === condition.equals;
 }
 

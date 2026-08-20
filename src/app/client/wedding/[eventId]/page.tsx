@@ -2,12 +2,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ClientLogoutButton } from "@/components/client-logout-button";
 import { WeddingQuestionnaire } from "@/components/wedding-questionnaire";
-import { Wordmark } from "@/components/wordmark";
+import { WeddingHeroMark } from "@/components/wedding-hero-mark";
 import { createServerSupabase } from "@/lib/supabase/server";
 
-export const metadata = { title: "Wedding Companion | EVENTSible" };
+export const metadata = { title: "Wedding Hero | EVENTSible", description: "Your EVENTSible interactive wedding companion." };
 
-type PageProps = { params: Promise<{ eventId: string }> };
+type PageProps = {
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ mode?: string | string[]; view?: string | string[] }>;
+};
 
 function formatDate(value: unknown) {
   if (!value) return "Date being finalized";
@@ -18,8 +21,13 @@ function formatDate(value: unknown) {
   }).format(new Date(String(value)));
 }
 
-export default async function WeddingCompanionPage({ params }: PageProps) {
+export default async function WeddingCompanionPage({ params, searchParams }: PageProps) {
   const { eventId } = await params;
+  const query = await searchParams;
+  const requestedMode = Array.isArray(query.mode) ? query.mode[0] : query.mode;
+  const requestedView = Array.isArray(query.view) ? query.view[0] : query.view;
+  const initialMode = requestedMode === "form" || requestedMode === "print" ? requestedMode : "guided";
+  const initialPrintView = requestedView === "day-of" ? "day-of" : "planner";
   const supabase = await createServerSupabase();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect(`/client/login`);
@@ -50,14 +58,14 @@ export default async function WeddingCompanionPage({ params }: PageProps) {
   const initialAnswers = Object.fromEntries((answersResult.data ?? []).map((row) => [row.question_key, row.value]));
 
   return (
-    <div className="client-shell wedding-shell">
-      <nav className="client-nav">
-        <div><Wordmark compact /><span>Wedding Companion</span></div>
-        <div className="client-nav-actions"><Link href="/client">My events</Link><ClientLogoutButton /></div>
+    <div className="wedding-shell">
+      <nav className="wedding-nav">
+        <div><WeddingHeroMark compact /><span>Interactive Wedding Companion</span></div>
+        <div className="client-nav-actions"><Link href="/client/wedding/resources">Wedding resources</Link><Link href="/client">My events</Link><ClientLogoutButton /></div>
       </nav>
       <header className="wedding-hero">
         <div>
-          <span className="eyebrow">Wedding Hero by EVENTSible</span>
+          <span className="wedding-kicker">Your Wedding Hero workspace</span>
           <h1>{eventResult.data.title ?? "Your wedding"}</h1>
           <p>{formatDate(eventResult.data.starts_at)} · {eventResult.data.venue_name ?? "Venue details coming soon"}</p>
         </div>
@@ -71,6 +79,8 @@ export default async function WeddingCompanionPage({ params }: PageProps) {
         initialProgress={assignmentResult.data.progress_percent ?? 0}
         initialSectionKey={assignmentResult.data.current_section_key}
         initialStatus={assignmentResult.data.status}
+        initialMode={initialMode}
+        initialPrintView={initialPrintView}
       />
     </div>
   );

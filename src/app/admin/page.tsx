@@ -227,7 +227,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     .filter((lead) => lead.id);
   const leadRows = activeLeads.length ? activeLeads : fallbackLeads;
   const bookedRows = events.filter((event) => isBookedStatus(event.booking_status) || bookingsByEvent.has(event.event_id));
-  const planning = events.filter((event) => ["assigned", "opened", "in_progress", "reopened"].includes(event.event_status ?? "") || (event.progress_percent ?? 0) > 0);
+  const planning = events.filter((event) => ["assigned", "opened", "in_progress", "reopened"].includes(event.planning_status ?? "") || (event.progress_percent ?? 0) > 0);
+  const heroRows = events.filter((event) => Boolean(event.assignment_id) && ["Wedding Hero", "Event Hero"].includes(event.planning_template_name ?? ""));
   const attention = events.filter((event) => event.contract_status === "sent" || event.payment_status === "deposit_due" || event.last_activity_type?.includes("help"));
   const notice = noticeText(params, "notice");
   const errorNotice = noticeText(params, "error");
@@ -243,6 +244,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <a className="active" href="/admin">Mission Control</a>
           <a href="#lead-review">Lead Review</a>
           <a href="#quote-review">Quotes</a>
+          <a href="#hero-workspaces">Hero Workspaces</a>
           <a href="#gig-workspace">Booked Gigs</a>
           <a href="#automation">Automation</a>
         </nav>
@@ -341,6 +343,36 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </aside>
         </section>
 
+        <section className="panel gig-panel" id="hero-workspaces">
+          <div className="panel-heading">
+            <div><span className="eyebrow">Client planning</span><h2>Wedding Hero + Event Hero</h2></div>
+            <span className="status-dot">{heroRows.length} workspace{heroRows.length === 1 ? "" : "s"}</span>
+          </div>
+          <p className="panel-note">Includes booked clients, legacy GigSalad clients, and prospective clients who started with a verified email. A self-reported booking stays an inquiry until EVENTSible confirms it.</p>
+          <div className="event-list workspace-list">
+            {heroRows.length ? heroRows.slice(0, 16).map((event) => {
+              const isWeddingHero = event.planning_template_name === "Wedding Hero";
+              const route = isWeddingHero ? "wedding" : "event";
+              return (
+                <article className="event-row workspace-row" key={`${event.event_id}-${event.assignment_id}`}>
+                  <div className="date-block"><b>{formatDate(event.starts_at).split(",")[0]}</b><span>{event.planning_template_name}</span></div>
+                  <div className="event-copy">
+                    <h3>{event.title ?? "Untitled event"}</h3>
+                    <p>{event.primary_contact_name ?? "Client not entered"} · {event.venue_name ?? "Venue not entered"}</p>
+                  </div>
+                  <div className="workspace-status">
+                    <span className="status-pill">{event.progress_percent ?? 0}% · {statusLabel(event.planning_status)}</span>
+                    <small>{statusLabel(event.event_status)}</small>
+                    <a className="secondary-button compact-button" href={`/admin/${route}/${event.event_id}`}>Review {isWeddingHero ? "Wedding Hero" : "Event Hero"}</a>
+                  </div>
+                </article>
+              );
+            }) : (
+              <div className="empty-state compact"><div className="empty-icon">✦</div><h3>No Hero workspace has been started.</h3><p>Verified client self-starts will appear here immediately for review.</p></div>
+            )}
+          </div>
+        </section>
+
         <section className="panel gig-panel" id="gig-workspace">
           <div className="panel-heading">
             <div><span className="eyebrow">Booked Gig workspace</span><h2>Confirmed and workspace-ready events</h2></div>
@@ -362,7 +394,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     <span className="status-pill">{statusLabel(booking?.status ?? event.booking_status ?? event.event_status)}</span>
                     <small>Quote total: {formatMoney(booking?.total_amount)}</small>
                     {hasWeddingCompanion ? (
-                      <a className="secondary-button compact-button" href={`/admin/wedding/${event.event_id}`}>Review Wedding Companion</a>
+                      <a className="secondary-button compact-button" href={`/admin/wedding/${event.event_id}`}>Review Wedding Hero</a>
                     ) : isWedding && event.event_id ? (
                       <form action={activateWeddingCompanionAction}>
                         <input type="hidden" name="event_id" value={event.event_id} />

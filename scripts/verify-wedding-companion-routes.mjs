@@ -24,7 +24,7 @@ async function waitForServer() {
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`Wedding Companion smoke server did not start.\n${output}`);
+  throw new Error(`Wedding Hero smoke server did not start.\n${output}`);
 }
 
 async function verify() {
@@ -33,8 +33,45 @@ async function verify() {
   const login = await fetch(`${origin}/client/login`, { redirect: "manual" });
   assert.equal(login.status, 200);
   const loginHtml = await login.text();
-  assert.match(loginHtml, /Your Wedding Companion/);
-  assert.match(loginHtml, /Email my sign-in link/);
+  assert.match(loginHtml, /Wedding Hero/);
+  assert.match(loginHtml, /Interactive Wedding Companion/);
+  assert.match(loginHtml, /Traditional Form/);
+  assert.match(loginHtml, /Printable Planner/);
+  assert.match(loginHtml, /Email my private access link/);
+  assert.match(loginHtml, /\/client\/wedding\?mode=guided/);
+  assert.match(loginHtml, /Wedding Resources/);
+  assert.match(loginHtml, /Meeting Companion/);
+
+  const publicPlanner = await fetch(`${origin}/client/wedding?mode=form`, { redirect: "manual" });
+  assert.equal(publicPlanner.status, 200);
+  const publicPlannerHtml = await publicPlanner.text();
+  assert.match(publicPlannerHtml, /No account or email required/);
+  assert.match(publicPlannerHtml, /Traditional planning form/);
+  assert.match(publicPlannerHtml, /Must-play songs or artists/);
+  assert.match(publicPlannerHtml, /Day-of Cheat Sheet/);
+  assert.match(publicPlannerHtml, /Helpful right now/);
+  assert.match(publicPlannerHtml, /Song &amp; Moment Guide/);
+
+  const dayOfSheet = await fetch(`${origin}/client/wedding?mode=print&view=day-of`, { redirect: "manual" });
+  assert.equal(dayOfSheet.status, 200);
+  const dayOfSheetHtml = await dayOfSheet.text();
+  assert.match(dayOfSheetHtml, /Day-of Production Cheat Sheet/);
+  assert.match(dayOfSheetHtml, /Still needs confirmation/);
+  assert.match(dayOfSheetHtml, /View full planner/);
+
+  const resources = await fetch(`${origin}/client/wedding/resources`, { redirect: "manual" });
+  assert.equal(resources.status, 200);
+  const resourcesHtml = await resources.text();
+  assert.match(resourcesHtml, /Wedding Hero Resources/);
+  assert.match(resourcesHtml, /Budget Tracker/);
+  assert.match(resourcesHtml, /Guestbook Starter/);
+
+  const meetingCompanion = await fetch(`${origin}/client/wedding/resources/meeting-companion`, { redirect: "manual" });
+  assert.equal(meetingCompanion.status, 200);
+  const meetingCompanionHtml = await meetingCompanion.text();
+  assert.match(meetingCompanionHtml, /Wedding Planning Meeting Companion/);
+  assert.match(meetingCompanionHtml, /Ceremony walkthrough/);
+  assert.match(meetingCompanionHtml, /Print or save as PDF/);
 
   const client = await fetch(`${origin}/client`, { redirect: "manual" });
   assert.ok([302, 303, 307, 308].includes(client.status));
@@ -45,15 +82,19 @@ async function verify() {
   assert.match(wedding.headers.get("location") ?? "", /\/client\/login/);
 
   const staffReview = await fetch(`${origin}/admin/wedding/00000000-0000-0000-0000-000000000000`, { redirect: "manual" });
-  assert.ok([302, 303, 307, 308].includes(staffReview.status));
-  assert.match(staffReview.headers.get("location") ?? "", /\/login/);
+  if ([302, 303, 307, 308].includes(staffReview.status)) {
+    assert.match(staffReview.headers.get("location") ?? "", /\/login/);
+  } else {
+    assert.equal(staffReview.status, 200);
+    assert.match(await staffReview.text(), /NEXT_REDIRECT[^<]*\/login/);
+  }
 
   const health = await fetch(`${origin}/api/health`);
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.ok, true);
 
-  console.log("Wedding Companion route smoke verification passed.");
+  console.log("Wedding Hero route smoke verification passed.");
 }
 
 try {

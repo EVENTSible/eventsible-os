@@ -46,6 +46,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Data flow | [EVENTSIBLE_DATA_FLOW_OVERVIEW.md](architecture/EVENTSIBLE_DATA_FLOW_OVERVIEW.md) |
 | Auth and security boundaries | [EVENTSIBLE_AUTH_AND_SECURITY_BOUNDARIES.md](architecture/EVENTSIBLE_AUTH_AND_SECURITY_BOUNDARIES.md) |
 | Builder to OS integration | [EVENT_BUILDER_TO_OS.md](integrations/EVENT_BUILDER_TO_OS.md) |
+| Wedding Hero resources | [WEDDING_HERO_RESOURCES_2026-08-19.md](integrations/WEDDING_HERO_RESOURCES_2026-08-19.md) |
 | Ecosystem integration foundation | [ECOSYSTEM_INTEGRATION_FOUNDATION.md](integrations/ECOSYSTEM_INTEGRATION_FOUNDATION.md) |
 | Outbox Production verification | [ECOSYSTEM_OUTBOX_PRODUCTION_VERIFICATION_2026-08-03.md](integrations/ECOSYSTEM_OUTBOX_PRODUCTION_VERIFICATION_2026-08-03.md) |
 | Outbox source parity | [ECOSYSTEM_OUTBOX_SOURCE_PARITY_2026-08-03.md](integrations/ECOSYSTEM_OUTBOX_SOURCE_PARITY_2026-08-03.md) |
