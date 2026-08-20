@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
 import { WeddingQuestionnaire } from "@/components/wedding-questionnaire";
+import styles from "./wedding-page.module.css";
 
 export const metadata = {
   title: "Start Your Wedding Hero | EVENTSible",
@@ -17,7 +18,7 @@ export default async function PublicWeddingHeroPage({ searchParams }: PageProps)
   const initialPrintView = requestedView === "day-of" ? "day-of" : "planner";
 
   return (
-    <div className="wedding-shell wedding-public-shell">
+    <div className={`${styles.route} wedding-shell wedding-public-shell`}>
       <nav className="wedding-nav wedding-public-nav">
         <div><WeddingHeroMark compact /><span>Interactive Wedding Companion</span></div>
         <div className="client-nav-actions">
