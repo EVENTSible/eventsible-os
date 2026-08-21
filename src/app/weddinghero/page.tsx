@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ClientLoginForm } from "@/components/client-login-form";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
@@ -42,9 +41,72 @@ const METHODS = {
   },
 } as const;
 
-const EVENTSIBLE_LOGO_SRC = "/brand/eventsible-wedding-hero-real.webp";
-
 type MethodKey = keyof typeof METHODS;
+
+function EventsibleBrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      aria-label="EVENTSible, Excellence in Event Entertainment"
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        flex: "0 0 auto",
+        minWidth: compact ? 104 : 164,
+        padding: compact ? "5px 7px" : "8px 10px 7px",
+        borderRadius: compact ? 14 : 18,
+        background: "linear-gradient(135deg, rgba(248,201,111,.36), rgba(255,255,255,.76) 48%, rgba(44,120,163,.14))",
+        boxShadow: "inset 0 0 0 1px rgba(20,52,95,.08)",
+        color: "#14345f",
+        lineHeight: 1,
+        transform: "skew(-4deg)",
+      }}
+    >
+      <span
+        style={{
+          color: "#14345f",
+          display: "block",
+          fontSize: compact ? "1rem" : "1.62rem",
+          fontWeight: 1000,
+          letterSpacing: "-.055em",
+          textShadow: "2px 2px 0 rgba(248,201,111,.9), 3px 3px 0 rgba(44,120,163,.28)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span
+          style={{
+            color: "#f8c96f",
+            display: "inline-block",
+            marginRight: 1,
+            textShadow: "2px 2px 0 #14345f, 4px 4px 0 #2c78a3",
+            transform: "scale(1.18) skew(-6deg)",
+            transformOrigin: "bottom left",
+          }}
+        >
+          E
+        </span>
+        VENT<span style={{ color: "#2c78a3" }}>SIBLE</span>
+      </span>
+      {compact ? null : (
+        <span
+          style={{
+            color: "#dd6f72",
+            display: "block",
+            fontSize: ".46rem",
+            fontWeight: 1000,
+            letterSpacing: ".06em",
+            marginTop: 4,
+            textShadow: ".7px .7px 0 rgba(255,255,255,.8)",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Excellence in Event Entertainment
+        </span>
+      )}
+    </span>
+  );
+}
 
 function methodKey(value: string | string[] | undefined): MethodKey {
   const candidate = Array.isArray(value) ? value[0] : value;
@@ -65,16 +127,7 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
     <main className={`${styles.scope} wedding-hero-entry wedding-hero-home`}>
       <nav className="wedding-hero-entry-nav">
         <Link className="wedding-hero-brand-lockup" href="/weddinghero" aria-label="EVENTSible Wedding Hero home">
-          <Image
-            className="wedding-hero-company-logo"
-            src={EVENTSIBLE_LOGO_SRC}
-            width={640}
-            height={350}
-            sizes="(max-width: 700px) 92px, 138px"
-            alt="EVENTSible, Excellence in Event Entertainment"
-            priority
-            unoptimized
-          />
+          <EventsibleBrandMark compact />
           <WeddingHeroMark compact />
         </Link>
         <div>
@@ -87,16 +140,7 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
         <div className="wedding-hero-intro-copy">
           <span className="wedding-kicker">Your wedding. Your people. Your soundtrack.</span>
           <div className="wedding-hero-intro-brand">
-            <Image
-              className="wedding-hero-intro-logo"
-              src={EVENTSIBLE_LOGO_SRC}
-              width={640}
-              height={350}
-              sizes="(max-width: 700px) 126px, 168px"
-              alt="EVENTSible, Excellence in Event Entertainment"
-              priority
-              unoptimized
-            />
+            <EventsibleBrandMark />
             <WeddingHeroMark />
           </div>
           <h1>Plan the day your way.</h1>
@@ -208,7 +252,7 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
 
       <footer className="wedding-hero-footer">
         <div className="wedding-hero-footer-brand">
-          <Image src={EVENTSIBLE_LOGO_SRC} width={640} height={350} sizes="90px" alt="EVENTSible" unoptimized />
+          <EventsibleBrandMark compact />
           <WeddingHeroMark compact />
         </div>
         <p>Powered by EVENTSible · Excellence in Event Entertainment</p>
