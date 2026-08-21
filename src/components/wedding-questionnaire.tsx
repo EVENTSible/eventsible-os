@@ -130,6 +130,7 @@ export function WeddingQuestionnaire({
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
+  const guidedCardRef = useRef<HTMLElement | null>(null);
   const currentSection = sections[currentIndex];
   const currentGuidedQuestions = useMemo(
     () => currentSection.questions.filter((question) => isQuestionVisible(question, answers)),
@@ -303,6 +304,12 @@ export function WeddingQuestionnaire({
     setAnswers((current) => ({ ...current, [key]: value }));
   }
 
+  function scrollGuidedCardIntoView() {
+    window.requestAnimationFrame(() => {
+      guidedCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   async function moveGuided(direction: -1 | 1) {
     if (dirtyRef.current) {
       const result = await persist(false);
@@ -322,7 +329,7 @@ export function WeddingQuestionnaire({
       setCurrentIndex(previousIndex);
       setCurrentQuestionIndex(Math.max(0, previousQuestions.length - 1));
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollGuidedCardIntoView();
   }
 
   async function goToSection(sectionIndex: number) {
@@ -337,7 +344,7 @@ export function WeddingQuestionnaire({
     }
     setCurrentIndex(sectionIndex);
     setCurrentQuestionIndex(0);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollGuidedCardIntoView();
   }
 
   async function submit() {
@@ -488,7 +495,7 @@ export function WeddingQuestionnaire({
         </nav>
       </aside>
 
-      {planningMode === "guided" ? <main className="wedding-form-card wedding-guided-card">
+      {planningMode === "guided" ? <main className="wedding-form-card wedding-guided-card" ref={guidedCardRef} style={{ scrollMarginTop: 18 }}>
         <header>
           <div className="wedding-guided-heading">
             <div>
