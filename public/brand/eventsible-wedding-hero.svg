@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 575" role="img" aria-labelledby="title desc">
+  <title id="title">EVENTSible</title>
+  <desc id="desc">EVENTSible Excellence in Event Entertainment brand mark</desc>
+  <defs>
+    <filter id="shadow" x="-15%" y="-25%" width="130%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#14345f" flood-opacity=".28"/>
+    </filter>
+    <linearGradient id="gold" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#fff26f"/>
+      <stop offset=".55" stop-color="#f8c96f"/>
+      <stop offset="1" stop-color="#e8ad43"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#7ee7ef"/>
+      <stop offset=".48" stop-color="#2c78a3"/>
+      <stop offset="1" stop-color="#14345f"/>
+    </linearGradient>
+  </defs>
+  <path d="M80 298 171 214 148 87l114 97 74-125 57 140L519 72l14 150 168-91-69 139 240-36-167 102 213 72-236 17 54 95-174-62-40 92-88-105-146 73 50-111-258 41 173-88Z" fill="#fff8f3"/>
+  <path d="M93 291 186 218 167 111l101 91 69-112 52 132 119-119 10 142 151-78-58 121 212-30-148 84 184 62-211 14 47 81-155-55-35 78-78-92-132 63 43-96-226 34 154-76Z" fill="#dd6f72"/>
+  <path d="M154 294 237 229 221 137l90 78 61-96 44 113 100-99 9 118 129-63-48 100 175-24-121 68 150 50-174 12 39 68-127-46-31 65-64-77-110 54 34-80-187 30 129-63Z" fill="url(#gold)"/>
+  <path d="M151 431 315 404 278 488l147-71 84 99 39-85 162 56-50-88 220-15-196-67 157-90-228 33 62-130-163 84-11-149-129 128-55-140-73 116-109-98 20 115-99 78Z" fill="none" stroke="url(#sky)" stroke-width="24" stroke-linejoin="round" opacity=".95"/>
+  <g filter="url(#shadow)">
+    <path d="M146 174 220 97 204 258 268 194 248 271 358 271 343 335 245 335 234 432 163 432 173 334 94 334 107 270 181 270Z" fill="#071b37"/>
+    <path d="M129 158 203 81 187 242 251 178 231 255 341 255 326 319 228 319 217 416 146 416 156 318 77 318 90 254 164 254Z" fill="url(#gold)" stroke="#14345f" stroke-width="11" stroke-linejoin="round"/>
+    <text x="288" y="319" font-family="Arial Black, Impact, sans-serif" font-size="145" font-weight="900" letter-spacing="-10" fill="#14345f" stroke="#071b37" stroke-width="22" paint-order="stroke">VENTS</text>
+    <text x="622" y="319" font-family="Arial Black, Impact, sans-serif" font-size="145" font-weight="900" letter-spacing="-10" fill="#2c78a3" stroke="#071b37" stroke-width="22" paint-order="stroke">IBLE</text>
+    <text x="288" y="319" font-family="Arial Black, Impact, sans-serif" font-size="145" font-weight="900" letter-spacing="-10" fill="url(#gold)">VENTS</text>
+    <text x="622" y="319" font-family="Arial Black, Impact, sans-serif" font-size="145" font-weight="900" letter-spacing="-10" fill="#2c78a3">IBLE</text>
+    <text x="249" y="394" font-family="Arial Black, Impact, sans-serif" font-size="42" font-weight="900" letter-spacing="1.5" fill="#dd6f72" stroke="#fff8f3" stroke-width="8" paint-order="stroke">EXCELLENCE IN EVENT ENTERTAINMENT</text>
+  </g>
+</svg>

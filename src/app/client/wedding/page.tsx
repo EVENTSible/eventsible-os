@@ -23,8 +23,8 @@ export default async function PublicWeddingHeroPage({ searchParams }: PageProps)
         <div><WeddingHeroMark compact /><span>Interactive Wedding Companion</span></div>
         <div className="client-nav-actions">
           <Link href="/client/wedding/resources">Wedding resources</Link>
-          <Link href="/client/login">Change planning method</Link>
-          <Link href="/client/login#hero-access">Open a saved plan</Link>
+          <Link href="/weddinghero#choose-your-way">Change planning method</Link>
+          <Link href="/weddinghero#hero-access">Open a saved plan</Link>
         </div>
       </nav>
       <header className="wedding-hero wedding-public-hero">
