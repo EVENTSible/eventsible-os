@@ -42,6 +42,8 @@ const METHODS = {
   },
 } as const;
 
+const EVENTSIBLE_LOGO_SRC = "/brand/eventsible-wedding-hero-real.webp";
+
 type MethodKey = keyof typeof METHODS;
 
 function methodKey(value: string | string[] | undefined): MethodKey {
@@ -65,12 +67,13 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
         <Link className="wedding-hero-brand-lockup" href="/weddinghero" aria-label="EVENTSible Wedding Hero home">
           <Image
             className="wedding-hero-company-logo"
-            src="/brand/eventsible-wedding-hero-real.webp"
+            src={EVENTSIBLE_LOGO_SRC}
             width={640}
             height={350}
             sizes="(max-width: 700px) 92px, 138px"
             alt="EVENTSible, Excellence in Event Entertainment"
             priority
+            unoptimized
           />
           <WeddingHeroMark compact />
         </Link>
@@ -86,12 +89,13 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
           <div className="wedding-hero-intro-brand">
             <Image
               className="wedding-hero-intro-logo"
-              src="/brand/eventsible-wedding-hero-real.webp"
+              src={EVENTSIBLE_LOGO_SRC}
               width={640}
               height={350}
               sizes="(max-width: 700px) 126px, 168px"
               alt="EVENTSible, Excellence in Event Entertainment"
               priority
+              unoptimized
             />
             <WeddingHeroMark />
           </div>
@@ -204,7 +208,7 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
 
       <footer className="wedding-hero-footer">
         <div className="wedding-hero-footer-brand">
-          <Image src="/brand/eventsible-wedding-hero-real.webp" width={640} height={350} sizes="90px" alt="EVENTSible" />
+          <Image src={EVENTSIBLE_LOGO_SRC} width={640} height={350} sizes="90px" alt="EVENTSible" unoptimized />
           <WeddingHeroMark compact />
         </div>
         <p>Powered by EVENTSible · Excellence in Event Entertainment</p>
