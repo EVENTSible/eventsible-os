@@ -65,9 +65,9 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
         <Link className="wedding-hero-brand-lockup" href="/weddinghero" aria-label="EVENTSible Wedding Hero home">
           <Image
             className="wedding-hero-company-logo"
-            src="/brand/eventsible-wedding-hero.svg"
-            width={1000}
-            height={575}
+            src="/brand/eventsible-wedding-hero-real.webp"
+            width={640}
+            height={350}
             sizes="(max-width: 700px) 92px, 138px"
             alt="EVENTSible, Excellence in Event Entertainment"
             priority
@@ -86,9 +86,9 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
           <div className="wedding-hero-intro-brand">
             <Image
               className="wedding-hero-intro-logo"
-              src="/brand/eventsible-wedding-hero.svg"
-              width={1000}
-              height={575}
+              src="/brand/eventsible-wedding-hero-real.webp"
+              width={640}
+              height={350}
               sizes="(max-width: 700px) 126px, 168px"
               alt="EVENTSible, Excellence in Event Entertainment"
               priority
@@ -204,7 +204,7 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
 
       <footer className="wedding-hero-footer">
         <div className="wedding-hero-footer-brand">
-          <Image src="/brand/eventsible-wedding-hero.svg" width={1000} height={575} sizes="90px" alt="EVENTSible" />
+          <Image src="/brand/eventsible-wedding-hero-real.webp" width={640} height={350} sizes="90px" alt="EVENTSible" />
           <WeddingHeroMark compact />
         </div>
         <p>Powered by EVENTSible · Excellence in Event Entertainment</p>
