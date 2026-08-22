@@ -5,7 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { saveWeddingSectionAction } from "@/app/client/wedding/actions";
 import {
   answerHasValue,
+  guidedResumeSectionKey,
   isQuestionVisible,
+  isSectionComplete,
   weddingProgress,
   WEDDING_SECTIONS,
 } from "@/lib/wedding-companion.mjs";
@@ -19,6 +21,7 @@ type WeddingQuestion = {
   helpText?: string | null;
   options?: string[];
   condition?: { answer?: string; equals?: unknown; includes?: string };
+  promptIdeas?: string[];
 };
 
 type WeddingSection = {
@@ -78,6 +81,36 @@ const SECTION_RESOURCES: Record<string, ResourceLink[]> = {
     { slug: "meeting-companion", title: "Meeting Companion", description: "Review every booked experience together." },
   ],
 };
+const QUESTION_RESOURCES: Record<string, ResourceLink[]> = {
+  wedding_vision: [
+    { slug: "song-moment-guide", title: "Vibe-to-music guide", description: "Turn the feeling into ceremony, dinner, and dance-floor direction." },
+    { slug: "meeting-companion", title: "Planning call prompts", description: "Use a few examples to decide what matters most." },
+  ],
+  special_considerations: [
+    { slug: "meeting-companion", title: "Sensitive details checklist", description: "Think through announcements, surprises, and family dynamics before the day." },
+  ],
+  ceremony_included: [
+    { slug: "meeting-companion", title: "Ceremony planning prompts", description: "A practical way to capture setup, cues, people, and timing." },
+  ],
+  ceremony_location: [
+    { slug: "day-of-timeline", title: "Ceremony timeline helper", description: "Work backward from guest arrival, lineup, and the processional." },
+  ],
+  ceremony_start_time: [
+    { slug: "day-of-timeline", title: "Ceremony timing", description: "Build buffers around arrivals, lineup, photos, and transitions." },
+  ],
+  cocktail_hour_included: [
+    { slug: "day-of-timeline", title: "Cocktail-hour flow", description: "Map the transition from ceremony to dinner without rushing guests." },
+  ],
+  cocktail_hour_sound: [
+    { slug: "song-moment-guide", title: "Cocktail-hour sound", description: "Choose whether this should feel elegant, upbeat, background, or hosted." },
+  ],
+  cocktail_hour_plan: [
+    { slug: "day-of-timeline", title: "Cocktail-hour timing", description: "Coordinate the room flip, photos, bar service, and reception doors." },
+  ],
+  reception_timeline: [
+    { slug: "day-of-timeline", title: "Reception flow builder", description: "Shape introductions, dinner, toasts, dances, and open dancing." },
+  ],
+};
 
 function answerText(value: unknown) {
   if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -104,6 +137,22 @@ function SectionResourceLinks({ sectionKey, compact = false }: { sectionKey: str
   );
 }
 
+function QuestionResourceLinks({ questionKey }: { questionKey: string }) {
+  const resources = QUESTION_RESOURCES[questionKey] ?? [];
+  if (resources.length === 0) return null;
+
+  return (
+    <div className="wedding-question-resources">
+      {resources.map((resource) => (
+        <Link href={`/client/wedding/resources/${resource.slug}`} key={resource.slug} target="_blank" rel="noreferrer">
+          <b>{resource.title}</b>
+          <small>{resource.description}</small>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export function WeddingQuestionnaire({
   eventId,
   assignmentId,
@@ -127,7 +176,8 @@ export function WeddingQuestionnaire({
   const [planningMode, setPlanningMode] = useState<PlanningMode>(initialMode);
   const [printView, setPrintView] = useState<PrintView>(initialPrintView);
   const [draftReady, setDraftReady] = useState(!publicDraft);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [resumeSectionIndex, setResumeSectionIndex] = useState(initialIndex);
+  const [hasDeviceDraft, setHasDeviceDraft] = useState(false);
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
   const guidedCardRef = useRef<HTMLElement | null>(null);
@@ -136,10 +186,9 @@ export function WeddingQuestionnaire({
     () => currentSection.questions.filter((question) => isQuestionVisible(question, answers)),
     [answers, currentSection],
   );
-  const guidedQuestionIndex = Math.min(currentQuestionIndex, Math.max(0, currentGuidedQuestions.length - 1));
-  const currentGuidedQuestion = currentGuidedQuestions[guidedQuestionIndex];
-  const guidedAtStart = currentIndex === 0 && guidedQuestionIndex === 0;
-  const guidedAtEnd = currentIndex === sections.length - 1 && guidedQuestionIndex === currentGuidedQuestions.length - 1;
+  const guidedAtStart = currentIndex === 0;
+  const guidedAtEnd = currentIndex === sections.length - 1;
+  const completedSections = useMemo(() => sections.filter((section) => isSectionComplete(section, answers)).length, [answers]);
   const daySheet = useMemo(() => buildWeddingDaySheet(answers), [answers]);
 
   useEffect(() => {
@@ -147,15 +196,17 @@ export function WeddingQuestionnaire({
 
     let restoredAnswers: Record<string, unknown> | null = null;
     let restoredAt: string | null = null;
+    let restoredSectionKey: string | null = null;
     let restoreMessage = "Saved on this device";
     try {
       const storedDraft = window.localStorage.getItem(PUBLIC_DRAFT_KEY);
       if (storedDraft) {
-        const parsed = JSON.parse(storedDraft) as { answers?: Record<string, unknown>; updatedAt?: string };
+        const parsed = JSON.parse(storedDraft) as { answers?: Record<string, unknown>; updatedAt?: string; sectionKey?: string };
         if (parsed.answers && typeof parsed.answers === "object") {
           restoredAnswers = parsed.answers;
           restoredAt = parsed.updatedAt ?? null;
-          restoreMessage = "Draft restored on this device";
+          restoredSectionKey = parsed.sectionKey ?? null;
+          restoreMessage = "Draft restored. Continue where you left off or start fresh.";
         }
       }
     } catch {
@@ -164,34 +215,52 @@ export function WeddingQuestionnaire({
 
     const restoreTimer = window.setTimeout(() => {
       if (restoredAnswers) {
-        setAnswers((current) => ({ ...current, ...restoredAnswers }));
-        setProgress(weddingProgress(restoredAnswers));
+        const mergedAnswers = { ...initialAnswers, ...restoredAnswers };
+        const resumeKey = guidedResumeSectionKey(mergedAnswers, restoredSectionKey);
+        const nextResumeIndex = Math.max(0, sections.findIndex((section) => section.key === resumeKey));
+        setAnswers(mergedAnswers);
+        setProgress(weddingProgress(mergedAnswers));
         setLastSaved(restoredAt);
+        setCurrentIndex(nextResumeIndex);
+        setResumeSectionIndex(nextResumeIndex);
+        setHasDeviceDraft(true);
       }
       setMessage(restoreMessage);
       setDraftReady(true);
     }, 0);
 
     return () => window.clearTimeout(restoreTimer);
-  }, [publicDraft]);
+  }, [initialAnswers, publicDraft]);
 
-  const savePublicDraft = useCallback(() => {
+  const savePublicDraft = useCallback((sectionKey = currentSection.key, feedbackMessage = "Section saved on this device") => {
     const savedAt = new Date().toISOString();
     const nextProgress = weddingProgress(answers);
 
     try {
-      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({ version: 1, answers, updatedAt: savedAt }));
+      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({ version: 2, answers, updatedAt: savedAt, sectionKey }));
       setProgress(nextProgress);
       setLastSaved(savedAt);
       setSaveState("saved");
-      setMessage("Saved on this device");
-      return { ok: true as const, message: "Saved on this device", progress: nextProgress, savedAt };
+      setMessage(feedbackMessage);
+      setHasDeviceDraft(true);
+      return { ok: true as const, message: feedbackMessage, progress: nextProgress, savedAt };
     } catch {
       setSaveState("error");
       setMessage("This browser could not save the draft. You can still print or save it as a PDF.");
       return { ok: false as const, message: "This browser could not save the draft." };
     }
-  }, [answers]);
+  }, [answers, currentSection.key]);
+
+  const sectionCompletion = useMemo(() => sections.map((section) => {
+    return isSectionComplete(section, answers);
+  }), [answers]);
+
+  const sectionSavedMessage = useCallback((sectionKey: string, currentAnswers: Record<string, unknown>, sectionIndex = currentIndex) => {
+    if (sectionKey === "ceremony" && currentAnswers.ceremony_included === true) return "Section saved. Nice, ceremony details are unlocked.";
+    if (sectionKey === "reception" && currentAnswers.cocktail_hour_included === true) return "Section saved. Cocktail-hour flow is captured with the reception plan.";
+    if (sectionCompletion[sectionIndex]) return "Section saved. Core details are complete.";
+    return "Section saved. You can keep moving and fill gaps later.";
+  }, [currentIndex, sectionCompletion]);
 
   const persist = useCallback(async (submit = false, sectionIndex = currentIndex) => {
     if (autosaveTimerRef.current !== null) {
@@ -202,9 +271,10 @@ export function WeddingQuestionnaire({
     const sectionAnswers = Object.fromEntries(section.questions.map((question) => [question.key, answers[question.key] ?? null]));
     dirtyRef.current = false;
     setSaveState("saving");
-    setMessage(publicDraft ? "Saving on this device…" : submit ? "Submitting…" : "Saving…");
+    setMessage(publicDraft ? "Saving this section on this device…" : submit ? "Submitting…" : "Saving this section…");
 
-    if (publicDraft) return savePublicDraft();
+    const feedbackMessage = sectionSavedMessage(section.key, answers);
+    if (publicDraft) return savePublicDraft(section.key, feedbackMessage);
     if (!eventId || !assignmentId) {
       const result = { ok: false as const, message: "This saved workspace is missing its event connection." };
       setSaveState("error");
@@ -234,9 +304,9 @@ export function WeddingQuestionnaire({
       return result;
     }
     setSaveState("saved");
-    setMessage(result.message);
+    setMessage(submit ? result.message : feedbackMessage);
     return result;
-  }, [answers, assignmentId, currentIndex, eventId, publicDraft, savePublicDraft]);
+  }, [answers, assignmentId, currentIndex, eventId, publicDraft, savePublicDraft, sectionSavedMessage]);
 
   const persistAll = useCallback(async (submit = false) => {
     if (autosaveTimerRef.current !== null) {
@@ -247,7 +317,7 @@ export function WeddingQuestionnaire({
     setSaveState("saving");
     setMessage(publicDraft ? "Saving on this device…" : submit ? "Submitting…" : "Saving the full form…");
 
-    if (publicDraft) return savePublicDraft();
+    if (publicDraft) return savePublicDraft(currentSection.key, "Printable draft saved on this device.");
     if (!eventId || !assignmentId) {
       const result = { ok: false as const, message: "This saved workspace is missing its event connection." };
       setSaveState("error");
@@ -278,7 +348,7 @@ export function WeddingQuestionnaire({
     setSaveState("saved");
     setMessage(finalResult?.message ?? "Saved.");
     return finalResult ?? { ok: true, message: "Saved." };
-  }, [answers, assignmentId, eventId, publicDraft, savePublicDraft]);
+  }, [answers, assignmentId, currentSection.key, eventId, publicDraft, savePublicDraft]);
 
   useEffect(() => {
     if (!dirtyRef.current || !draftReady) return;
@@ -292,15 +362,17 @@ export function WeddingQuestionnaire({
     };
   }, [answers, draftReady, persist, persistAll, planningMode]);
 
-  const sectionCompletion = useMemo(() => sections.map((section) => {
-    const required = section.questions.filter((question) => question.required && isQuestionVisible(question, answers));
-    return required.length > 0 && required.every((question) => answerHasValue(answers[question.key]));
-  }), [answers]);
-
   function updateAnswer(key: string, value: unknown) {
     dirtyRef.current = true;
     setSaveState("dirty");
-    setMessage("Unsaved changes");
+    const unlockMessage = key === "ceremony_included" && value === true
+      ? "Nice, ceremony details unlocked."
+      : key === "cocktail_hour_included" && value === true
+        ? "Great, cocktail-hour details opened."
+        : key === "rehearsal_needed" && value === true
+          ? "Rehearsal notes are ready when you are."
+          : "Unsaved changes";
+    setMessage(unlockMessage);
     setAnswers((current) => ({ ...current, [key]: value }));
   }
 
@@ -311,23 +383,15 @@ export function WeddingQuestionnaire({
   }
 
   async function moveGuided(direction: -1 | 1) {
-    if (dirtyRef.current) {
+    if (direction === 1 || dirtyRef.current) {
       const result = await persist(false);
       if (!result.ok) return;
     }
 
-    if (direction === 1 && guidedQuestionIndex < currentGuidedQuestions.length - 1) {
-      setCurrentQuestionIndex(guidedQuestionIndex + 1);
-    } else if (direction === 1 && currentIndex < sections.length - 1) {
+    if (direction === 1 && currentIndex < sections.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setCurrentQuestionIndex(0);
-    } else if (direction === -1 && guidedQuestionIndex > 0) {
-      setCurrentQuestionIndex(guidedQuestionIndex - 1);
     } else if (direction === -1 && currentIndex > 0) {
-      const previousIndex = currentIndex - 1;
-      const previousQuestions = sections[previousIndex].questions.filter((question) => isQuestionVisible(question, answers));
-      setCurrentIndex(previousIndex);
-      setCurrentQuestionIndex(Math.max(0, previousQuestions.length - 1));
+      setCurrentIndex(currentIndex - 1);
     }
     scrollGuidedCardIntoView();
   }
@@ -337,14 +401,37 @@ export function WeddingQuestionnaire({
       document.getElementById(`wedding-section-${sections[sectionIndex].key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    if (sectionIndex === currentIndex && currentQuestionIndex === 0) return;
+    if (sectionIndex === currentIndex) return;
     if (dirtyRef.current) {
       const result = await persist(false);
       if (!result.ok) return;
     }
     setCurrentIndex(sectionIndex);
-    setCurrentQuestionIndex(0);
     scrollGuidedCardIntoView();
+  }
+
+  function continueDeviceDraft() {
+    setCurrentIndex(resumeSectionIndex);
+    setPlanningMode("guided");
+    window.history.replaceState(null, "", `${window.location.pathname}?mode=guided`);
+    scrollGuidedCardIntoView();
+  }
+
+  function clearDeviceDraft() {
+    if (!publicDraft) return;
+    const confirmed = window.confirm("Start fresh on this device? This only clears the local Wedding Hero draft saved in this browser. Online or private plans are not affected.");
+    if (!confirmed) return;
+    if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
+    window.localStorage.removeItem(PUBLIC_DRAFT_KEY);
+    dirtyRef.current = false;
+    setAnswers(initialAnswers);
+    setProgress(weddingProgress(initialAnswers));
+    setLastSaved(null);
+    setCurrentIndex(0);
+    setResumeSectionIndex(0);
+    setHasDeviceDraft(false);
+    setSaveState("saved");
+    setMessage("Device draft cleared. Online or private plans were not changed.");
   }
 
   async function submit() {
@@ -467,6 +554,12 @@ export function WeddingQuestionnaire({
           <b>{progress}%</b>
           <div className="wedding-progress"><span style={{ width: `${progress}%` }} /></div>
           <small>{message}{lastSaved ? ` · ${new Date(lastSaved).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}</small>
+          {publicDraft ? (
+            <div className="wedding-draft-actions">
+              {hasDeviceDraft ? <button type="button" onClick={continueDeviceDraft}>Continue where you left off</button> : null}
+              <button type="button" onClick={clearDeviceDraft}>Start fresh</button>
+            </div>
+          ) : null}
         </div>
         <button
           type="button"
@@ -499,28 +592,34 @@ export function WeddingQuestionnaire({
         <header>
           <div className="wedding-guided-heading">
             <div>
-              <span className="eyebrow">Guided moment · Section {currentIndex + 1} of {sections.length}</span>
+              <span className="eyebrow">Guided section · {completedSections} of {sections.length} complete</span>
               <h2>{currentSection.title}</h2>
               <p>{currentSection.description}</p>
             </div>
-            <span className="wedding-guided-count">{guidedQuestionIndex + 1}<small>of {currentGuidedQuestions.length}</small></span>
+            <span className="wedding-guided-count">{currentIndex + 1}<small>of {sections.length}</small></span>
           </div>
-          <div className="wedding-guided-progress" aria-label={`Question ${guidedQuestionIndex + 1} of ${currentGuidedQuestions.length}`}>
-            <span style={{ width: `${((guidedQuestionIndex + 1) / Math.max(1, currentGuidedQuestions.length)) * 100}%` }} />
+          <div className="wedding-guided-progress" aria-label={`Section ${currentIndex + 1} of ${sections.length}`}>
+            <span style={{ width: `${((currentIndex + 1) / Math.max(1, sections.length)) * 100}%` }} />
           </div>
         </header>
 
         <div className="wedding-guided-prompt">
-          <span className="wedding-kicker">One thing at a time</span>
-          {currentGuidedQuestion ? (
-            <QuestionField
-              key={currentGuidedQuestion.key}
-              question={currentGuidedQuestion}
-              value={answers[currentGuidedQuestion.key]}
-              onChange={(value) => updateAnswer(currentGuidedQuestion.key, value)}
-            />
-          ) : <p>This section is ready. Continue to the next part of your wedding.</p>}
-          <small className="wedding-guided-help">Skip anything you do not know yet. Wedding Hero will keep your place.</small>
+          <div className="wedding-guided-section-intro">
+            <span className="wedding-kicker">{sectionCompletion[currentIndex] ? "Core details complete" : "Fill what you know"}</span>
+            <small>Each section saves together. Skip unknowns, use the idea chips, and let conditional details unfold only when they matter.</small>
+          </div>
+          <div className="wedding-guided-section-flow">
+            {currentGuidedQuestions.length > 0 ? currentGuidedQuestions.map((question) => (
+              <div className={`wedding-question-card${question.condition?.answer ? " unfolding" : ""}`} key={question.key}>
+                <QuestionField
+                  question={question}
+                  value={answers[question.key]}
+                  onChange={(value) => updateAnswer(question.key, value)}
+                />
+              </div>
+            )) : <p>This section is ready. Continue to the next part of your wedding.</p>}
+          </div>
+          <small className="wedding-guided-help">Wedding Hero keeps this professional for the production team while still helping you think through the day like humans.</small>
           <SectionResourceLinks sectionKey={currentSection.key} compact />
         </div>
 
@@ -532,7 +631,7 @@ export function WeddingQuestionnaire({
             {saveState === "saving" ? "Saving…" : "Save for later"}
           </button>
           {!guidedAtEnd ? (
-            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void moveGuided(1)}>{currentGuidedQuestion && answerHasValue(answers[currentGuidedQuestion.key]) ? "Save & next" : "Skip for now"}</button>
+            <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void moveGuided(1)}>{sectionCompletion[currentIndex] ? "Next section" : "Save section and continue"}</button>
           ) : (
             <button type="button" className="primary-button" disabled={saveState === "saving"} onClick={() => void submit()}>{publicDraft ? "Review printable copy" : "Submit to EVENTSible"}</button>
           )}
@@ -567,6 +666,25 @@ export function WeddingQuestionnaire({
 function QuestionField({ question, value, onChange }: { question: WeddingQuestion; value: unknown; onChange: (value: unknown) => void }) {
   const id = `wedding-${question.key}`;
   const label = <><span>{question.label}{question.required ? <b className="required-mark"> *</b> : null}</span>{question.helpText ? <small>{question.helpText}</small> : null}</>;
+  const promptIdeas = question.promptIdeas ?? [];
+
+  function addPromptIdea(idea: string) {
+    if (question.fieldType === "repeater") {
+      const currentItems = Array.isArray(value) ? value.map(String).filter(Boolean) : answerText(value).split("\n").filter(Boolean);
+      onChange([...currentItems, idea]);
+      return;
+    }
+    const currentText = answerText(value).trim();
+    onChange(currentText ? `${currentText}\n${idea}` : idea);
+  }
+
+  const promptChips = promptIdeas.length > 0 ? (
+    <div className="wedding-prompt-chips" aria-label={`Starter ideas for ${question.label}`}>
+      {promptIdeas.map((idea) => (
+        <button type="button" key={idea} onClick={() => addPromptIdea(idea)}>{idea}</button>
+      ))}
+    </div>
+  ) : null;
 
   if (question.fieldType === "yes_no") {
     return (
@@ -577,6 +695,7 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
             <button type="button" aria-pressed={value === option.value} className={value === option.value ? "selected" : ""} key={option.label} onClick={() => onChange(option.value)}>{option.label}</button>
           ))}
         </div>
+        <QuestionResourceLinks questionKey={question.key} />
       </fieldset>
     );
   }
@@ -598,26 +717,28 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
             </label>
           ))}
         </div>
+        <QuestionResourceLinks questionKey={question.key} />
       </fieldset>
     );
   }
 
   if (question.fieldType === "single_select") {
     return (
-      <label className="wedding-question" htmlFor={id}>
-        {label}
+      <div className="wedding-question">
+        <label htmlFor={id}>{label}</label>
         <select id={id} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}>
           <option value="">Choose one</option>
           {(question.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
         </select>
-      </label>
+        <QuestionResourceLinks questionKey={question.key} />
+      </div>
     );
   }
 
   if (question.fieldType === "long_text" || question.fieldType === "repeater") {
     return (
-      <label className="wedding-question" htmlFor={id}>
-        {label}
+      <div className="wedding-question">
+        <label htmlFor={id}>{label}</label>
         <textarea
           id={id}
           rows={question.fieldType === "repeater" ? 5 : 4}
@@ -625,7 +746,9 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
           onChange={(event) => onChange(question.fieldType === "repeater" ? event.target.value.split("\n") : event.target.value)}
           placeholder={question.fieldType === "repeater" ? "One item per line" : "Share the details here"}
         />
-      </label>
+        {promptChips}
+        <QuestionResourceLinks questionKey={question.key} />
+      </div>
     );
   }
 
@@ -635,8 +758,8 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
       : question.fieldType === "phone" ? "tel"
         : "text";
   return (
-    <label className="wedding-question" htmlFor={id}>
-      {label}
+    <div className="wedding-question">
+      <label htmlFor={id}>{label}</label>
       <input
         id={id}
         type={inputType}
@@ -645,6 +768,7 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
         onChange={(event) => onChange(event.target.value)}
         placeholder={question.fieldType === "song" ? "Song title and artist" : undefined}
       />
-    </label>
+      <QuestionResourceLinks questionKey={question.key} />
+    </div>
   );
 }

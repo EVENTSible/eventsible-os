@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   answerHasValue,
+  guidedPromptIdeas,
+  guidedResumeSectionKey,
   isQuestionVisible,
   normalizeWeddingAnswer,
   requiredQuestionKeys,
@@ -37,6 +39,17 @@ test("Wedding Companion condition hides ceremony details when ceremony service i
   assert.equal(isQuestionVisible(ceremonyLocation, { ceremony_included: true }), true);
 });
 
+test("Wedding Companion unlocks ceremony, rehearsal, and cocktail-hour follow-ups only when relevant", () => {
+  const map = weddingQuestionMap();
+  assert.equal(isQuestionVisible(map.get("guest_arrival_time"), { ceremony_included: true }), true);
+  assert.equal(isQuestionVisible(map.get("lineup_time"), { ceremony_included: true }), true);
+  assert.equal(isQuestionVisible(map.get("rehearsal_date"), { ceremony_included: true, rehearsal_needed: false }), false);
+  assert.equal(isQuestionVisible(map.get("rehearsal_date"), { ceremony_included: true, rehearsal_needed: true }), true);
+
+  assert.equal(isQuestionVisible(map.get("cocktail_hour_location"), { cocktail_hour_included: false }), false);
+  assert.equal(isQuestionVisible(map.get("cocktail_hour_sound"), { cocktail_hour_included: true }), true);
+});
+
 test("Wedding Companion requires the wedding date only after it is confirmed", () => {
   const weddingDate = weddingQuestionMap().get("event_date");
   assert.equal(weddingDate.fieldType, "date");
@@ -61,6 +74,29 @@ test("Wedding Companion keeps song moments together and reveals selected special
   const cakeSong = weddingQuestionMap().get("cake_cutting_song");
   assert.equal(isQuestionVisible(cakeSong, { formal_moments: [] }), false);
   assert.equal(isQuestionVisible(cakeSong, { formal_moments: ["Cake cutting"] }), true);
+});
+
+test("Wedding Companion offers guided prompt starter ideas for open-ended planning questions", () => {
+  assert.ok(guidedPromptIdeas("wedding_vision").includes("Elegant, classic, and polished"));
+  assert.ok(guidedPromptIdeas("special_considerations").includes("Family dynamics to handle gently"));
+  assert.ok(guidedPromptIdeas("cocktail_hour_sound").includes("DJ-curated upbeat mingling music"));
+});
+
+test("Wedding Companion resumes a device draft at the last worked or nearest incomplete section", () => {
+  const completeBasics = {
+    event_date_confirmed: true,
+    event_date: "2026-10-10",
+    partner_one_name: "Alex",
+    partner_two_name: "Jordan",
+    guest_count: 120,
+    day_of_contact: "Morgan",
+    day_of_contact_phone: "555-0100",
+    wedding_vision: "Elegant dinner and full dance floor",
+    ceremony_included: false,
+  };
+
+  assert.equal(guidedResumeSectionKey(completeBasics, "event_basics"), "reception");
+  assert.equal(guidedResumeSectionKey({}, "ceremony"), "ceremony");
 });
 
 test("Wedding Companion normalizes boolean, numeric, repeater, and text answers", () => {

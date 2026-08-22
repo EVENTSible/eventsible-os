@@ -17,8 +17,12 @@ export const WEDDING_SECTIONS = [
       question("day_of_contact_phone", "Day-of contact phone number", "phone", true),
       question("wedding_vision", "What should your wedding feel like?", "long_text", true, {
         helpText: "Tell us about the energy, style, and moments that matter most.",
+        promptIdeas: ["Warm and intimate dinner party", "Elegant, classic, and polished", "Packed dance floor with throwbacks", "Relaxed garden party with family focus"],
       }),
-      question("special_considerations", "Surprises, sensitive details, or special considerations", "long_text"),
+      question("special_considerations", "Surprises, sensitive details, or special considerations", "long_text", false, {
+        helpText: "Share anything we should protect, avoid, announce carefully, or coordinate quietly.",
+        promptIdeas: ["Private surprise for the couple", "Family dynamics to handle gently", "Memorial moment or reserved seat", "Names or traditions to pronounce carefully"],
+      }),
     ],
   },
   {
@@ -28,9 +32,16 @@ export const WEDDING_SECTIONS = [
     questions: [
       question("ceremony_included", "Will EVENTSible provide ceremony sound or music?", "yes_no", true),
       question("ceremony_location", "Ceremony location or setup area", "short_text", false, ceremonyCondition()),
+      question("ceremony_address", "Ceremony address or location details", "long_text", false, ceremonyCondition()),
+      question("guest_arrival_time", "Guest arrival time", "time", false, ceremonyCondition()),
       question("ceremony_start_time", "Ceremony start time", "time", false, ceremonyCondition()),
+      question("lineup_time", "Wedding-party lineup time", "time", false, ceremonyCondition()),
       question("officiant_name", "Officiant name", "short_text", false, ceremonyCondition()),
       question("officiant_needs_mic", "Will the officiant need a microphone?", "yes_no", false, ceremonyCondition()),
+      question("rehearsal_needed", "Is there a rehearsal we should know about?", "yes_no", false, ceremonyCondition()),
+      question("rehearsal_date", "Rehearsal date", "date", false, rehearsalCondition()),
+      question("rehearsal_time", "Rehearsal time", "time", false, rehearsalCondition()),
+      question("rehearsal_notes", "Rehearsal location, people, or notes", "long_text", false, rehearsalCondition()),
       question("ceremony_participants", "Processional order and names", "repeater", false, {
         ...ceremonyCondition(),
         helpText: "One person, couple, or group per line, in entrance order.",
@@ -43,7 +54,15 @@ export const WEDDING_SECTIONS = [
     title: "Reception Flow",
     description: "Introductions, formal moments, speeches, and the shape of the celebration.",
     questions: [
-      question("cocktail_hour_plan", "Cocktail-hour location, timing, and music direction", "long_text"),
+      question("cocktail_hour_included", "Will there be a cocktail hour?", "yes_no", true),
+      question("cocktail_hour_location", "Cocktail-hour location", "short_text", false, cocktailHourCondition()),
+      question("cocktail_hour_start_time", "Cocktail-hour start time", "time", false, cocktailHourCondition()),
+      question("cocktail_hour_end_time", "Cocktail-hour end time", "time", false, cocktailHourCondition()),
+      question("cocktail_hour_sound", "Cocktail-hour sound or music needs", "long_text", false, {
+        ...cocktailHourCondition(),
+        promptIdeas: ["Background playlist only", "Wireless speaker in a separate room", "DJ-curated upbeat mingling music", "Live musician handoff to reception"],
+      }),
+      question("cocktail_hour_plan", "Cocktail-hour notes", "long_text", false, cocktailHourCondition()),
       question("wedding_party_introductions", "Would you like formal wedding-party introductions?", "yes_no", true),
       question("introduction_order", "Introduction order, names, and pronunciations", "repeater", false, {
         condition: { answer: "wedding_party_introductions", equals: true },
@@ -145,12 +164,21 @@ function question(key, label, fieldType, required = false, extras = {}) {
     helpText: null,
     options: [],
     condition: {},
+    promptIdeas: [],
     ...extras,
   };
 }
 
 function ceremonyCondition() {
   return { condition: { answer: "ceremony_included", equals: true } };
+}
+
+function rehearsalCondition() {
+  return { condition: { answer: "rehearsal_needed", equals: true } };
+}
+
+function cocktailHourCondition() {
+  return { condition: { answer: "cocktail_hour_included", equals: true } };
 }
 
 function momentCondition(moment) {
@@ -182,6 +210,35 @@ export function requiredQuestionKeys(answers = {}) {
   return WEDDING_SECTIONS.flatMap((section) => section.questions)
     .filter((questionItem) => questionItem.required && isQuestionVisible(questionItem, answers))
     .map((questionItem) => questionItem.key);
+}
+
+export function isSectionComplete(section, answers = {}) {
+  const requiredQuestions = section.questions.filter((questionItem) => questionItem.required && isQuestionVisible(questionItem, answers));
+  return requiredQuestions.length > 0 && requiredQuestions.every((questionItem) => answerHasValue(answers[questionItem.key]));
+}
+
+/**
+ * @param {Record<string, unknown>} answers
+ * @param {string | null} [lastSectionKey]
+ */
+export function guidedResumeSectionKey(answers = {}, lastSectionKey = null) {
+  const lastIndex = WEDDING_SECTIONS.findIndex((section) => section.key === lastSectionKey);
+  if (lastIndex >= 0 && !isSectionComplete(WEDDING_SECTIONS[lastIndex], answers)) return WEDDING_SECTIONS[lastIndex].key;
+
+  const searchStart = Math.max(0, lastIndex);
+  const orderedSections = [
+    ...WEDDING_SECTIONS.slice(searchStart),
+    ...WEDDING_SECTIONS.slice(0, searchStart),
+  ];
+  return orderedSections.find((section) => !isSectionComplete(section, answers))?.key ?? WEDDING_SECTIONS.at(-1)?.key ?? WEDDING_SECTIONS[0].key;
+}
+
+/**
+ * @param {string} questionKey
+ */
+export function guidedPromptIdeas(questionKey) {
+  const questionItem = weddingQuestionMap().get(questionKey);
+  return Array.isArray(questionItem?.promptIdeas) ? questionItem.promptIdeas : [];
 }
 
 export function weddingProgress(answers = {}) {

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const port = 3107;
 const origin = `http://127.0.0.1:${port}`;
 const nextBin = new URL("../node_modules/next/dist/bin/next", import.meta.url);
-const server = spawn(process.execPath, [nextBin.pathname, "start", "--hostname", "127.0.0.1", "--port", String(port)], {
+const server = spawn(process.execPath, [fileURLToPath(nextBin), "start", "--hostname", "127.0.0.1", "--port", String(port)], {
   cwd: new URL("..", import.meta.url),
   env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
   stdio: ["ignore", "pipe", "pipe"],
