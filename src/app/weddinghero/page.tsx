@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ClientLoginForm } from "@/components/client-login-form";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
 import { FEATURED_WEDDING_RESOURCES } from "@/lib/wedding-resources";
@@ -45,66 +46,15 @@ type MethodKey = keyof typeof METHODS;
 
 function EventsibleBrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <span
-      aria-label="EVENTSible, Excellence in Event Entertainment"
-      style={{
-        display: "inline-flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        flex: "0 0 auto",
-        minWidth: compact ? 104 : 164,
-        padding: compact ? "5px 7px" : "8px 10px 7px",
-        borderRadius: compact ? 14 : 18,
-        background: "linear-gradient(135deg, rgba(248,201,111,.36), rgba(255,255,255,.76) 48%, rgba(44,120,163,.14))",
-        boxShadow: "inset 0 0 0 1px rgba(20,52,95,.08)",
-        color: "#14345f",
-        lineHeight: 1,
-        transform: "skew(-4deg)",
-      }}
-    >
-      <span
-        style={{
-          color: "#14345f",
-          display: "block",
-          fontSize: compact ? "1rem" : "1.62rem",
-          fontWeight: 1000,
-          letterSpacing: "-.055em",
-          textShadow: "2px 2px 0 rgba(248,201,111,.9), 3px 3px 0 rgba(44,120,163,.28)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <span
-          style={{
-            color: "#f8c96f",
-            display: "inline-block",
-            marginRight: 1,
-            textShadow: "2px 2px 0 #14345f, 4px 4px 0 #2c78a3",
-            transform: "scale(1.18) skew(-6deg)",
-            transformOrigin: "bottom left",
-          }}
-        >
-          E
-        </span>
-        VENT<span style={{ color: "#2c78a3" }}>SIBLE</span>
-      </span>
-      {compact ? null : (
-        <span
-          style={{
-            color: "#dd6f72",
-            display: "block",
-            fontSize: ".46rem",
-            fontWeight: 1000,
-            letterSpacing: ".06em",
-            marginTop: 4,
-            textShadow: ".7px .7px 0 rgba(255,255,255,.8)",
-            textTransform: "uppercase",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Excellence in Event Entertainment
-        </span>
-      )}
-    </span>
+    <Image
+      className={compact ? "wedding-hero-company-logo" : "wedding-hero-intro-logo"}
+      src="/brand/eventsible-wedding-hero-logo.png"
+      alt="EVENTSible - Excellence in Event Entertainment"
+      width={659}
+      height={379}
+      sizes={compact ? "(max-width: 480px) 74px, 92px" : "(max-width: 480px) 118px, 150px"}
+      priority={!compact}
+    />
   );
 }
 

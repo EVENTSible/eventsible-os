@@ -10,9 +10,10 @@
 }
 
 .scope :global(.wedding-hero-company-logo) {
+  display: block;
   width: 92px;
   height: auto;
-  mix-blend-mode: multiply;
+  flex: 0 0 auto;
 }
 
 .scope :global(.wedding-hero-intro) {
@@ -37,10 +38,10 @@
 }
 
 .scope :global(.wedding-hero-intro-logo) {
+  display: block;
   width: 150px;
   height: auto;
   flex: 0 0 auto;
-  mix-blend-mode: multiply;
 }
 
 .scope :global(.wedding-hero-intro-brand .wedding-hero-name) {
@@ -365,7 +366,6 @@
 .scope :global(.wedding-hero-footer-brand > img) {
   width: 88px;
   height: auto;
-  mix-blend-mode: multiply;
 }
 
 @media (max-width: 980px) {
@@ -442,7 +442,13 @@
   }
 
   .scope :global(.wedding-hero-access) {
+    grid-template-columns: minmax(0, 1fr);
     padding: 38px 0;
+  }
+
+  .scope :global(.wedding-access-form-card) {
+    min-width: 0;
+    width: 100%;
   }
 
   .scope :global(.wedding-hero-footer-brand) {
