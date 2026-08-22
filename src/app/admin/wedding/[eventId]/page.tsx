@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Wordmark } from "@/components/wordmark";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
-import { formatWeddingAnswer, WEDDING_SECTIONS } from "@/lib/wedding-companion.mjs";
+import { answerHasValue, formatWeddingAnswer, WEDDING_SECTIONS } from "@/lib/wedding-companion.mjs";
 
 export const metadata = { title: "Wedding Hero review | EVENTSible OS" };
 
@@ -72,9 +72,9 @@ export default async function WeddingCompanionReviewPage({ params }: PageProps) 
               <header><span className="eyebrow">{section.title}</span><p>{section.description}</p></header>
               <dl>
                 {section.questions.map((question) => (
-                  <div key={question.key} className={answers[question.key] === undefined || answers[question.key] === null || answers[question.key] === "" ? "unanswered" : ""}>
+                  <div key={question.key} className={answerHasValue(answers[question.key]) ? "" : "unanswered"}>
                     <dt>{question.label}</dt>
-                    <dd>{formatWeddingAnswer(question, answers[question.key]).split("\n").map((line, index) => <span key={`${question.key}-${index}`}>{line}</span>)}</dd>
+                    <dd>{formatWeddingAnswer(question, answers[question.key]).split("\n").map((line: string, index: number) => <span key={`${question.key}-${index}`}>{line}</span>)}</dd>
                   </div>
                 ))}
               </dl>

@@ -231,6 +231,7 @@ export async function sendWithResend(email, config = resolveNotificationConfig()
     headers: {
       Authorization: `Bearer ${config.resendApiKey}`,
       "Content-Type": "application/json",
+      ...(email.idempotencyKey ? { "Idempotency-Key": email.idempotencyKey } : {}),
     },
     body: JSON.stringify({
       from: email.from,

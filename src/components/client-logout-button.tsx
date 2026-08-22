@@ -8,7 +8,7 @@ export function ClientLogoutButton() {
 
   async function signOut() {
     await getBrowserSupabase().auth.signOut();
-    router.replace("/client/login");
+    router.replace("/weddinghero");
     router.refresh();
   }
 

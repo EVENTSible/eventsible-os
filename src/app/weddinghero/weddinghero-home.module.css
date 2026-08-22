@@ -1,0 +1,517 @@
+.scope :global(.wedding-hero-entry-nav) {
+  min-height: 66px;
+  padding: 6px 0;
+}
+
+.scope :global(.wedding-hero-brand-lockup) {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.scope :global(.wedding-hero-company-logo) {
+  display: block;
+  width: 92px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.scope :global(.wedding-hero-intro) {
+  grid-template-columns: minmax(0, 1.12fr) minmax(350px, .78fr);
+  gap: clamp(28px, 4vw, 52px);
+  min-height: 485px;
+  padding: 28px 0 38px;
+}
+
+.scope :global(.wedding-hero-intro::before) {
+  top: 34px;
+  width: 285px;
+  height: 285px;
+  box-shadow: 0 0 0 44px rgba(44,120,163,.035), 0 0 0 88px rgba(221,111,114,.025);
+}
+
+.scope :global(.wedding-hero-intro-brand) {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+.scope :global(.wedding-hero-intro-logo) {
+  display: block;
+  width: 150px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.scope :global(.wedding-hero-intro-brand .wedding-hero-name) {
+  font-size: clamp(2rem, 4.6vw, 4.45rem);
+}
+
+.scope :global(.wedding-hero-intro-copy h1) {
+  margin: 14px 0 9px;
+  font-size: clamp(2.35rem, 4.35vw, 4rem);
+}
+
+.scope :global(.wedding-hero-intro-copy > p) {
+  max-width: 680px;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.scope :global(.wedding-hero-resource-callout) {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(260px, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  border: 1px solid rgba(20,52,95,.11);
+  border-radius: 17px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,.78);
+  box-shadow: 0 10px 24px rgba(20,52,95,.06);
+}
+
+.scope :global(.wedding-hero-resource-callout p) {
+  margin: 5px 0 0;
+  color: #5c7087;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+.scope :global(.wedding-hero-resource-links) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.scope :global(.wedding-hero-resource-links a) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--wedding-navy);
+  background: #eef8f8;
+  font-size: .68rem;
+  font-weight: 820;
+}
+
+.scope :global(.wedding-hero-resource-links a > span) {
+  color: #c65361;
+}
+
+.scope :global(.wedding-hero-resource-links .all-resources) {
+  color: white;
+  background: var(--wedding-navy);
+}
+
+.scope :global(.wedding-hero-resource-links .all-resources > span) {
+  color: var(--wedding-gold);
+}
+
+.scope :global(.wedding-hero-primary) {
+  gap: 20px;
+  margin-top: 15px;
+  padding: 9px 12px 9px 17px;
+  font-size: .86rem;
+  box-shadow: 0 12px 24px rgba(20,52,95,.16);
+}
+
+.scope :global(.wedding-hero-preview) {
+  min-height: 350px;
+}
+
+.scope :global(.hero-preview-main) {
+  top: 10px;
+  right: 14px;
+  left: 10px;
+  gap: 4px;
+  padding: 21px 23px;
+  transform: rotate(1.2deg);
+}
+
+.scope :global(.hero-preview-main > b) {
+  margin-top: 11px;
+  font-size: 1rem;
+}
+
+.scope :global(.hero-preview-note) {
+  right: -5px;
+  bottom: 12px;
+  width: 195px;
+  gap: 5px;
+  border-top-width: 4px;
+  padding: 18px;
+  transform: rotate(3deg);
+}
+
+.scope :global(.hero-preview-note > span) {
+  font-size: 1.45rem;
+}
+
+.scope :global(.hero-preview-people) {
+  bottom: 2px;
+  left: -3px;
+  width: 205px;
+  grid-template-columns: 42px 1fr;
+  gap: 3px 10px;
+  padding: 18px;
+  transform: rotate(-3deg);
+}
+
+.scope :global(.hero-preview-people > span) {
+  width: 42px;
+  height: 42px;
+  font-size: 1.1rem;
+}
+
+.scope :global(.hero-preview-resources) {
+  z-index: 1;
+  right: 8px;
+  bottom: 90px;
+  width: 200px;
+  gap: 4px;
+  padding: 16px 18px;
+  background: rgba(255,250,244,.96);
+  transform: rotate(-1.5deg);
+}
+
+.scope :global(.hero-preview-resources > span) {
+  color: var(--wedding-gold);
+  font-size: 1.1rem;
+}
+
+.scope :global(.wedding-method-section) {
+  padding-top: clamp(38px, 4.5vw, 52px);
+  padding-bottom: clamp(38px, 4.5vw, 52px);
+}
+
+.scope :global(.wedding-method-heading) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .48fr);
+  gap: 42px;
+  align-items: end;
+}
+
+.scope :global(.wedding-method-heading > header) {
+  max-width: 760px;
+}
+
+.scope :global(.wedding-method-section h2) {
+  margin: 8px 0;
+  font-size: clamp(2.15rem, 3.7vw, 3.35rem);
+}
+
+.scope :global(.wedding-method-heading header > p) {
+  max-width: 700px;
+  margin: 0;
+  color: #c8d7e7;
+  line-height: 1.55;
+}
+
+.scope :global(.wedding-method-help) {
+  border: 1px solid rgba(248,201,111,.4);
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: rgba(248,201,111,.1);
+}
+
+.scope :global(.wedding-method-help > span) {
+  display: block;
+  margin-bottom: 6px;
+  color: #f8c96f;
+  font-size: .67rem;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.scope :global(.wedding-method-help b) {
+  color: white;
+  font-size: 1.08rem;
+}
+
+.scope :global(.wedding-method-help p) {
+  margin: 6px 0 0;
+  color: #c8d7e7;
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.scope :global(.wedding-method-grid) {
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.scope :global(.wedding-method-card) {
+  min-height: 250px;
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.scope :global(.wedding-method-icon) {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 13px;
+  border-radius: 13px;
+  font-size: 1.08rem;
+}
+
+.scope :global(.wedding-method-number) {
+  top: 13px;
+  right: 20px;
+  font-size: 3.7rem !important;
+}
+
+.scope :global(.wedding-method-card h3) {
+  margin: 8px 0 6px;
+  font-size: 1.4rem;
+}
+
+.scope :global(.wedding-method-card > p:not(.wedding-method-number)) {
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+.scope :global(.wedding-method-card > a) {
+  padding-top: 13px;
+  font-size: .86rem;
+}
+
+.scope :global(.wedding-home-resources) {
+  padding-top: clamp(40px, 5vw, 58px);
+  padding-bottom: clamp(40px, 5vw, 58px);
+}
+
+.scope :global(.wedding-home-resources h2) {
+  margin: 9px 0 0;
+  font-size: clamp(2.1rem, 4vw, 3.55rem);
+}
+
+.scope :global(.wedding-home-resources > header > p) {
+  font-size: .9rem;
+  line-height: 1.55;
+}
+
+.scope :global(.wedding-home-resources > div) {
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.scope :global(.wedding-home-resources article) {
+  grid-template-columns: 42px 1fr auto;
+  gap: 12px;
+  min-height: 170px;
+  border-radius: 19px;
+  padding: 17px;
+  box-shadow: 0 10px 24px rgba(20,52,95,.055);
+}
+
+.scope :global(.wedding-resource-icon) {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  font-size: 1.08rem;
+}
+
+.scope :global(.wedding-resource-library-link) {
+  gap: 18px;
+  margin-top: 20px;
+  padding: 11px 16px;
+  font-size: .86rem;
+}
+
+.scope :global(.wedding-hero-access) {
+  grid-template-columns: minmax(0, .9fr) minmax(360px, .7fr);
+  gap: clamp(30px, 4vw, 54px);
+  padding: clamp(38px, 4.5vw, 52px) 0;
+}
+
+.scope :global(.wedding-access-copy h2) {
+  margin: 8px 0;
+  font-size: clamp(2.15rem, 3.7vw, 3.3rem);
+}
+
+.scope :global(.wedding-access-copy > p) {
+  line-height: 1.55;
+}
+
+.scope :global(.wedding-access-copy ul) {
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.scope :global(.wedding-access-form-card) {
+  border-radius: 22px;
+  padding: clamp(21px, 3vw, 28px);
+  box-shadow: 0 20px 50px rgba(20,52,95,.11);
+}
+
+.scope :global(.wedding-access-form-card .client-login-form) {
+  margin-top: 20px;
+}
+
+.scope :global(.wedding-hero-footer) {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.scope :global(.wedding-hero-footer-brand) {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.scope :global(.wedding-hero-footer-brand > img) {
+  width: 88px;
+  height: auto;
+}
+
+@media (max-width: 980px) {
+  .scope :global(.wedding-hero-intro) {
+    grid-template-columns: 1fr;
+    padding-top: 34px;
+  }
+
+  .scope :global(.wedding-hero-preview) {
+    width: min(100%, 620px);
+    min-height: 365px;
+    margin: 0 auto;
+  }
+
+  .scope :global(.wedding-method-heading) {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .scope :global(.wedding-method-card:last-child) {
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 720px) {
+  .scope :global(.wedding-hero-entry-nav) {
+    gap: 12px;
+    width: min(100% - 28px, 1240px);
+  }
+
+  .scope :global(.wedding-hero-brand-lockup) {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .scope :global(.wedding-hero-company-logo) {
+    width: 86px;
+  }
+
+  .scope :global(.wedding-hero-intro) {
+    width: min(100% - 32px, 1240px);
+    padding: 30px 0 40px;
+  }
+
+  .scope :global(.wedding-hero-intro-copy h1) {
+    margin-top: 14px;
+  }
+
+  .scope :global(.wedding-hero-resource-callout) {
+    grid-template-columns: 1fr;
+  }
+
+  .scope :global(.wedding-hero-preview) {
+    min-height: 410px;
+  }
+
+  .scope :global(.wedding-method-section) {
+    padding-top: 38px;
+    padding-bottom: 42px;
+  }
+
+  .scope :global(.wedding-method-help) {
+    padding: 17px;
+  }
+
+  .scope :global(.wedding-method-card),
+  .scope :global(.wedding-method-card:last-child) {
+    min-height: 255px;
+  }
+
+  .scope :global(.wedding-home-resources) {
+    padding-top: 36px;
+    padding-bottom: 40px;
+  }
+
+  .scope :global(.wedding-hero-access) {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 38px 0;
+  }
+
+  .scope :global(.wedding-access-form-card) {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .scope :global(.wedding-hero-footer-brand) {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .scope :global(.wedding-hero-entry-nav .wedding-hero-mark.compact .wedding-hero-byline) {
+    display: none;
+  }
+
+  .scope :global(.wedding-hero-entry-nav .wedding-hero-mark.compact .wedding-hero-name) {
+    font-size: .98rem;
+  }
+
+  .scope :global(.wedding-hero-company-logo) {
+    width: 74px;
+  }
+
+  .scope :global(.wedding-hero-intro-brand) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .scope :global(.wedding-hero-intro-logo) {
+    width: 118px;
+  }
+
+  .scope :global(.wedding-hero-preview) {
+    min-height: 465px;
+  }
+
+  .scope :global(.hero-preview-main) {
+    padding: 20px;
+  }
+
+  .scope :global(.hero-preview-note) {
+    right: 0;
+    bottom: 8px;
+    width: 195px;
+    padding: 15px;
+  }
+
+  .scope :global(.hero-preview-people) {
+    bottom: 126px;
+    left: 0;
+    width: 168px;
+    grid-template-columns: 36px 1fr;
+    padding: 13px;
+  }
+
+  .scope :global(.hero-preview-people > span) {
+    width: 36px;
+    height: 36px;
+    font-size: .95rem;
+  }
+
+  .scope :global(.hero-preview-resources) {
+    right: 0;
+    bottom: 132px;
+    width: 168px;
+    padding: 13px;
+  }
+}
