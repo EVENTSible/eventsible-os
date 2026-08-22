@@ -9,14 +9,13 @@ import {
   WEDDING_HERO_SUBMITTED_NOTIFICATION,
 } from "@/lib/notifications/wedding-hero-email.mjs";
 import {
-  answerHasValue,
   normalizeWeddingAnswer,
-  requiredQuestionKeys,
   weddingProgress,
   weddingQuestionMap,
   WEDDING_COMPANION_VERSION,
   WEDDING_SECTIONS,
 } from "@/lib/wedding-companion.mjs";
+import { buildWeddingSubmissionDigest } from "@/lib/wedding-day-sheet.mjs";
 
 export type WeddingSaveInput = {
   eventId: string;
@@ -123,15 +122,6 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
 
   const allAnswers = Object.fromEntries((allAnswersResult.data ?? []).map((row) => [row.question_key, row.value]));
   const progress = weddingProgress(allAnswers);
-  const missingRequired = requiredQuestionKeys(allAnswers).filter((key) => !answerHasValue(allAnswers[key]));
-  if (input.submit && missingRequired.length) {
-    return {
-      ok: false,
-      progress,
-      message: `Saved, but ${missingRequired.length} required answer${missingRequired.length === 1 ? " is" : "s are"} still missing.`,
-    };
-  }
-
   const savedAt = new Date().toISOString();
   const status = input.submit ? "submitted" : "in_progress";
   const admin = createAdminSupabase();
@@ -180,6 +170,7 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
       const coupleNames = [answerText(allAnswers.partner_one_name), answerText(allAnswers.partner_two_name)]
         .filter(Boolean)
         .join(" & ");
+      const digest = buildWeddingSubmissionDigest(allAnswers);
 
       await sendWeddingHeroOwnerNotification({
         kind: WEDDING_HERO_SUBMITTED_NOTIFICATION,
@@ -194,6 +185,8 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
           contactName: primaryContact?.display_name,
           email: primaryContact?.primary_email,
           phone: primaryContact?.primary_phone,
+          privatePlanAvailable: true,
+          ...digest,
         },
         requestId: `${assignmentId}:${savedAt}`,
         createdAt: savedAt,

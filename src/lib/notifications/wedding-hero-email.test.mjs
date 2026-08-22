@@ -14,6 +14,7 @@ import {
   WEDDING_HERO_CALLBACK_NOTIFICATION,
   WEDDING_HERO_SUBMITTED_NOTIFICATION,
 } from "./wedding-hero-email.mjs";
+import { validateWeddingHeroPlanSubmission } from "../wedding-hero-submission.mjs";
 
 const eventId = "72624d36-6db8-4839-a2b2-ecb201ebc313";
 const assignmentId = "f201f84b-aa24-4b3a-9464-1d1ed6407d16";
@@ -120,16 +121,107 @@ test("explicit submission email identifies the submitted plan", () => {
   const config = resolveWeddingHeroNotificationConfig({ WEDDING_HERO_NOTIFICATION_DRY_RUN: "true" });
   const email = buildWeddingHeroOwnerNotification({
     kind: WEDDING_HERO_SUBMITTED_NOTIFICATION,
-    context: { coupleNames: "Jordan & Casey", progress: 100, mode: "form", source: "private_plan", eventId, assignmentId, email: "jordan@example.com" },
+    context: {
+      coupleNames: "Jordan & Casey",
+      progress: 84,
+      mode: "form",
+      source: "private_plan",
+      eventId,
+      assignmentId,
+      email: "jordan@example.com",
+      missingCritical: ["Venue access time"],
+      ceremonySummary: "Ceremony start: 4:30 PM",
+      receptionSummary: "Grand entrance: 6:00 PM",
+      timelineSummary: "Grand entrance at 6:00 PM",
+      musicSummary: "First dance: At Last",
+      serviceSummary: "DJ/MC: Booked",
+    },
     requestId: "submission-request-id",
     createdAt: "2026-08-22T12:00:00.000Z",
     config,
   });
-  assert.match(email.subject, /Wedding Hero submitted: Jordan & Casey - 100%/);
+  assert.match(email.subject, /Wedding Hero submitted: Jordan & Casey - 84%/);
   assert.match(email.text, /Source: private_plan/);
+  assert.match(email.text, /Missing critical fields: Venue access time/);
+  assert.match(email.text, /Ceremony summary: Ceremony start: 4:30 PM/);
+  assert.match(email.text, /Timeline: Grand entrance at 6:00 PM/);
+  assert.match(email.text, /Music summary: First dance: At Last/);
+  assert.match(email.text, /Services: DJ\/MC: Booked/);
 
   const actionSource = readFileSync(new URL("../../app/client/wedding/actions.ts", import.meta.url), "utf8");
   const submitBranch = actionSource.indexOf("if (input.submit)");
   const sendCall = actionSource.indexOf("sendWeddingHeroOwnerNotification", submitBranch);
   assert.ok(submitBranch >= 0 && sendCall > submitBranch);
+});
+
+test("public plan submission validation normalizes answers and permits incomplete plans", () => {
+  const result = validateWeddingHeroPlanSubmission({
+    draftId: "39798e4b-5f7a-4be0-81ef-0d0ecfbeea96",
+    submissionId: "30cda6d3-f756-4201-a2f7-c675f9263f39",
+    contactName: "Jordan Example",
+    email: "JORDAN@EXAMPLE.COM",
+    mode: "form",
+    sectionKey: "event_basics",
+    answers: { partner_one_name: " Jordan ", ceremony_included: "yes", unknown_key: "discard me" },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.data.email, "jordan@example.com");
+  assert.equal(result.data.answers.partner_one_name, "Jordan");
+  assert.equal(result.data.answers.ceremony_included, true);
+  assert.equal("unknown_key" in result.data.answers, false);
+  assert.ok(result.data.progress < 100);
+});
+
+test("public plan submission validation requires contact information and meaningful planner answers", () => {
+  const base = {
+    draftId: "39798e4b-5f7a-4be0-81ef-0d0ecfbeea96",
+    submissionId: "30cda6d3-f756-4201-a2f7-c675f9263f39",
+    contactName: "Jordan Example",
+    mode: "form",
+  };
+  const noContact = validateWeddingHeroPlanSubmission({ ...base, answers: { partner_one_name: "Jordan" } });
+  assert.equal(noContact.ok, false);
+  assert.match(noContact.message, /email address or phone number/i);
+
+  const noAnswers = validateWeddingHeroPlanSubmission({ ...base, email: "jordan@example.com", answers: {} });
+  assert.equal(noAnswers.ok, false);
+  assert.match(noAnswers.message, /at least one wedding detail/i);
+});
+
+test("public submission is explicit and local autosave remains notification-free", () => {
+  const questionnaire = readFileSync(new URL("../../components/wedding-questionnaire.tsx", import.meta.url), "utf8");
+  const action = readFileSync(new URL("../../app/client/wedding/submission-actions.ts", import.meta.url), "utf8");
+  const autosaveStart = questionnaire.indexOf("const savePublicDraft");
+  const autosaveEnd = questionnaire.indexOf("const sectionCompletion", autosaveStart);
+  assert.doesNotMatch(questionnaire.slice(autosaveStart, autosaveEnd), /submitPublicWeddingHeroPlanAction/);
+  assert.match(questionnaire, /Send plan now/);
+  assert.match(questionnaire, /Autosave does not notify EVENTSible/);
+  assert.match(action, /sendWeddingHeroOwnerNotification/);
+  assert.match(action, /planning\.submitted/);
+  assert.match(action, /status: "submitted"/);
+  assert.match(action, /starts_at: null/);
+  assert.match(action, /wedding_date_from_planner: eventDate/);
+});
+
+test("blank processional additional details stay compact in every planner mode", () => {
+  const structuredFields = readFileSync(new URL("../../components/wedding-structured-fields.tsx", import.meta.url), "utf8");
+  assert.match(structuredFields, /open=\{additionalFields\.some/);
+  assert.doesNotMatch(structuredFields, /wedding-module-additional" open=\{revealAll/);
+});
+
+test("public submission email omits an unusable private-plan link but keeps the admin link", () => {
+  const config = resolveWeddingHeroNotificationConfig({
+    WEDDING_HERO_NOTIFICATION_DRY_RUN: "true",
+    WEDDING_HERO_SITE_URL: "https://preview.example.com",
+  });
+  const email = buildWeddingHeroOwnerNotification({
+    kind: WEDDING_HERO_SUBMITTED_NOTIFICATION,
+    context: { coupleNames: "Jordan & Casey", source: "public_planner", eventId, assignmentId, privatePlanAvailable: false },
+    requestId: "public-submission",
+    createdAt: "2026-08-22T12:00:00.000Z",
+    config,
+  });
+  assert.match(email.text, /Admin plan: https:\/\/preview\.example\.com\/admin\/wedding/);
+  assert.doesNotMatch(email.text, /Private plan:/);
 });

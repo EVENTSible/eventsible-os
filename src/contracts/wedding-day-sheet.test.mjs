@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildWeddingDaySheet } from "../lib/wedding-day-sheet.mjs";
+import { buildWeddingDaySheet, buildWeddingSubmissionDigest } from "../lib/wedding-day-sheet.mjs";
 
 test("Wedding Hero builds a readable production title, date, and time", () => {
   const sheet = buildWeddingDaySheet({
@@ -110,4 +110,23 @@ test("Wedding Hero marks a complete production core as ready", () => {
   });
 
   assert.deepEqual(sheet.missing, []);
+});
+
+test("Wedding Hero builds an owner-ready submission digest with missing details and production summaries", () => {
+  const digest = buildWeddingSubmissionDigest({
+    partner_one_name: "Casey",
+    ceremony_included: true,
+    ceremony_location: "Garden",
+    reception_timeline_known: "yes",
+    reception_timeline: [{ moment: "Grand entrance", time: "18:00" }],
+    first_dance_song: { status: "chosen", songTitle: "At Last", artist: "Etta James" },
+    booked_services: [{ service: "DJ/MC", status: "booked", location: "Ballroom" }],
+  });
+
+  assert.ok(digest.missingCritical.includes("Couple's names"));
+  assert.match(digest.ceremonySummary, /Ceremony location: Garden/);
+  assert.match(digest.receptionSummary, /Grand entrance/);
+  assert.match(digest.timelineSummary, /18:00/);
+  assert.match(digest.musicSummary, /At Last/);
+  assert.match(digest.serviceSummary, /DJ\/MC/);
 });

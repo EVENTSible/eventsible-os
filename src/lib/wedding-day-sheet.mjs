@@ -186,3 +186,28 @@ export function buildWeddingDaySheet(answers = {}) {
 
   return { coupleName, eventDate, sections, missing: critical.filter(([, complete]) => !complete).map(([label]) => label) };
 }
+
+function summarizeItems(items, maxLength = 2200) {
+  const summary = items.map(({ label, value }) => `${label}: ${value}`).join(" | ");
+  return summary.length > maxLength ? `${summary.slice(0, maxLength - 3)}...` : summary;
+}
+
+export function buildWeddingSubmissionDigest(answers = {}) {
+  const sheet = buildWeddingDaySheet(answers);
+  const byTitle = new Map(sheet.sections.map((entry) => [entry.title, entry.items]));
+  const ceremony = byTitle.get("Ceremony cues") ?? [];
+  const reception = byTitle.get("Reception flow") ?? [];
+  const music = byTitle.get("Music and special moments") ?? [];
+  const logistics = byTitle.get("Venue and production logistics") ?? [];
+  const timeline = reception.find((entry) => entry.label === "Master timeline")?.value ?? "Not provided";
+  const services = logistics.find((entry) => entry.label === "EVENTSible services")?.value ?? "Not provided";
+
+  return {
+    missingCritical: sheet.missing,
+    ceremonySummary: summarizeItems(ceremony) || "Not provided",
+    receptionSummary: summarizeItems(reception) || "Not provided",
+    timelineSummary: timeline,
+    musicSummary: summarizeItems(music) || "Not provided",
+    serviceSummary: services,
+  };
+}

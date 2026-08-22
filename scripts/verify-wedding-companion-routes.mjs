@@ -78,6 +78,10 @@ async function verify() {
   assert.match(publicPlannerHtml, /tel:\+15742745213/);
   assert.match(publicPlannerHtml, /sms:\+15742745213/);
   assert.match(publicPlannerHtml, /Request callback/);
+  assert.match(publicPlannerHtml, /Send to EVENTSible/);
+  assert.match(publicPlannerHtml, /Saved locally on this device/);
+  assert.match(publicPlannerHtml, /Not sent yet/);
+  assert.match(publicPlannerHtml, /Autosave does not notify EVENTSible/);
 
   const guidedPlanner = await fetch(`${origin}/client/wedding?mode=guided`, { redirect: "manual" });
   assert.equal(guidedPlanner.status, 200);
@@ -98,6 +102,7 @@ async function verify() {
   assert.match(printablePlannerHtml, /Venue coordinator contact/);
   assert.match(printablePlannerHtml, /Exact version or link/);
   assert.match(printablePlannerHtml, /Setup location/);
+  assert.match(printablePlannerHtml, /Send to EVENTSible/);
 
   const dayOfSheet = await fetch(`${origin}/client/wedding?mode=print&view=day-of`, { redirect: "manual" });
   assert.equal(dayOfSheet.status, 200);

@@ -562,6 +562,29 @@ a { color: inherit; text-decoration: none; }
 .wedding-save-error { margin-bottom: 16px; border-radius: 12px; padding: 12px 14px; color: var(--red); background: #fff0ef; }
 .wedding-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; border-top: 1px solid #ede8f3; padding-top: 22px; }
 .wedding-form-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.wedding-delivery-status { display: flex; align-items: center; justify-content: space-between; gap: 20px; width: min(100% - 40px, 1240px); margin: 0 auto 22px; border: 1px solid #d6e0e5; border-radius: 8px; padding: 13px 15px; background: white; box-shadow: 0 8px 22px rgba(20,52,95,.05); }
+.wedding-delivery-status > div:first-child { display: grid; gap: 3px; }
+.wedding-delivery-status > div:first-child b { color: #14345f; font-size: .88rem; }
+.wedding-delivery-status small { color: #64778b; font-size: .72rem; line-height: 1.4; }
+.wedding-delivery-status > div:last-child { display: flex; align-items: center; gap: 9px; min-width: 245px; border-left: 1px solid #dde5e8; padding-left: 16px; }
+.wedding-delivery-status > div:last-child > span { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; font-weight: 950; }
+.wedding-delivery-status .sent > span { color: white; background: #2d8b72; }
+.wedding-delivery-status .pending > span { color: #7c6b4b; background: #fff4d9; }
+.wedding-delivery-status p { display: grid; gap: 2px; margin: 0; }
+.wedding-delivery-status p b { color: #25415d; font-size: .82rem; }
+.wedding-submission-panel { width: min(100% - 40px, 900px); margin: 0 auto 24px; border: 1px solid #cfdce2; border-radius: 8px; padding: clamp(20px, 4vw, 30px); background: white; box-shadow: 0 14px 34px rgba(20,52,95,.09); animation: wedding-unfold .2s ease-out; scroll-margin-top: 18px; }
+.wedding-submission-panel > header h2 { margin: 7px 0 8px; color: #14345f; font-size: 1.7rem; }
+.wedding-submission-panel > header p { max-width: 740px; margin: 0 0 20px; color: #5d7186; line-height: 1.55; }
+.wedding-submission-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
+.wedding-submission-fields label { display: grid; align-content: start; gap: 6px; min-width: 0; color: #3b536b; font-size: .72rem; font-weight: 850; }
+.wedding-submission-fields input { width: 100%; min-width: 0; min-height: 42px; border: 1px solid #cbd7dd; border-radius: 6px; padding: 9px 10px; color: #1f3851; background: white; font: inherit; font-weight: 500; }
+.wedding-submission-panel form > footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+.wedding-submission-error, .wedding-submission-fields .field-error { color: #873645; }
+.wedding-submission-error { margin: 11px 0 0; border-left: 4px solid #c65361; padding: 9px 11px; background: #fff1ef; font-size: .78rem; font-weight: 750; }
+.wedding-submission-receipt { display: grid; gap: 6px; border-left: 5px solid #2d8b72; padding: 15px 17px; color: #235e50; background: #edf9f4; }
+.wedding-submission-receipt p { margin: 0; line-height: 1.5; }
+.wedding-submission-receipt small { color: #4d756b; }
+.wedding-submission-receipt button { justify-self: start; margin-top: 6px; border: 1px solid #2d8b72; border-radius: 6px; padding: 8px 11px; color: #235e50; background: white; font-weight: 850; }
 .wedding-full-form { padding-top: 34px; }
 .wedding-full-form > header { margin-bottom: 12px; }
 .wedding-full-section { scroll-margin-top: 20px; border-top: 1px solid #e5eaed; padding: 34px 0 12px; }
@@ -741,6 +764,9 @@ a { color: inherit; text-decoration: none; }
   .wedding-help-contact-summary { align-items: flex-start; flex-direction: column; }
   .wedding-help-contact-summary nav { width: 100%; justify-content: flex-start; }
   .wedding-callback-notes { grid-column: 1 / -1; }
+  .wedding-delivery-status { align-items: stretch; flex-direction: column; }
+  .wedding-delivery-status > div:last-child { min-width: 0; border-top: 1px solid #dde5e8; border-left: 0; padding-top: 12px; padding-left: 0; }
+  .wedding-submission-fields { grid-template-columns: 1fr; }
   .wedding-print-question { grid-template-columns: minmax(0, 1fr); gap: 7px; }
   .wedding-print-question p { min-width: 0; overflow-wrap: anywhere; }
   .wedding-print-modules { grid-template-columns: minmax(0, 1fr); }
@@ -775,6 +801,9 @@ a { color: inherit; text-decoration: none; }
   .wedding-callback-fields { grid-template-columns: minmax(0, 1fr); }
   .wedding-callback-notes { grid-column: auto; }
   .wedding-callback-actions { align-items: stretch; flex-direction: column; }
+  .wedding-delivery-status, .wedding-submission-panel { width: min(100% - 24px, 1240px); }
+  .wedding-submission-panel form > footer { align-items: stretch; flex-direction: column-reverse; }
+  .wedding-submission-panel form > footer button { width: 100%; }
   .wedding-print-sheet > header { align-items: flex-start; flex-direction: column; }
   .wedding-print-actions { grid-template-columns: 1fr; }
   .wedding-day-sheet > footer { flex-direction: column; }
@@ -798,7 +827,7 @@ a { color: inherit; text-decoration: none; }
 @media print {
   @page { margin: .45in; }
   body { background: white; }
-  .wedding-nav, .wedding-hero, .wedding-mode-toolbar, .wedding-help-contact, .wedding-print-controls, .wedding-resource-nav, .wedding-resource-page-hero, .wedding-resource-controls, .wedding-guestbook-form, .wedding-guestbook-notice { display: none !important; }
+  .wedding-nav, .wedding-hero, .wedding-mode-toolbar, .wedding-help-contact, .wedding-delivery-status, .wedding-submission-panel, .wedding-print-controls, .wedding-resource-nav, .wedding-resource-page-hero, .wedding-resource-controls, .wedding-guestbook-form, .wedding-guestbook-notice { display: none !important; }
   .wedding-shell { padding: 0; background: white; }
   .wedding-print-workspace { width: 100%; margin: 0; }
   .wedding-print-sheet { margin: 0; border: 0; padding: 0; box-shadow: none; }

@@ -172,7 +172,7 @@ function StructuredList({ question, value, onChange, revealAll = false }: Props)
                 })}
               </div>
               {additionalFields.length ? (
-                <details className="wedding-module-additional" open={revealAll || undefined}>
+                <details className="wedding-module-additional" open={additionalFields.some((field) => inputValue(item[field.key]).trim()) || undefined}>
                   <summary>{question.additionalFieldsLabel ?? "Additional details"}{additionalFields.some((field) => inputValue(item[field.key]).trim()) ? " (added)" : ""}</summary>
                   <div className="wedding-module-fields unfolding">
                     {additionalFields.map((field) => {

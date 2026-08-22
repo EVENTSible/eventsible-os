@@ -47,7 +47,7 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
 
   const assignmentResult = await supabase
     .from("os_planning_assignments")
-    .select("id,status,progress_percent,current_section_key")
+    .select("id,status,progress_percent,current_section_key,submitted_at,last_saved_at")
     .eq("id", assignmentId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -81,6 +81,8 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
         initialProgress={assignmentResult.data.progress_percent ?? 0}
         initialSectionKey={assignmentResult.data.current_section_key}
         initialStatus={assignmentResult.data.status}
+        initialSubmittedAt={assignmentResult.data.submitted_at}
+        initialSavedAt={assignmentResult.data.last_saved_at}
         initialMode={initialMode}
         initialPrintView={initialPrintView}
         supportEmail={supportEmail}

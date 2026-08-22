@@ -59,7 +59,7 @@ export function buildWeddingHeroOwnerNotification({ kind, context = {}, request 
   const progress = `${Number.isFinite(context.progress) ? context.progress : 0}%`;
   const eventId = context.eventId || null;
   const adminUrl = eventId ? `${config.siteUrl}/admin/wedding/${eventId}` : null;
-  const privatePlanUrl = eventId ? `${config.siteUrl}/client/wedding/${eventId}` : null;
+  const privatePlanUrl = eventId && context.privatePlanAvailable !== false ? `${config.siteUrl}/client/wedding/${eventId}` : null;
   const subject = callback
     ? `Wedding Hero callback request: ${coupleNames}`
     : `Wedding Hero submitted: ${coupleNames} - ${progress}`;
@@ -80,6 +80,15 @@ export function buildWeddingHeroOwnerNotification({ kind, context = {}, request 
       ["Best time", display(request.bestTime)],
       ["Request notes", display(request.notes)],
       ["Request ID", display(requestId)],
+    );
+  } else {
+    rows.push(
+      ["Missing critical fields", Array.isArray(context.missingCritical) && context.missingCritical.length ? context.missingCritical.join(", ") : "None identified"],
+      ["Ceremony summary", display(context.ceremonySummary)],
+      ["Reception summary", display(context.receptionSummary)],
+      ["Timeline", display(context.timelineSummary)],
+      ["Music summary", display(context.musicSummary)],
+      ["Services", display(context.serviceSummary)],
     );
   }
   if (adminUrl) rows.push(["Admin plan", adminUrl]);
