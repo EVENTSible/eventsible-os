@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   answerHasValue,
+  formatWeddingAnswer,
   guidedPromptIdeas,
   guidedResumeSectionKey,
   isQuestionVisible,
@@ -63,23 +64,72 @@ test("Wedding Companion requires the wedding date only after it is confirmed", (
   assert.equal(confirmedKeys.includes("event_date"), true);
 });
 
-test("Wedding Companion keeps song moments together and reveals selected special-dance songs", () => {
+test("Wedding Companion keeps guided song moments together", () => {
   const songSection = WEDDING_SECTIONS.find((section) => section.key === "songs_and_dances");
   const songKeys = new Set(songSection.questions.map((question) => question.key));
   assert.ok(songKeys.has("first_dance_song"));
-  assert.ok(songKeys.has("must_play_list"));
   assert.ok(songKeys.has("ceremony_processional_music"));
   assert.ok(songKeys.has("couple_entrance_song"));
 
   const cakeSong = weddingQuestionMap().get("cake_cutting_song");
-  assert.equal(isQuestionVisible(cakeSong, { formal_moments: [] }), false);
-  assert.equal(isQuestionVisible(cakeSong, { formal_moments: ["Cake cutting"] }), true);
+  assert.equal(cakeSong.fieldType, "song_moment");
+  assert.equal(isQuestionVisible(cakeSong, {}), true);
 });
 
 test("Wedding Companion offers guided prompt starter ideas for open-ended planning questions", () => {
   assert.ok(guidedPromptIdeas("wedding_vision").includes("Elegant, classic, and polished"));
-  assert.ok(guidedPromptIdeas("special_considerations").includes("Family dynamics to handle gently"));
-  assert.ok(guidedPromptIdeas("cocktail_hour_sound").includes("DJ-curated upbeat mingling music"));
+  assert.ok(weddingQuestionMap().get("special_considerations").options.includes("Family dynamics"));
+});
+
+test("Wedding Companion provides reusable reorderable lists and processional guidance", () => {
+  const map = weddingQuestionMap();
+  const processional = map.get("ceremony_participants");
+  assert.equal(processional.fieldType, "reorderable_people_list");
+  assert.equal(processional.defaultRows, 3);
+  assert.equal(processional.addLabel, "Add person/group");
+  assert.ok(processional.itemFields.some((field) => field.key === "escortedBy"));
+  assert.deepEqual(processional.additionalFieldKeys, ["pronunciation", "escortedBy", "cue"]);
+  assert.equal(processional.additionalFieldsLabel, "Additional details");
+  assert.ok(processional.helperInfo.body.includes("six to eight feet"));
+  assert.equal(processional.helperInfo.expandableTitle, "Ceremony Entry Sequence");
+
+  const introductions = map.get("introduction_order");
+  assert.equal(introductions.fieldType, "introduction_list");
+  assert.equal(isQuestionVisible(introductions, { wedding_party_introductions: false }), false);
+  assert.equal(isQuestionVisible(introductions, { wedding_party_introductions: true }), true);
+
+  const speakers = map.get("blessing_and_toasts");
+  assert.equal(speakers.fieldType, "speaker_list");
+  assert.ok(speakers.itemFields.some((field) => field.key === "microphone"));
+});
+
+test("Wedding Companion gates timeline, meal, MC, and venue details without blocking unsure couples", () => {
+  const map = weddingQuestionMap();
+  assert.equal(map.get("reception_timeline_known").fieldType, "tri_state");
+  assert.equal(isQuestionVisible(map.get("reception_timeline"), { reception_timeline_known: "unsure" }), false);
+  assert.equal(isQuestionVisible(map.get("reception_timeline"), { reception_timeline_known: "yes" }), true);
+  assert.ok(map.get("reception_timeline").starterItems.includes("Grand entrance"));
+  assert.equal(isQuestionVisible(map.get("meal_service_details"), { meal_service_status: "no" }), false);
+  assert.equal(isQuestionVisible(map.get("reception_notes"), { mc_instructions_status: "yes" }), true);
+  assert.equal(isQuestionVisible(map.get("venue_contact"), { venue_contact_known: "unsure" }), false);
+  assert.equal(isQuestionVisible(map.get("venue_contact"), { venue_contact_known: "yes" }), true);
+});
+
+test("Wedding Companion includes guided music, service, and attire choices", () => {
+  const map = weddingQuestionMap();
+  assert.ok(map.get("music_styles").options.includes("Disco/funk"));
+  assert.deepEqual(map.get("guest_requests").options, ["Yes, take requests", "Ask us first", "Wedding party only", "No requests"]);
+  assert.equal(map.get("booked_services").fieldType, "service_checklist");
+  assert.ok(map.get("booked_services").options.includes("360 Booth"));
+  assert.ok(map.get("eventsible_staff_attire").options.includes("Formal black"));
+});
+
+test("Wedding Companion preserves legacy answers without showing empty legacy fields", () => {
+  const map = weddingQuestionMap();
+  const legacyPhotoBooth = map.get("photo_booth_plan");
+  assert.equal(isQuestionVisible(legacyPhotoBooth, {}), false);
+  assert.equal(isQuestionVisible(legacyPhotoBooth, { photo_booth_plan: "Lobby setup" }), true);
+  assert.equal(isQuestionVisible(map.get("clean_music_required"), { clean_music_required: false }), true);
 });
 
 test("Wedding Companion resumes a device draft at the last worked or nearest incomplete section", () => {
@@ -99,16 +149,29 @@ test("Wedding Companion resumes a device draft at the last worked or nearest inc
   assert.equal(guidedResumeSectionKey({}, "ceremony"), "ceremony");
 });
 
-test("Wedding Companion normalizes boolean, numeric, repeater, and text answers", () => {
+test("Wedding Companion normalizes scalar and backward-compatible structured answers", () => {
   const map = weddingQuestionMap();
   assert.equal(normalizeWeddingAnswer(map.get("ceremony_included"), "yes"), true);
   assert.equal(normalizeWeddingAnswer(map.get("guest_count"), "145"), 145);
-  assert.deepEqual(normalizeWeddingAnswer(map.get("must_play_list"), "Song A\n\nSong B"), ["Song A", "Song B"]);
+  assert.deepEqual(normalizeWeddingAnswer(map.get("must_play_list"), "Song A\n\nSong B"), [{ songTitle: "Song A" }, { songTitle: "Song B" }]);
+  assert.deepEqual(normalizeWeddingAnswer(map.get("ceremony_participants"), ["Officiant Sam", "Alex and Jordan"]), [{ name: "Officiant Sam" }, { name: "Alex and Jordan" }]);
+  assert.deepEqual(normalizeWeddingAnswer(map.get("ceremony_processional_music"), ["Canon in D", "Here Comes the Sun"]), { status: "chosen", songTitle: "Canon in D; Here Comes the Sun" });
+  assert.deepEqual(normalizeWeddingAnswer(map.get("first_dance_song"), "At Last - Etta James"), { status: "chosen", songTitle: "At Last - Etta James" });
   assert.equal(normalizeWeddingAnswer(map.get("partner_one_name"), "  Alex  "), "Alex");
+});
+
+test("Wedding Companion formats structured answers for print and staff review", () => {
+  const map = weddingQuestionMap();
+  const processional = [{ name: "Sam", role: "Officiant" }, { name: "Alex", role: "Bride", escortedBy: "Pat" }];
+  assert.equal(formatWeddingAnswer(map.get("ceremony_participants"), processional), "1. Name or group name: Sam · Role: Officiant\n2. Name or group name: Alex · Role: Bride · Walking with / escorted by: Pat");
+  assert.equal(formatWeddingAnswer(map.get("reception_timeline_known"), "unsure"), "We'll add this later");
+  assert.ok(formatWeddingAnswer(map.get("booked_services"), [{ service: "DJ/MC", status: "booked", location: "Ballroom" }]).includes("Setup: Ballroom"));
 });
 
 test("Wedding Companion treats false as an answered yes-or-no value", () => {
   assert.equal(answerHasValue(false), true);
   assert.equal(answerHasValue([]), false);
+  assert.equal(answerHasValue([{ name: "" }]), false);
+  assert.equal(answerHasValue([{ name: "Alex" }]), true);
   assert.equal(answerHasValue("   "), false);
 });

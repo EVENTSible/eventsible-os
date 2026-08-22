@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { saveWeddingSectionAction } from "@/app/client/wedding/actions";
 import {
   answerHasValue,
+  formatWeddingAnswer,
   guidedResumeSectionKey,
   isQuestionVisible,
   isSectionComplete,
@@ -12,15 +13,16 @@ import {
   WEDDING_SECTIONS,
 } from "@/lib/wedding-companion.mjs";
 import { buildWeddingDaySheet } from "@/lib/wedding-day-sheet.mjs";
+import {
+  isStructuredWeddingField,
+  StructuredWeddingField,
+  type StructuredWeddingQuestion,
+} from "@/components/wedding-structured-fields";
 
-type WeddingQuestion = {
-  key: string;
-  label: string;
-  fieldType: string;
-  required: boolean;
+type WeddingQuestion = StructuredWeddingQuestion & {
   helpText?: string | null;
   options?: string[];
-  condition?: { answer?: string; equals?: unknown; includes?: string };
+  condition?: { answer?: string; equals?: unknown; includes?: string; hasValue?: boolean };
   promptIdeas?: string[];
 };
 
@@ -114,7 +116,7 @@ const QUESTION_RESOURCES: Record<string, ResourceLink[]> = {
 
 function answerText(value: unknown) {
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  return Array.isArray(value) ? value.join("\n") : String(value ?? "");
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string").join("\n") : String(value ?? "");
 }
 
 function SectionResourceLinks({ sectionKey, compact = false }: { sectionKey: string; compact?: boolean }) {
@@ -237,7 +239,7 @@ export function WeddingQuestionnaire({
     const nextProgress = weddingProgress(answers);
 
     try {
-      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({ version: 2, answers, updatedAt: savedAt, sectionKey }));
+      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({ version: 3, answers, updatedAt: savedAt, sectionKey }));
       setProgress(nextProgress);
       setLastSaved(savedAt);
       setSaveState("saved");
@@ -538,7 +540,7 @@ export function WeddingQuestionnaire({
                   {section.questions.filter((question) => isQuestionVisible(question, answers)).map((question) => (
                     <div className="wedding-print-question" key={question.key}>
                       <b>{question.label}</b>
-                      <p>{answerHasValue(answers[question.key]) ? answerText(answers[question.key]) : "________________________________________________________________"}</p>
+                      <p>{answerHasValue(answers[question.key]) ? formatWeddingAnswer(question, answers[question.key]) : "________________________________________________________________"}</p>
                     </div>
                   ))}
                 </section>
@@ -610,7 +612,7 @@ export function WeddingQuestionnaire({
           </div>
           <div className="wedding-guided-section-flow">
             {currentGuidedQuestions.length > 0 ? currentGuidedQuestions.map((question) => (
-              <div className={`wedding-question-card${question.condition?.answer ? " unfolding" : ""}`} key={question.key}>
+              <div className={`wedding-question-card${isStructuredWeddingField(question.fieldType) ? " structured-shell" : ""}${question.condition?.answer ? " unfolding" : ""}`} key={question.key}>
                 <QuestionField
                   question={question}
                   value={answers[question.key]}
@@ -686,6 +688,10 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
     </div>
   ) : null;
 
+  if (isStructuredWeddingField(question.fieldType)) {
+    return <><StructuredWeddingField question={question} value={value} onChange={onChange} /><QuestionResourceLinks questionKey={question.key} /></>;
+  }
+
   if (question.fieldType === "yes_no") {
     return (
       <fieldset className="wedding-question yes-no">
@@ -693,6 +699,25 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
         <div>
           {[{ label: "Yes", value: true }, { label: "No", value: false }].map((option) => (
             <button type="button" aria-pressed={value === option.value} className={value === option.value ? "selected" : ""} key={option.label} onClick={() => onChange(option.value)}>{option.label}</button>
+          ))}
+        </div>
+        <QuestionResourceLinks questionKey={question.key} />
+      </fieldset>
+    );
+  }
+
+  if (question.fieldType === "tri_state") {
+    const options = [
+      { label: "Yes", value: "yes" },
+      { label: "No", value: "no" },
+      { label: "We'll add this later", value: "unsure" },
+    ];
+    return (
+      <fieldset className="wedding-question yes-no wedding-tri-state">
+        <legend>{label}</legend>
+        <div>
+          {options.map((option) => (
+            <button type="button" aria-pressed={value === option.value} className={value === option.value ? "selected" : ""} key={option.value} onClick={() => onChange(option.value)}>{option.label}</button>
           ))}
         </div>
         <QuestionResourceLinks questionKey={question.key} />

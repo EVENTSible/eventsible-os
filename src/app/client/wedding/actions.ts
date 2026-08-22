@@ -5,6 +5,7 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
 import {
+  answerHasValue,
   normalizeWeddingAnswer,
   requiredQuestionKeys,
   weddingProgress,
@@ -112,10 +113,7 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
 
   const allAnswers = Object.fromEntries((allAnswersResult.data ?? []).map((row) => [row.question_key, row.value]));
   const progress = weddingProgress(allAnswers);
-  const missingRequired = requiredQuestionKeys(allAnswers).filter((key) => {
-    const value = allAnswers[key];
-    return value === null || value === undefined || value === "" || (Array.isArray(value) && value.length === 0);
-  });
+  const missingRequired = requiredQuestionKeys(allAnswers).filter((key) => !answerHasValue(allAnswers[key]));
   if (input.submit && missingRequired.length) {
     return {
       ok: false,

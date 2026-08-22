@@ -52,7 +52,11 @@ async function verify() {
   const publicPlannerHtml = await publicPlanner.text();
   assert.match(publicPlannerHtml, /No account or email required/);
   assert.match(publicPlannerHtml, /Traditional planning form/);
-  assert.match(publicPlannerHtml, /Must-play songs or artists/);
+  assert.match(publicPlannerHtml, /Songs or artists we love and must play/);
+  assert.match(publicPlannerHtml, /Add speaker/);
+  assert.match(publicPlannerHtml, /Do you already know your reception timeline/);
+  assert.match(publicPlannerHtml, /Music styles and preferences/);
+  assert.match(publicPlannerHtml, /EVENTSible services/);
   assert.match(publicPlannerHtml, /Day-of Cheat Sheet/);
   assert.match(publicPlannerHtml, /Helpful right now/);
   assert.match(publicPlannerHtml, /Song &amp; Moment Guide/);
