@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
 import { WeddingQuestionnaire } from "@/components/wedding-questionnaire";
+import { resolveWeddingHeroNotificationConfig } from "@/lib/notifications/wedding-hero-email.mjs";
 import styles from "./wedding-page.module.css";
 
 export const metadata = {
@@ -16,6 +17,7 @@ export default async function PublicWeddingHeroPage({ searchParams }: PageProps)
   const requestedView = Array.isArray(query.view) ? query.view[0] : query.view;
   const initialMode = requestedMode === "form" || requestedMode === "print" ? requestedMode : "guided";
   const initialPrintView = requestedView === "day-of" ? "day-of" : "planner";
+  const { supportEmail } = resolveWeddingHeroNotificationConfig();
 
   return (
     <div className={`${styles.route} wedding-shell wedding-public-shell`}>
@@ -44,6 +46,7 @@ export default async function PublicWeddingHeroPage({ searchParams }: PageProps)
         initialMode={initialMode}
         initialPrintView={initialPrintView}
         publicDraft
+        supportEmail={supportEmail}
       />
     </div>
   );

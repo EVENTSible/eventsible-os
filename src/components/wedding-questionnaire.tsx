@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { saveWeddingSectionAction } from "@/app/client/wedding/actions";
+import { WeddingHeroContact } from "@/components/wedding-hero-contact";
 import {
   answerHasValue,
   formatWeddingAnswer,
@@ -44,6 +45,7 @@ type Props = {
   initialMode?: PlanningMode;
   initialPrintView?: PrintView;
   publicDraft?: boolean;
+  supportEmail: string;
 };
 
 type PlanningMode = "guided" | "form" | "print";
@@ -275,6 +277,7 @@ export function WeddingQuestionnaire({
   initialMode = "guided",
   initialPrintView = "planner",
   publicDraft = false,
+  supportEmail,
 }: Props) {
   const initialIndex = Math.max(0, sections.findIndex((section) => section.key === initialSectionKey));
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -290,6 +293,7 @@ export function WeddingQuestionnaire({
   const [draftReady, setDraftReady] = useState(!publicDraft);
   const [resumeSectionIndex, setResumeSectionIndex] = useState(initialIndex);
   const [hasDeviceDraft, setHasDeviceDraft] = useState(false);
+  const [contactRequestReceipt, setContactRequestReceipt] = useState<{ requestId: string; createdAt: string } | null>(null);
   const revealAll = shouldRevealAllWeddingQuestions(planningMode);
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
@@ -310,16 +314,25 @@ export function WeddingQuestionnaire({
     let restoredAnswers: Record<string, unknown> | null = null;
     let restoredAt: string | null = null;
     let restoredSectionKey: string | null = null;
+    let restoredContactReceipt: { requestId: string; createdAt: string } | null = null;
     let restoreMessage = "Saved on this device";
     try {
       const storedDraft = window.localStorage.getItem(PUBLIC_DRAFT_KEY);
       if (storedDraft) {
-        const parsed = JSON.parse(storedDraft) as { answers?: Record<string, unknown>; updatedAt?: string; sectionKey?: string };
+        const parsed = JSON.parse(storedDraft) as {
+          answers?: Record<string, unknown>;
+          updatedAt?: string;
+          sectionKey?: string;
+          contactRequest?: { requestId?: string; createdAt?: string };
+        };
         if (parsed.answers && typeof parsed.answers === "object") {
           restoredAnswers = parsed.answers;
           restoredAt = parsed.updatedAt ?? null;
           restoredSectionKey = parsed.sectionKey ?? null;
           restoreMessage = "Draft restored. Continue where you left off or start fresh.";
+        }
+        if (parsed.contactRequest?.requestId && parsed.contactRequest.createdAt) {
+          restoredContactReceipt = { requestId: parsed.contactRequest.requestId, createdAt: parsed.contactRequest.createdAt };
         }
       }
     } catch {
@@ -338,6 +351,7 @@ export function WeddingQuestionnaire({
         setResumeSectionIndex(nextResumeIndex);
         setHasDeviceDraft(true);
       }
+      if (restoredContactReceipt) setContactRequestReceipt(restoredContactReceipt);
       setMessage(restoreMessage);
       setDraftReady(true);
     }, 0);
@@ -350,7 +364,13 @@ export function WeddingQuestionnaire({
     const nextProgress = weddingProgress(answers);
 
     try {
-      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({ version: 3, answers, updatedAt: savedAt, sectionKey }));
+      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({
+        version: 3,
+        answers,
+        updatedAt: savedAt,
+        sectionKey,
+        contactRequest: contactRequestReceipt,
+      }));
       setProgress(nextProgress);
       setLastSaved(savedAt);
       setSaveState("saved");
@@ -362,7 +382,7 @@ export function WeddingQuestionnaire({
       setMessage("This browser could not save the draft. You can still print or save it as a PDF.");
       return { ok: false as const, message: "This browser could not save the draft." };
     }
-  }, [answers, currentSection.key]);
+  }, [answers, contactRequestReceipt, currentSection.key]);
 
   const sectionCompletion = useMemo(() => sections.map((section) => {
     return isSectionComplete(section, answers);
@@ -401,6 +421,7 @@ export function WeddingQuestionnaire({
       sectionKey: section.key,
       answers: sectionAnswers,
       submit,
+      mode: planningMode,
     });
 
     if (!result.ok) {
@@ -419,7 +440,7 @@ export function WeddingQuestionnaire({
     setSaveState("saved");
     setMessage(submit ? result.message : feedbackMessage);
     return result;
-  }, [answers, assignmentId, currentIndex, eventId, publicDraft, savePublicDraft, sectionSavedMessage]);
+  }, [answers, assignmentId, currentIndex, eventId, planningMode, publicDraft, savePublicDraft, sectionSavedMessage]);
 
   const persistAll = useCallback(async (submit = false) => {
     if (autosaveTimerRef.current !== null) {
@@ -448,6 +469,7 @@ export function WeddingQuestionnaire({
         sectionKey: section.key,
         answers: sectionAnswers,
         submit: submit && index === sections.length - 1,
+        mode: planningMode,
       });
       if (!finalResult.ok) {
         setSaveState("error");
@@ -461,7 +483,7 @@ export function WeddingQuestionnaire({
     setSaveState("saved");
     setMessage(finalResult?.message ?? "Saved.");
     return finalResult ?? { ok: true, message: "Saved." };
-  }, [answers, assignmentId, currentSection.key, eventId, publicDraft, savePublicDraft]);
+  }, [answers, assignmentId, currentSection.key, eventId, planningMode, publicDraft, savePublicDraft]);
 
   useEffect(() => {
     if (!dirtyRef.current || !draftReady) return;
@@ -543,6 +565,7 @@ export function WeddingQuestionnaire({
     setCurrentIndex(0);
     setResumeSectionIndex(0);
     setHasDeviceDraft(false);
+    setContactRequestReceipt(null);
     setSaveState("saved");
     setMessage("Device draft cleared. Online or private plans were not changed.");
   }
@@ -588,6 +611,28 @@ export function WeddingQuestionnaire({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function recordContactRequest(receipt: { requestId: string; createdAt: string }) {
+    setContactRequestReceipt(receipt);
+    if (!publicDraft) return;
+    const savedAt = new Date().toISOString();
+    try {
+      const stored = window.localStorage.getItem(PUBLIC_DRAFT_KEY);
+      const previous = stored ? JSON.parse(stored) as Record<string, unknown> : {};
+      window.localStorage.setItem(PUBLIC_DRAFT_KEY, JSON.stringify({
+        ...previous,
+        version: 3,
+        answers,
+        updatedAt: savedAt,
+        sectionKey: currentSection.key,
+        contactRequest: receipt,
+      }));
+      setLastSaved(savedAt);
+      setHasDeviceDraft(true);
+    } catch {
+      setMessage("Your callback request was sent, but its receipt could not be saved on this device.");
+    }
+  }
+
   return (
     <>
       <nav className="wedding-mode-toolbar" aria-label="Choose a Wedding Hero planning method">
@@ -598,6 +643,20 @@ export function WeddingQuestionnaire({
           <button type="button" className={planningMode === "print" ? "active" : ""} onClick={() => void chooseMode("print")}><span>⇩</span> Printable</button>
         </div>
       </nav>
+
+      <WeddingHeroContact
+        supportEmail={supportEmail}
+        mode={planningMode}
+        source={publicDraft ? "public_planner" : "private_plan"}
+        eventId={eventId}
+        assignmentId={assignmentId}
+        coupleNames={[answerText(answers.partner_one_name), answerText(answers.partner_two_name)].filter(Boolean).join(" & ")}
+        eventDate={answerText(answers.event_date)}
+        progress={progress}
+        initialName={answerText(answers.day_of_contact)}
+        initialPhone={answerText(answers.day_of_contact_phone)}
+        onRequestRecorded={recordContactRequest}
+      />
 
       {planningMode === "print" ? (
         <main className="wedding-print-workspace">

@@ -46,6 +46,12 @@ async function verify() {
   assert.match(homepageHtml, /\/client\/wedding\?mode=guided/);
   assert.match(homepageHtml, /Wedding resources/i);
   assert.match(homepageHtml, /Meeting Companion/);
+  assert.match(homepageHtml, /Need help/);
+  assert.match(homepageHtml, /\+1 \(574\) 274-5213/);
+  assert.match(homepageHtml, /tel:\+15742745213/);
+  assert.match(homepageHtml, /sms:\+15742745213/);
+  assert.match(homepageHtml, /mailto:/);
+  assert.match(homepageHtml, /Request callback/);
 
   const publicPlanner = await fetch(`${origin}/client/wedding?mode=form`, { redirect: "manual" });
   assert.equal(publicPlanner.status, 200);
@@ -68,6 +74,10 @@ async function verify() {
   assert.match(publicPlannerHtml, /Meal service details/);
   assert.match(publicPlannerHtml, /Venue coordinator contact/);
   assert.match(publicPlannerHtml, /Exact version or link/);
+  assert.match(publicPlannerHtml, /\+1 \(574\) 274-5213/);
+  assert.match(publicPlannerHtml, /tel:\+15742745213/);
+  assert.match(publicPlannerHtml, /sms:\+15742745213/);
+  assert.match(publicPlannerHtml, /Request callback/);
 
   const guidedPlanner = await fetch(`${origin}/client/wedding?mode=guided`, { redirect: "manual" });
   assert.equal(guidedPlanner.status, 200);

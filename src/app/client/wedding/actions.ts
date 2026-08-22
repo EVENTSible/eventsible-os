@@ -5,6 +5,10 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
 import {
+  sendWeddingHeroOwnerNotification,
+  WEDDING_HERO_SUBMITTED_NOTIFICATION,
+} from "@/lib/notifications/wedding-hero-email.mjs";
+import {
   answerHasValue,
   normalizeWeddingAnswer,
   requiredQuestionKeys,
@@ -20,6 +24,7 @@ export type WeddingSaveInput = {
   sectionKey: string;
   answers: Record<string, unknown>;
   submit?: boolean;
+  mode?: "guided" | "form" | "print";
 };
 
 export type WeddingSaveResult = {
@@ -32,6 +37,11 @@ export type WeddingSaveResult = {
 
 function safeId(value: unknown) {
   return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
+}
+
+function answerText(value: unknown) {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean).join(", ");
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
 }
 
 export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise<WeddingSaveResult> {
@@ -150,6 +160,53 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
       visibility: "staff",
       payload: { summary: "Wedding Hero submitted for EVENTSible review.", source: WEDDING_COMPANION_VERSION },
     });
+
+    try {
+      const eventResult = await admin
+        .from("os_events")
+        .select("id,title,starts_at,primary_contact_id")
+        .eq("id", eventId)
+        .maybeSingle();
+      let primaryContact: { display_name?: string | null; primary_email?: string | null; primary_phone?: string | null } | null = null;
+      const contactId = eventResult.data?.primary_contact_id;
+      if (contactId) {
+        const contactResult = await admin
+          .from("os_contacts")
+          .select("display_name,primary_email,primary_phone")
+          .eq("id", contactId)
+          .maybeSingle();
+        primaryContact = contactResult.data;
+      }
+      const coupleNames = [answerText(allAnswers.partner_one_name), answerText(allAnswers.partner_two_name)]
+        .filter(Boolean)
+        .join(" & ");
+
+      await sendWeddingHeroOwnerNotification({
+        kind: WEDDING_HERO_SUBMITTED_NOTIFICATION,
+        context: {
+          coupleNames: coupleNames || answerText(eventResult.data?.title),
+          eventDate: answerText(allAnswers.event_date) || answerText(eventResult.data?.starts_at),
+          progress,
+          mode: input.mode ?? "guided",
+          source: "private_plan",
+          eventId,
+          assignmentId,
+          contactName: primaryContact?.display_name,
+          email: primaryContact?.primary_email,
+          phone: primaryContact?.primary_phone,
+        },
+        requestId: `${assignmentId}:${savedAt}`,
+        createdAt: savedAt,
+      });
+    } catch {
+      await admin.from("os_activity_events").insert({
+        event_id: eventId,
+        actor_user_id: user.id,
+        event_type: "planning.notification_failed",
+        visibility: "staff",
+        payload: { summary: "Wedding Hero was submitted, but the owner notification failed." },
+      });
+    }
   }
 
   revalidatePath("/client");

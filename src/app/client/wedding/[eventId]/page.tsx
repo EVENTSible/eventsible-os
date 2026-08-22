@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ClientLogoutButton } from "@/components/client-logout-button";
 import { WeddingQuestionnaire } from "@/components/wedding-questionnaire";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
+import { resolveWeddingHeroNotificationConfig } from "@/lib/notifications/wedding-hero-email.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export const metadata = { title: "Wedding Hero | EVENTSible", description: "Your EVENTSible interactive wedding companion." };
@@ -28,6 +29,7 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
   const requestedView = Array.isArray(query.view) ? query.view[0] : query.view;
   const initialMode = requestedMode === "form" || requestedMode === "print" ? requestedMode : "guided";
   const initialPrintView = requestedView === "day-of" ? "day-of" : "planner";
+  const { supportEmail } = resolveWeddingHeroNotificationConfig();
   const supabase = await createServerSupabase();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect(`/client/login`);
@@ -81,6 +83,7 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
         initialStatus={assignmentResult.data.status}
         initialMode={initialMode}
         initialPrintView={initialPrintView}
+        supportEmail={supportEmail}
       />
     </div>
   );

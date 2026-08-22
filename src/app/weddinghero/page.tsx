@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { ClientLoginForm } from "@/components/client-login-form";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
+import { WeddingHeroContact } from "@/components/wedding-hero-contact";
+import { resolveWeddingHeroNotificationConfig } from "@/lib/notifications/wedding-hero-email.mjs";
 import { FEATURED_WEDDING_RESOURCES } from "@/lib/wedding-resources";
 import styles from "./weddinghero-home.module.css";
 
@@ -72,6 +74,7 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
     : `/client/start/wedding?method=${selectedMethod}`;
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   const heroResources = FEATURED_WEDDING_RESOURCES.slice(0, 3);
+  const { supportEmail } = resolveWeddingHeroNotificationConfig();
 
   return (
     <main className={`${styles.scope} wedding-hero-entry wedding-hero-home`}>
@@ -85,6 +88,8 @@ export default async function WeddingHeroHome({ searchParams }: PageProps) {
           <a href="#hero-access">Already saved online? <b>Open your private plan</b></a>
         </div>
       </nav>
+
+      <WeddingHeroContact supportEmail={supportEmail} mode="homepage" source="weddinghero_homepage" />
 
       <section className="wedding-hero-intro">
         <div className="wedding-hero-intro-copy">
