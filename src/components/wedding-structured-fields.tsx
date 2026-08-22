@@ -31,12 +31,14 @@ export type StructuredWeddingQuestion = {
   helperInfo?: HelperInfo;
   additionalFieldKeys?: string[];
   additionalFieldsLabel?: string;
+  condition?: { answer?: string; equals?: unknown; includes?: string; hasValue?: boolean };
 };
 
 type Props = {
   question: StructuredWeddingQuestion;
   value: unknown;
   onChange: (value: unknown) => void;
+  revealAll?: boolean;
 };
 
 const STRUCTURED_TYPES = new Set([
@@ -63,8 +65,8 @@ function inputValue(value: unknown) {
   return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
-function questionLabel(question: StructuredWeddingQuestion) {
-  return <><span>{question.label}{question.required ? <b className="required-mark"> *</b> : null}</span>{question.helpText ? <small>{question.helpText}</small> : null}</>;
+function questionLabel(question: StructuredWeddingQuestion, revealAll = false) {
+  return <><span>{question.label}{question.required ? <b className="required-mark"> *</b> : null}{revealAll && question.condition?.answer ? <em> If applicable</em> : null}</span>{question.helpText ? <small>{question.helpText}</small> : null}</>;
 }
 
 function HelperInfoCard({ info }: { info?: HelperInfo }) {
@@ -111,7 +113,7 @@ function listItems(question: StructuredWeddingQuestion, value: unknown) {
   return items;
 }
 
-function StructuredList({ question, value, onChange }: Props) {
+function StructuredList({ question, value, onChange, revealAll = false }: Props) {
   const items = listItems(question, value);
   const fields = question.itemFields ?? [];
   const additionalFieldKeys = new Set(question.additionalFieldKeys ?? []);
@@ -141,7 +143,7 @@ function StructuredList({ question, value, onChange }: Props) {
 
   return (
     <fieldset className="wedding-question wedding-structured-question">
-      <legend>{questionLabel(question)}</legend>
+      <legend>{questionLabel(question, revealAll)}</legend>
       <HelperInfoCard info={question.helperInfo} />
       {question.starterItems?.length ? (
         <div className="wedding-starter-moments">
@@ -170,7 +172,7 @@ function StructuredList({ question, value, onChange }: Props) {
                 })}
               </div>
               {additionalFields.length ? (
-                <details className="wedding-module-additional">
+                <details className="wedding-module-additional" open={revealAll || undefined}>
                   <summary>{question.additionalFieldsLabel ?? "Additional details"}{additionalFields.some((field) => inputValue(item[field.key]).trim()) ? " (added)" : ""}</summary>
                   <div className="wedding-module-fields unfolding">
                     {additionalFields.map((field) => {
@@ -189,17 +191,17 @@ function StructuredList({ question, value, onChange }: Props) {
   );
 }
 
-function SongMoment({ question, value, onChange }: Props) {
+function SongMoment({ question, value, onChange, revealAll = false }: Props) {
   const song = typeof value === "string" ? { status: "chosen", songTitle: value } : objectValue(value);
   const status = inputValue(song.status);
   const statuses = [{ value: "chosen", label: "Add song" }, { value: "not_sure", label: "Not sure yet" }, { value: "not_doing", label: "Not doing this" }];
   return (
     <fieldset className="wedding-question wedding-song-moment">
-      <legend>{questionLabel(question)}</legend>
+      <legend>{questionLabel(question, revealAll)}</legend>
       <div className="wedding-segmented-control">
         {statuses.map((option) => <button type="button" key={option.value} aria-pressed={status === option.value} className={status === option.value ? "selected" : ""} onClick={() => onChange({ ...song, status: option.value })}>{option.label}</button>)}
       </div>
-      {status === "chosen" ? (
+      {revealAll || status === "chosen" ? (
         <div className="wedding-module-fields unfolding">
           {(question.fields ?? []).map((field) => {
             const id = `${question.key}-${field.key}`;
@@ -211,11 +213,11 @@ function SongMoment({ question, value, onChange }: Props) {
   );
 }
 
-function DetailsGroup({ question, value, onChange }: Props) {
+function DetailsGroup({ question, value, onChange, revealAll = false }: Props) {
   const details = typeof value === "string" ? { notes: value } : objectValue(value);
   return (
     <fieldset className="wedding-question wedding-structured-question">
-      <legend>{questionLabel(question)}</legend>
+      <legend>{questionLabel(question, revealAll)}</legend>
       <div className="wedding-module-fields">
         {(question.fields ?? []).map((field) => {
           const id = `${question.key}-${field.key}`;
@@ -226,7 +228,7 @@ function DetailsGroup({ question, value, onChange }: Props) {
   );
 }
 
-function SensitiveChecklist({ question, value, onChange }: Props) {
+function SensitiveChecklist({ question, value, onChange, revealAll = false }: Props) {
   const source = typeof value === "string" ? { items: [], otherNotes: value } : objectValue(value);
   const items = Array.isArray(source.items) ? source.items.map(objectValue) : [];
 
@@ -235,16 +237,26 @@ function SensitiveChecklist({ question, value, onChange }: Props) {
     onChange({ ...source, items: selected ? items.filter((item) => item.topic !== topic) : [...items, { topic, notes: "" }] });
   }
 
+  function updateTopicNotes(topic: string, notes: string) {
+    const existing = items.some((item) => item.topic === topic);
+    onChange({
+      ...source,
+      items: existing
+        ? items.map((item) => item.topic === topic ? { ...item, notes } : item)
+        : [...items, { topic, notes }],
+    });
+  }
+
   return (
     <fieldset className="wedding-question wedding-sensitive-checklist">
-      <legend>{questionLabel(question)}</legend>
+      <legend>{questionLabel(question, revealAll)}</legend>
       <div className="wedding-check-card-grid">
         {(question.options ?? []).map((topic) => {
           const item = items.find((candidate) => candidate.topic === topic);
           return (
             <div className={item ? "selected" : ""} key={topic}>
               <label><input type="checkbox" checked={Boolean(item)} onChange={() => toggle(topic)} /><span>{topic}</span></label>
-              {item ? <textarea rows={2} value={inputValue(item.notes)} aria-label={`Notes for ${topic}`} placeholder="What should the team know?" onChange={(event) => onChange({ ...source, items: items.map((candidate) => candidate.topic === topic ? { ...candidate, notes: event.target.value } : candidate) })} /> : null}
+              {item || revealAll ? <textarea rows={2} value={inputValue(item?.notes)} aria-label={`Notes for ${topic}`} placeholder="What should the team know, if applicable?" onChange={(event) => updateTopicNotes(topic, event.target.value)} /> : null}
             </div>
           );
         })}
@@ -254,7 +266,7 @@ function SensitiveChecklist({ question, value, onChange }: Props) {
   );
 }
 
-function ServiceChecklist({ question, value, onChange }: Props) {
+function ServiceChecklist({ question, value, onChange, revealAll = false }: Props) {
   const items = Array.isArray(value) ? value.map((item) => typeof item === "string" ? { service: item, status: "booked" } : objectValue(item)) : [];
 
   function setStatus(service: string, status: string) {
@@ -265,12 +277,15 @@ function ServiceChecklist({ question, value, onChange }: Props) {
   }
 
   function updateService(service: string, key: string, nextValue: string) {
-    onChange(items.map((item) => item.service === service ? { ...item, [key]: nextValue } : item));
+    const existing = items.some((item) => item.service === service);
+    onChange(existing
+      ? items.map((item) => item.service === service ? { ...item, [key]: nextValue } : item)
+      : [...items, { service, status: "considering", [key]: nextValue }]);
   }
 
   return (
     <fieldset className="wedding-question wedding-service-checklist">
-      <legend>{questionLabel(question)}</legend>
+      <legend>{questionLabel(question, revealAll)}</legend>
       <div className="wedding-service-grid">
         {(question.options ?? []).map((service) => {
           const item = items.find((candidate) => candidate.service === service);
@@ -280,7 +295,7 @@ function ServiceChecklist({ question, value, onChange }: Props) {
               <div className="wedding-service-status">
                 {[{ value: "booked", label: "Booked" }, { value: "considering", label: "Not sure yet" }, { value: "recommendation", label: "Need recommendation" }].map((status) => <button type="button" className={item?.status === status.value ? "selected" : ""} aria-pressed={item?.status === status.value} key={status.value} onClick={() => setStatus(service, status.value)}>{status.label}</button>)}
               </div>
-              {item ? <div className="wedding-service-details"><label><span>Setup location</span><input value={inputValue(item.location)} onChange={(event) => updateService(service, "location", event.target.value)} /></label><label><span>Time needed</span><input value={inputValue(item.time)} onChange={(event) => updateService(service, "time", event.target.value)} /></label><label><span>Notes</span><textarea rows={2} value={inputValue(item.notes)} onChange={(event) => updateService(service, "notes", event.target.value)} /></label></div> : null}
+              {item || revealAll ? <div className="wedding-service-details"><label><span>Setup location</span><input value={inputValue(item?.location)} onChange={(event) => updateService(service, "location", event.target.value)} /></label><label><span>Time needed</span><input value={inputValue(item?.time)} onChange={(event) => updateService(service, "time", event.target.value)} /></label><label><span>Notes</span><textarea rows={2} value={inputValue(item?.notes)} onChange={(event) => updateService(service, "notes", event.target.value)} /></label></div> : null}
             </article>
           );
         })}

@@ -556,6 +556,7 @@ a { color: inherit; text-decoration: none; }
 .wedding-service-status button { border: 1px solid #d7e0e4; border-radius: 999px; padding: 6px 8px; color: #536b80; background: white; font-size: .65rem; font-weight: 800; }
 .wedding-service-status button.selected { border-color: #c65361; color: white; background: #c65361; }
 .wedding-service-details { display: grid; gap: 8px; margin-top: 11px; border-top: 1px solid #eadfe1; padding-top: 10px; }
+.wedding-question legend em, .wedding-question > label > span em { margin-left: 5px; color: #7a6b58; font-size: .68rem; font-style: normal; font-weight: 750; }
 .wedding-tri-state > div { flex-wrap: wrap; }
 .wedding-tri-state button { min-width: 0; }
 .wedding-save-error { margin-bottom: 16px; border-radius: 12px; padding: 12px 14px; color: var(--red); background: #fff0ef; }
@@ -584,6 +585,16 @@ a { color: inherit; text-decoration: none; }
 .wedding-print-question { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(0, 1.3fr); gap: 18px; border-top: 1px dotted #ccd6dd; padding: 11px 0; }
 .wedding-print-question b { color: #263c55; font-size: .82rem; }
 .wedding-print-question p { margin: 0; white-space: pre-wrap; color: #526982; font-size: .82rem; line-height: 1.45; }
+.wedding-print-question-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.wedding-print-if-applicable { flex: 0 0 auto; color: #7a6b58; font-size: .66rem; font-weight: 750; text-transform: lowercase; }
+.wedding-print-structured { display: grid; grid-template-columns: 1fr; gap: 9px; }
+.wedding-print-fields, .wedding-print-options { display: grid; gap: 7px; }
+.wedding-print-modules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.wedding-print-module { break-inside: avoid; border: 1px solid #dfe7ea; padding: 10px; }
+.wedding-print-module > strong { display: block; margin-bottom: 7px; color: #14345f; font-size: .76rem; }
+.wedding-print-field { display: grid; grid-template-columns: minmax(110px, .55fr) minmax(0, 1.45fr); gap: 10px; border-top: 1px dotted #d5dfe4; padding-top: 6px; }
+.wedding-print-field:first-child { border-top: 0; padding-top: 0; }
+.wedding-print-field > span { color: #4a6077; font-size: .68rem; font-weight: 800; }
 .wedding-day-sheet-title { padding: clamp(28px, 5vw, 52px) 0 24px; }
 .wedding-day-sheet-title > span { color: #c65361; font-size: .68rem; font-weight: 950; letter-spacing: .14em; text-transform: uppercase; }
 .wedding-day-sheet-title h2 { margin: 9px 0 5px; color: #14345f; font-size: clamp(2.3rem, 6vw, 4.5rem); line-height: .95; letter-spacing: -.06em; }
@@ -698,6 +709,8 @@ a { color: inherit; text-decoration: none; }
   .wedding-mode-toolbar button { flex: 1; justify-content: center; }
   .wedding-print-question { grid-template-columns: minmax(0, 1fr); gap: 7px; }
   .wedding-print-question p { min-width: 0; overflow-wrap: anywhere; }
+  .wedding-print-modules { grid-template-columns: minmax(0, 1fr); }
+  .wedding-print-field { grid-template-columns: minmax(0, 1fr); gap: 3px; }
   .wedding-resource-nudges > div, .wedding-question-resources, .wedding-day-sections { grid-template-columns: 1fr; }
   .wedding-day-ready { grid-template-columns: 1fr; }
   .start-hero-form > section { grid-template-columns: 1fr; }

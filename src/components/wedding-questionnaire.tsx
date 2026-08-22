@@ -9,6 +9,7 @@ import {
   guidedResumeSectionKey,
   isQuestionVisible,
   isSectionComplete,
+  shouldRevealAllWeddingQuestions,
   weddingProgress,
   WEDDING_SECTIONS,
 } from "@/lib/wedding-companion.mjs";
@@ -119,6 +120,115 @@ function answerText(value: unknown) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string").join("\n") : String(value ?? "");
 }
 
+const PRINTABLE_LIST_TYPES = new Set(["reorderable_people_list", "introduction_list", "speaker_list", "timeline_list", "song_list"]);
+const PRINTABLE_LINE = "________________________________________________________________";
+
+function printableRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function printableValue(value: unknown, fallback = PRINTABLE_LINE) {
+  if (!answerHasValue(value)) return fallback;
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
+function PrintableFieldLine({ label, value, fallback }: { label: string; value?: unknown; fallback?: string }) {
+  return <div className="wedding-print-field"><span>{label}</span><p>{printableValue(value, fallback)}</p></div>;
+}
+
+function PrintableQuestion({ question, value }: { question: WeddingQuestion; value: unknown }) {
+  const conditionHint = question.condition?.answer ? <span className="wedding-print-if-applicable">If applicable</span> : null;
+
+  if (PRINTABLE_LIST_TYPES.has(question.fieldType)) {
+    const primaryKey = question.legacyField ?? question.itemFields?.[0]?.key ?? "name";
+    const sourceItems = Array.isArray(value)
+      ? value.map((item) => typeof item === "string" ? { [primaryKey]: item } : printableRecord(item))
+      : typeof value === "string" && value.trim()
+        ? value.split("\n").filter(Boolean).map((item) => ({ [primaryKey]: item }))
+        : [];
+    const rowCount = Math.max(sourceItems.length, question.defaultRows ?? 1);
+    const rows = Array.from({ length: rowCount }, (_, index) => sourceItems[index] ?? {});
+    return (
+      <div className="wedding-print-question wedding-print-structured">
+        <div className="wedding-print-question-heading"><b>{question.label}</b>{conditionHint}</div>
+        <div className="wedding-print-modules">
+          {rows.map((item, index) => (
+            <div className="wedding-print-module" key={`${question.key}-${index}`}>
+              <strong>{question.fieldType === "timeline_list" ? "Moment" : question.fieldType === "speaker_list" ? "Speaker" : "Entry"} {index + 1}</strong>
+              {(question.itemFields ?? []).map((field) => <PrintableFieldLine key={field.key} label={field.label} value={item[field.key]} />)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (question.fieldType === "song_moment" || question.fieldType === "details_group") {
+    const details = typeof value === "string"
+      ? { [question.fieldType === "song_moment" ? "songTitle" : "notes"]: value }
+      : printableRecord(value);
+    const status = details.status === "chosen" ? "Add song" : details.status === "not_sure" ? "Not sure yet" : details.status === "not_doing" ? "Not doing this" : undefined;
+    return (
+      <div className="wedding-print-question wedding-print-structured">
+        <div className="wedding-print-question-heading"><b>{question.label}</b>{conditionHint}</div>
+        <div className="wedding-print-fields">
+          {question.fieldType === "song_moment" ? <PrintableFieldLine label="Status" value={status} fallback="□ Add song   □ Not sure yet   □ Not doing this" /> : null}
+          {(question.fields ?? []).map((field) => <PrintableFieldLine key={field.key} label={field.label} value={details[field.key]} />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (question.fieldType === "sensitive_checklist") {
+    const source = printableRecord(value);
+    const items = Array.isArray(source.items) ? source.items.map(printableRecord) : [];
+    return (
+      <div className="wedding-print-question wedding-print-structured">
+        <div className="wedding-print-question-heading"><b>{question.label}</b>{conditionHint}</div>
+        <div className="wedding-print-options">
+          {(question.options ?? []).map((option) => {
+            const item = items.find((candidate) => candidate.topic === option);
+            return <PrintableFieldLine key={option} label={`${item ? "☒" : "☐"} ${option}`} value={item?.notes} />;
+          })}
+          <PrintableFieldLine label="Other details" value={source.otherNotes} />
+        </div>
+      </div>
+    );
+  }
+
+  if (question.fieldType === "service_checklist") {
+    const items = Array.isArray(value) ? value.map((item) => typeof item === "string" ? { service: item, status: "booked" } : printableRecord(item)) : [];
+    return (
+      <div className="wedding-print-question wedding-print-structured">
+        <div className="wedding-print-question-heading"><b>{question.label}</b>{conditionHint}</div>
+        <div className="wedding-print-modules">
+          {(question.options ?? []).map((service) => {
+            const item = items.find((candidate) => candidate.service === service);
+            const status = item?.status === "booked" ? "Booked" : item?.status === "recommendation" ? "Need recommendation" : item?.status === "considering" ? "Not sure yet" : undefined;
+            return (
+              <div className="wedding-print-module" key={service}>
+                <strong>{service}</strong>
+                <PrintableFieldLine label="Status" value={status} fallback="□ Booked   □ Not sure yet   □ Need recommendation" />
+                <PrintableFieldLine label="Setup location" value={item?.location} />
+                <PrintableFieldLine label="Time needed" value={item?.time} />
+                <PrintableFieldLine label="Notes" value={item?.notes} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="wedding-print-question">
+      <div className="wedding-print-question-heading"><b>{question.label}</b>{conditionHint}</div>
+      <p>{answerHasValue(value) ? formatWeddingAnswer(question, value) : PRINTABLE_LINE}</p>
+    </div>
+  );
+}
+
 function SectionResourceLinks({ sectionKey, compact = false }: { sectionKey: string; compact?: boolean }) {
   const resources = SECTION_RESOURCES[sectionKey] ?? [];
   if (resources.length === 0) return null;
@@ -180,6 +290,7 @@ export function WeddingQuestionnaire({
   const [draftReady, setDraftReady] = useState(!publicDraft);
   const [resumeSectionIndex, setResumeSectionIndex] = useState(initialIndex);
   const [hasDeviceDraft, setHasDeviceDraft] = useState(false);
+  const revealAll = shouldRevealAllWeddingQuestions(planningMode);
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
   const guidedCardRef = useRef<HTMLElement | null>(null);
@@ -537,11 +648,8 @@ export function WeddingQuestionnaire({
               {sections.map((section) => (
                 <section key={section.key}>
                   <h3>{section.title}</h3>
-                  {section.questions.filter((question) => isQuestionVisible(question, answers)).map((question) => (
-                    <div className="wedding-print-question" key={question.key}>
-                      <b>{question.label}</b>
-                      <p>{answerHasValue(answers[question.key]) ? formatWeddingAnswer(question, answers[question.key]) : "________________________________________________________________"}</p>
-                    </div>
+                  {section.questions.filter((question) => isQuestionVisible(question, answers, revealAll)).map((question) => (
+                    <PrintableQuestion question={question} value={answers[question.key]} key={question.key} />
                   ))}
                 </section>
               ))}
@@ -646,8 +754,8 @@ export function WeddingQuestionnaire({
               <header><span>Section {index + 1}</span><h3>{section.title}</h3><p>{section.description}</p></header>
               <SectionResourceLinks sectionKey={section.key} />
               <div className="wedding-question-list">
-                {section.questions.filter((question) => isQuestionVisible(question, answers)).map((question) => (
-                  <QuestionField key={question.key} question={question} value={answers[question.key]} onChange={(value) => updateAnswer(question.key, value)} />
+                {section.questions.filter((question) => isQuestionVisible(question, answers, revealAll)).map((question) => (
+                  <QuestionField key={question.key} question={question} value={answers[question.key]} onChange={(value) => updateAnswer(question.key, value)} revealAll={revealAll} />
                 ))}
               </div>
             </section>
@@ -665,9 +773,9 @@ export function WeddingQuestionnaire({
   );
 }
 
-function QuestionField({ question, value, onChange }: { question: WeddingQuestion; value: unknown; onChange: (value: unknown) => void }) {
+function QuestionField({ question, value, onChange, revealAll = false }: { question: WeddingQuestion; value: unknown; onChange: (value: unknown) => void; revealAll?: boolean }) {
   const id = `wedding-${question.key}`;
-  const label = <><span>{question.label}{question.required ? <b className="required-mark"> *</b> : null}</span>{question.helpText ? <small>{question.helpText}</small> : null}</>;
+  const label = <><span>{question.label}{question.required ? <b className="required-mark"> *</b> : null}{revealAll && question.condition?.answer ? <em> If applicable</em> : null}</span>{question.helpText ? <small>{question.helpText}</small> : null}</>;
   const promptIdeas = question.promptIdeas ?? [];
 
   function addPromptIdea(idea: string) {
@@ -689,7 +797,7 @@ function QuestionField({ question, value, onChange }: { question: WeddingQuestio
   ) : null;
 
   if (isStructuredWeddingField(question.fieldType)) {
-    return <><StructuredWeddingField question={question} value={value} onChange={onChange} /><QuestionResourceLinks questionKey={question.key} /></>;
+    return <><StructuredWeddingField question={question} value={value} onChange={onChange} revealAll={revealAll} /><QuestionResourceLinks questionKey={question.key} /></>;
   }
 
   if (question.fieldType === "yes_no") {

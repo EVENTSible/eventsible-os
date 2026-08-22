@@ -265,7 +265,12 @@ export function answerHasValue(value) {
   return true;
 }
 
-export function isQuestionVisible(questionItem, answers = {}) {
+export function shouldRevealAllWeddingQuestions(mode) {
+  return mode === "form" || mode === "print" || mode === "printable";
+}
+
+export function isQuestionVisible(questionItem, answers = {}, revealAll = false) {
+  if (revealAll) return true;
   const condition = questionItem?.condition ?? {};
   if (!condition.answer) return true;
   if (condition.hasValue) return answerHasValue(answers[condition.answer]);

@@ -60,6 +60,34 @@ async function verify() {
   assert.match(publicPlannerHtml, /Day-of Cheat Sheet/);
   assert.match(publicPlannerHtml, /Helpful right now/);
   assert.match(publicPlannerHtml, /Song &amp; Moment Guide/);
+  assert.match(publicPlannerHtml, /Ceremony location or setup area/);
+  assert.match(publicPlannerHtml, /Rehearsal date/);
+  assert.match(publicPlannerHtml, /Cocktail-hour location/);
+  assert.match(publicPlannerHtml, /Wedding-party introduction order/);
+  assert.match(publicPlannerHtml, /Reception timeline/);
+  assert.match(publicPlannerHtml, /Meal service details/);
+  assert.match(publicPlannerHtml, /Venue coordinator contact/);
+  assert.match(publicPlannerHtml, /Exact version or link/);
+
+  const guidedPlanner = await fetch(`${origin}/client/wedding?mode=guided`, { redirect: "manual" });
+  assert.equal(guidedPlanner.status, 200);
+  const guidedPlannerHtml = await guidedPlanner.text();
+  assert.match(guidedPlannerHtml, /Is your wedding date confirmed/);
+  assert.doesNotMatch(guidedPlannerHtml, /EVENTSible attire notes/);
+
+  const printablePlanner = await fetch(`${origin}/client/wedding?mode=print`, { redirect: "manual" });
+  assert.equal(printablePlanner.status, 200);
+  const printablePlannerHtml = await printablePlanner.text();
+  assert.match(printablePlannerHtml, /Printable Wedding Hero/);
+  assert.match(printablePlannerHtml, /Ceremony location or setup area/);
+  assert.match(printablePlannerHtml, /Rehearsal date/);
+  assert.match(printablePlannerHtml, /Cocktail-hour location/);
+  assert.match(printablePlannerHtml, /Wedding-party introduction order/);
+  assert.match(printablePlannerHtml, /Reception timeline/);
+  assert.match(printablePlannerHtml, /Meal service details/);
+  assert.match(printablePlannerHtml, /Venue coordinator contact/);
+  assert.match(printablePlannerHtml, /Exact version or link/);
+  assert.match(printablePlannerHtml, /Setup location/);
 
   const dayOfSheet = await fetch(`${origin}/client/wedding?mode=print&view=day-of`, { redirect: "manual" });
   assert.equal(dayOfSheet.status, 200);

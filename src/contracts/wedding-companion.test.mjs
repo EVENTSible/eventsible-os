@@ -8,6 +8,7 @@ import {
   isQuestionVisible,
   normalizeWeddingAnswer,
   requiredQuestionKeys,
+  shouldRevealAllWeddingQuestions,
   weddingProgress,
   weddingQuestionMap,
   WEDDING_SECTIONS,
@@ -38,6 +39,25 @@ test("Wedding Companion condition hides ceremony details when ceremony service i
   const ceremonyLocation = weddingQuestionMap().get("ceremony_location");
   assert.equal(isQuestionVisible(ceremonyLocation, { ceremony_included: false }), false);
   assert.equal(isQuestionVisible(ceremonyLocation, { ceremony_included: true }), true);
+});
+
+test("Wedding Companion reveals every conditional question outside Guided mode", () => {
+  const map = weddingQuestionMap();
+  const conditionalQuestions = [
+    map.get("event_date"),
+    map.get("rehearsal_date"),
+    map.get("cocktail_hour_location"),
+    map.get("introduction_order"),
+    map.get("reception_timeline"),
+    map.get("venue_contact"),
+  ];
+
+  assert.equal(shouldRevealAllWeddingQuestions("guided"), false);
+  assert.equal(isQuestionVisible(map.get("rehearsal_date"), {}, shouldRevealAllWeddingQuestions("guided")), false);
+  for (const mode of ["form", "print", "printable"]) {
+    assert.equal(shouldRevealAllWeddingQuestions(mode), true);
+    assert.equal(conditionalQuestions.every((question) => isQuestionVisible(question, {}, shouldRevealAllWeddingQuestions(mode))), true);
+  }
 });
 
 test("Wedding Companion unlocks ceremony, rehearsal, and cocktail-hour follow-ups only when relevant", () => {
