@@ -11,8 +11,8 @@ export default function WeddingResourcesPage() {
   return (
     <main className="wedding-resource-hub">
       <nav className="wedding-resource-nav">
-        <Link href="/client/login"><WeddingHeroMark compact /></Link>
-        <div><Link href="/client/wedding?mode=guided">Open the planner</Link><Link href="/client/login">Wedding Hero home</Link></div>
+        <Link href="/weddinghero"><WeddingHeroMark compact /></Link>
+        <div><Link href="/client/wedding?mode=guided">Open the planner</Link><Link href="/weddinghero">Wedding Hero home</Link></div>
       </nav>
       <header className="wedding-resource-hero">
         <div>

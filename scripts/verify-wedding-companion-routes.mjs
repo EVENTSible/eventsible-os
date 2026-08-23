@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const port = 3107;
 const origin = `http://127.0.0.1:${port}`;
 const nextBin = new URL("../node_modules/next/dist/bin/next", import.meta.url);
-const server = spawn(process.execPath, [nextBin.pathname, "start", "--hostname", "127.0.0.1", "--port", String(port)], {
+const server = spawn(process.execPath, [fileURLToPath(nextBin), "start", "--hostname", "127.0.0.1", "--port", String(port)], {
   cwd: new URL("..", import.meta.url),
   env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
   stdio: ["ignore", "pipe", "pipe"],
@@ -31,26 +32,77 @@ async function verify() {
   await waitForServer();
 
   const login = await fetch(`${origin}/client/login`, { redirect: "manual" });
-  assert.equal(login.status, 200);
-  const loginHtml = await login.text();
-  assert.match(loginHtml, /Wedding Hero/);
-  assert.match(loginHtml, /Interactive Wedding Companion/);
-  assert.match(loginHtml, /Traditional Form/);
-  assert.match(loginHtml, /Printable Planner/);
-  assert.match(loginHtml, /Email my private access link/);
-  assert.match(loginHtml, /\/client\/wedding\?mode=guided/);
-  assert.match(loginHtml, /Wedding Resources/);
-  assert.match(loginHtml, /Meeting Companion/);
+  assert.ok([302, 303, 307, 308].includes(login.status));
+  assert.match(login.headers.get("location") ?? "", /\/weddinghero/);
+
+  const homepage = await fetch(`${origin}/weddinghero`, { redirect: "manual" });
+  assert.equal(homepage.status, 200);
+  const homepageHtml = await homepage.text();
+  assert.match(homepageHtml, /Wedding Hero/);
+  assert.match(homepageHtml, /Interactive Companion/);
+  assert.match(homepageHtml, /Traditional Form/);
+  assert.match(homepageHtml, /Printable Planner/);
+  assert.match(homepageHtml, /private access/i);
+  assert.match(homepageHtml, /\/client\/wedding\?mode=guided/);
+  assert.match(homepageHtml, /Wedding resources/i);
+  assert.match(homepageHtml, /Meeting Companion/);
+  assert.match(homepageHtml, /Need help/);
+  assert.match(homepageHtml, /\+1 \(574\) 274-5213/);
+  assert.match(homepageHtml, /tel:\+15742745213/);
+  assert.match(homepageHtml, /sms:\+15742745213/);
+  assert.match(homepageHtml, /mailto:/);
+  assert.match(homepageHtml, /Request callback/);
 
   const publicPlanner = await fetch(`${origin}/client/wedding?mode=form`, { redirect: "manual" });
   assert.equal(publicPlanner.status, 200);
   const publicPlannerHtml = await publicPlanner.text();
   assert.match(publicPlannerHtml, /No account or email required/);
   assert.match(publicPlannerHtml, /Traditional planning form/);
-  assert.match(publicPlannerHtml, /Must-play songs or artists/);
+  assert.match(publicPlannerHtml, /Songs or artists we love and must play/);
+  assert.match(publicPlannerHtml, /Add speaker/);
+  assert.match(publicPlannerHtml, /Do you already know your reception timeline/);
+  assert.match(publicPlannerHtml, /Music styles and preferences/);
+  assert.match(publicPlannerHtml, /EVENTSible services/);
   assert.match(publicPlannerHtml, /Day-of Cheat Sheet/);
   assert.match(publicPlannerHtml, /Helpful right now/);
   assert.match(publicPlannerHtml, /Song &amp; Moment Guide/);
+  assert.match(publicPlannerHtml, /Ceremony location or setup area/);
+  assert.match(publicPlannerHtml, /Rehearsal date/);
+  assert.match(publicPlannerHtml, /Cocktail-hour location/);
+  assert.match(publicPlannerHtml, /Wedding-party introduction order/);
+  assert.match(publicPlannerHtml, /Reception timeline/);
+  assert.match(publicPlannerHtml, /Meal service details/);
+  assert.match(publicPlannerHtml, /Venue coordinator contact/);
+  assert.match(publicPlannerHtml, /Exact version or link/);
+  assert.match(publicPlannerHtml, /\+1 \(574\) 274-5213/);
+  assert.match(publicPlannerHtml, /tel:\+15742745213/);
+  assert.match(publicPlannerHtml, /sms:\+15742745213/);
+  assert.match(publicPlannerHtml, /Request callback/);
+  assert.match(publicPlannerHtml, /Send to EVENTSible/);
+  assert.match(publicPlannerHtml, /Saved locally on this device/);
+  assert.match(publicPlannerHtml, /Not sent yet/);
+  assert.match(publicPlannerHtml, /Autosave does not notify EVENTSible/);
+
+  const guidedPlanner = await fetch(`${origin}/client/wedding?mode=guided`, { redirect: "manual" });
+  assert.equal(guidedPlanner.status, 200);
+  const guidedPlannerHtml = await guidedPlanner.text();
+  assert.match(guidedPlannerHtml, /Is your wedding date confirmed/);
+  assert.doesNotMatch(guidedPlannerHtml, /EVENTSible attire notes/);
+
+  const printablePlanner = await fetch(`${origin}/client/wedding?mode=print`, { redirect: "manual" });
+  assert.equal(printablePlanner.status, 200);
+  const printablePlannerHtml = await printablePlanner.text();
+  assert.match(printablePlannerHtml, /Printable Wedding Hero/);
+  assert.match(printablePlannerHtml, /Ceremony location or setup area/);
+  assert.match(printablePlannerHtml, /Rehearsal date/);
+  assert.match(printablePlannerHtml, /Cocktail-hour location/);
+  assert.match(printablePlannerHtml, /Wedding-party introduction order/);
+  assert.match(printablePlannerHtml, /Reception timeline/);
+  assert.match(printablePlannerHtml, /Meal service details/);
+  assert.match(printablePlannerHtml, /Venue coordinator contact/);
+  assert.match(printablePlannerHtml, /Exact version or link/);
+  assert.match(printablePlannerHtml, /Setup location/);
+  assert.match(printablePlannerHtml, /Send to EVENTSible/);
 
   const dayOfSheet = await fetch(`${origin}/client/wedding?mode=print&view=day-of`, { redirect: "manual" });
   assert.equal(dayOfSheet.status, 200);

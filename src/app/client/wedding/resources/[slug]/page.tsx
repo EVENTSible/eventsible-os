@@ -18,7 +18,7 @@ export default async function WeddingResourcePage({ params }: PageProps) {
   return (
     <main className="wedding-resource-workspace">
       <nav className="wedding-resource-nav">
-        <Link href="/client/login"><WeddingHeroMark compact /></Link>
+        <Link href="/weddinghero"><WeddingHeroMark compact /></Link>
         <div><Link href="/client/wedding/resources">All resources</Link><Link href="/client/wedding?mode=guided">Open the planner</Link></div>
       </nav>
       <header className="wedding-resource-page-hero">

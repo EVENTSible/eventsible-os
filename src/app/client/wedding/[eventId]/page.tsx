@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ClientLogoutButton } from "@/components/client-logout-button";
 import { WeddingQuestionnaire } from "@/components/wedding-questionnaire";
 import { WeddingHeroMark } from "@/components/wedding-hero-mark";
+import { resolveWeddingHeroNotificationConfig } from "@/lib/notifications/wedding-hero-email.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export const metadata = { title: "Wedding Hero | EVENTSible", description: "Your EVENTSible interactive wedding companion." };
@@ -28,6 +29,7 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
   const requestedView = Array.isArray(query.view) ? query.view[0] : query.view;
   const initialMode = requestedMode === "form" || requestedMode === "print" ? requestedMode : "guided";
   const initialPrintView = requestedView === "day-of" ? "day-of" : "planner";
+  const { supportEmail } = resolveWeddingHeroNotificationConfig();
   const supabase = await createServerSupabase();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect(`/client/login`);
@@ -45,7 +47,7 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
 
   const assignmentResult = await supabase
     .from("os_planning_assignments")
-    .select("id,status,progress_percent,current_section_key")
+    .select("id,status,progress_percent,current_section_key,submitted_at,last_saved_at")
     .eq("id", assignmentId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -79,8 +81,11 @@ export default async function WeddingCompanionPage({ params, searchParams }: Pag
         initialProgress={assignmentResult.data.progress_percent ?? 0}
         initialSectionKey={assignmentResult.data.current_section_key}
         initialStatus={assignmentResult.data.status}
+        initialSubmittedAt={assignmentResult.data.submitted_at}
+        initialSavedAt={assignmentResult.data.last_saved_at}
         initialMode={initialMode}
         initialPrintView={initialPrintView}
+        supportEmail={supportEmail}
       />
     </div>
   );
