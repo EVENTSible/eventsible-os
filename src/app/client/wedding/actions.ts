@@ -143,13 +143,40 @@ export async function saveWeddingSectionAction(input: WeddingSaveInput): Promise
   }
 
   if (input.submit) {
-    await admin.from("os_activity_events").insert({
-      event_id: eventId,
-      actor_user_id: user.id,
-      event_type: "planning.submitted",
-      visibility: "staff",
-      payload: { summary: "Wedding Hero submitted for EVENTSible review.", source: WEDDING_COMPANION_VERSION },
-    });
+    const submissionActivity = {
+      summary: "Wedding Hero submitted for EVENTSible review.",
+      assignment_id: assignmentId,
+      submitted_at: savedAt,
+      source: WEDDING_COMPANION_VERSION,
+    };
+    if (assignmentResult.data.status === "submitted") {
+      await admin.from("os_activity_events").insert({
+        event_id: eventId,
+        actor_user_id: user.id,
+        event_type: "planning.submitted",
+        visibility: "staff",
+        payload: submissionActivity,
+      });
+    } else {
+      const triggeredActivity = await admin.from("os_activity_events").update({
+        actor_user_id: user.id,
+        visibility: "staff",
+        payload: submissionActivity,
+      })
+        .eq("event_id", eventId)
+        .eq("event_type", "planning.submitted")
+        .eq("payload->>assignment_id", assignmentId)
+        .select("id");
+      if (triggeredActivity.error || !triggeredActivity.data?.length) {
+        await admin.from("os_activity_events").insert({
+          event_id: eventId,
+          actor_user_id: user.id,
+          event_type: "planning.submitted",
+          visibility: "staff",
+          payload: submissionActivity,
+        });
+      }
+    }
 
     try {
       const eventResult = await admin

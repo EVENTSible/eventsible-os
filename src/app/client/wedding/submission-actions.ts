@@ -272,19 +272,43 @@ export async function submitPublicWeddingHeroPlanAction(input: PublicWeddingHero
     }).eq("id", assignment.id).eq("event_id", eventId);
     if (assignmentUpdate.error) return { ok: false, message: "Your answers saved, but the submission status could not be recorded." };
 
-    await admin.from("os_activity_events").insert({
-      event_id: eventId,
-      contact_id: contactId,
-      event_type: "planning.submitted",
-      visibility: "staff",
-      payload: {
-        summary: "Public Wedding Hero plan submitted for EVENTSible review.",
-        submission_id: request.submissionId,
-        progress_percent: request.progress,
-        mode: request.mode,
-        source: "wedding_hero_public_submission",
-      },
-    });
+    const submissionActivity = {
+      summary: "Public Wedding Hero plan submitted for EVENTSible review.",
+      assignment_id: assignment.id,
+      submission_id: request.submissionId,
+      submitted_at: submittedAt,
+      progress_percent: request.progress,
+      mode: request.mode,
+      source: "wedding_hero_public_submission",
+    };
+    if (assignment.status === "submitted") {
+      await admin.from("os_activity_events").insert({
+        event_id: eventId,
+        contact_id: contactId,
+        event_type: "planning.submitted",
+        visibility: "staff",
+        payload: submissionActivity,
+      });
+    } else {
+      const triggeredActivity = await admin.from("os_activity_events").update({
+        contact_id: contactId,
+        visibility: "staff",
+        payload: submissionActivity,
+      })
+        .eq("event_id", eventId)
+        .eq("event_type", "planning.submitted")
+        .eq("payload->>assignment_id", assignment.id)
+        .select("id");
+      if (triggeredActivity.error || !triggeredActivity.data?.length) {
+        await admin.from("os_activity_events").insert({
+          event_id: eventId,
+          contact_id: contactId,
+          event_type: "planning.submitted",
+          visibility: "staff",
+          payload: submissionActivity,
+        });
+      }
+    }
 
     const digest = buildWeddingSubmissionDigest(request.answers);
     let notificationWarning = "";
