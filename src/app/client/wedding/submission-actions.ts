@@ -185,9 +185,27 @@ export async function submitPublicWeddingHeroPlanAction(input: PublicWeddingHero
     } else {
       const eventResult = await admin
         .from("os_events")
-        .select("id,primary_contact_id")
+        .select("id,primary_contact_id,source,settings")
         .eq("id", eventId)
         .maybeSingle();
+      if (eventResult.error || !eventResult.data) {
+        return { ok: false, message: "Your wedding record could not be refreshed. Please try again." };
+      }
+      if (eventResult.data.source === "wedding_hero_public_submission") {
+        const eventSettings = eventResult.data.settings && typeof eventResult.data.settings === "object" && !Array.isArray(eventResult.data.settings)
+          ? eventResult.data.settings as Record<string, unknown>
+          : {};
+        const eventUpdate = await admin.from("os_events").update({
+          title: coupleNames ? `${coupleNames} wedding` : `${request.contactName} wedding`,
+          settings: {
+            ...eventSettings,
+            wedding_date_from_planner: eventDate || null,
+          },
+        }).eq("id", eventId);
+        if (eventUpdate.error) {
+          return { ok: false, message: "Your wedding date could not be refreshed. Please try again." };
+        }
+      }
       contactId = eventResult.data?.primary_contact_id ?? null;
       if (contactId) {
         const contactResult = await admin.from("os_contacts").select("source").eq("id", contactId).maybeSingle();

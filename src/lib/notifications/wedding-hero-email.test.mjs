@@ -204,6 +204,17 @@ test("public submission is explicit and local autosave remains notification-free
   assert.match(action, /wedding_date_from_planner: eventDate/);
 });
 
+test("public resubmission refreshes the date-only event setting without inventing a start time", () => {
+  const action = readFileSync(new URL("../../app/client/wedding/submission-actions.ts", import.meta.url), "utf8");
+  const existingEventStart = action.indexOf('.select("id,primary_contact_id,source,settings")');
+  const existingEventEnd = action.indexOf("const sectionResult", existingEventStart);
+  const existingEventFlow = action.slice(existingEventStart, existingEventEnd);
+
+  assert.ok(existingEventStart > -1);
+  assert.match(existingEventFlow, /wedding_date_from_planner: eventDate \|\| null/);
+  assert.doesNotMatch(existingEventFlow, /starts_at:/);
+});
+
 test("blank processional additional details stay compact in every planner mode", () => {
   const structuredFields = readFileSync(new URL("../../components/wedding-structured-fields.tsx", import.meta.url), "utf8");
   assert.match(structuredFields, /open=\{additionalFields\.some/);
