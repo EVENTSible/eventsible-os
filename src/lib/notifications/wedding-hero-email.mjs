@@ -18,6 +18,9 @@ function configuredEmail(value, fallback) {
 function siteUrl(env) {
   const configured = String(env.WEDDING_HERO_SITE_URL || "").trim().replace(/\/$/, "");
   if (configured) return configured;
+  if (env.VERCEL_ENV === "production") {
+    return String(env.NEXT_PUBLIC_SITE_URL || DEFAULT_WEDDING_HERO_SITE_URL).trim().replace(/\/$/, "");
+  }
   if (env.VERCEL_URL) return `https://${String(env.VERCEL_URL).replace(/\/$/, "")}`;
   return String(env.NEXT_PUBLIC_SITE_URL || DEFAULT_WEDDING_HERO_SITE_URL).trim().replace(/\/$/, "");
 }

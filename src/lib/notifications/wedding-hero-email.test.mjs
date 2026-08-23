@@ -92,6 +92,28 @@ test("missing Wedding Hero notification env uses a safe dry-run fallback", () =>
   assert.equal(sharedProviderWithoutRecipient.dryRun, true);
 });
 
+test("Wedding Hero notification links use canonical Production and deployment-specific Preview origins", () => {
+  const production = resolveWeddingHeroNotificationConfig({
+    VERCEL_ENV: "production",
+    VERCEL_URL: "eventsible-production-build.vercel.app",
+    NEXT_PUBLIC_SITE_URL: "https://eventsible.biz/",
+  });
+  assert.equal(production.siteUrl, "https://eventsible.biz");
+
+  const productionFallback = resolveWeddingHeroNotificationConfig({
+    VERCEL_ENV: "production",
+    VERCEL_URL: "eventsible-production-build.vercel.app",
+  });
+  assert.equal(productionFallback.siteUrl, "https://eventsible.biz");
+
+  const preview = resolveWeddingHeroNotificationConfig({
+    VERCEL_ENV: "preview",
+    VERCEL_URL: "eventsible-preview-build.vercel.app",
+    NEXT_PUBLIC_SITE_URL: "https://eventsible.biz",
+  });
+  assert.equal(preview.siteUrl, "https://eventsible-preview-build.vercel.app");
+});
+
 test("owner callback email includes operational context and reply information", () => {
   const config = resolveWeddingHeroNotificationConfig({
     WEDDING_HERO_NOTIFY_EMAIL: "owner@example.com",
@@ -202,6 +224,20 @@ test("public submission is explicit and local autosave remains notification-free
   assert.match(action, /status: "submitted"/);
   assert.match(action, /starts_at: null/);
   assert.match(action, /wedding_date_from_planner: eventDate/);
+});
+
+test("first Wedding Hero submissions enrich the trigger activity instead of inserting a duplicate", () => {
+  const publicAction = readFileSync(new URL("../../app/client/wedding/submission-actions.ts", import.meta.url), "utf8");
+  const privateAction = readFileSync(new URL("../../app/client/wedding/actions.ts", import.meta.url), "utf8");
+
+  for (const action of [publicAction, privateAction]) {
+    assert.match(action, /const triggeredActivity = await admin\.from\("os_activity_events"\)\.update/);
+    assert.match(action, /\.eq\("event_type", "planning\.submitted"\)/);
+    assert.match(action, /\.eq\("payload->>assignment_id", assignment/);
+    assert.match(action, /if \(triggeredActivity\.error \|\| !triggeredActivity\.data\?\.length\)/);
+  }
+  assert.match(publicAction, /if \(assignment\.status === "submitted"\)/);
+  assert.match(privateAction, /if \(assignmentResult\.data\.status === "submitted"\)/);
 });
 
 test("public resubmission refreshes the date-only event setting without inventing a start time", () => {
