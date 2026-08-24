@@ -3,17 +3,20 @@
 - Status: CANONICAL
 - Owner: EVENTSible
 - Canonical source: EVENTSible OS repository, `docs/`
-- Last verified: 2026-08-14
+- Last verified: 2026-08-24
 - Applies to: EVENTSible ecosystem repositories and app lanes
 - Supersedes: scattered cross-system plans in individual app repositories when they conflict with this hub
-- Related documents: `docs/ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md`, `docs/ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md`, `docs/EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md`
+- Related documents: `docs/ecosystem/EVENTSIBLE_FULL_SCOPE_REFRESH_2026-08-24.md`, `docs/ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md`, `docs/ecosystem/EVENTSIBLE_PROJECT_AND_REPOSITORY_INDEX.md`, `docs/EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md`
 
 This folder is the source of truth for cross-system EVENTSible documentation. App repositories may keep app-specific setup, status, and implementation docs, but ecosystem ownership, domain routing, roadmap order, and system-of-record decisions belong here.
 
 ## Current Production Release Evidence
 
 - Status: LIVE / PRODUCTION VERIFIED
-- Verified at: 2026-08-14
+- Verified at: 2026-08-24
+- `eventsible.biz/weddinghero`: LIVE / PRODUCTION VERIFIED
+- Wedding Hero Production merge: `e79deb6b03d296b367fc8b92f7f413a0c5b2dea0`
+- Wedding Hero Production deployment: `dpl_6p9EDgGL5bozMtqmACeNoyt3CGTV`
 - `eventsible.app`: LIVE / PRODUCTION VERIFIED with healthy SSL
 - ECC / VINCE comic experience: LIVE / PRODUCTION VERIFIED
 - ECC final `master` SHA: `1d31fb1168df08bb0a775ba54b699953f0f84cad`
@@ -37,6 +40,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 
 | Area | Canonical document |
 | --- | --- |
+| Full scope refresh (2026-08-24) | [EVENTSIBLE_FULL_SCOPE_REFRESH_2026-08-24.md](ecosystem/EVENTSIBLE_FULL_SCOPE_REFRESH_2026-08-24.md) |
 | Ecosystem master plan | [EVENTSIBLE_ECOSYSTEM_MASTER_PLAN.md](ecosystem/EVENTSIBLE_ECOSYSTEM_MASTER_PLAN.md) |
 | Current state | [EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md](ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md) |
 | Domain and app index | [EVENTSIBLE_DOMAIN_AND_APP_INDEX.md](ecosystem/EVENTSIBLE_DOMAIN_AND_APP_INDEX.md) |
