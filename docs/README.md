@@ -41,6 +41,11 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Area | Canonical document |
 | --- | --- |
 | Full scope refresh (2026-08-24) | [EVENTSIBLE_FULL_SCOPE_REFRESH_2026-08-24.md](ecosystem/EVENTSIBLE_FULL_SCOPE_REFRESH_2026-08-24.md) |
+| ChatGPT Project replacement map (2026-08-24) | [EVENTSIBLE_PROJECT_RESOURCE_REPLACEMENT_MAP_2026-08-24.md](project-resources/EVENTSIBLE_PROJECT_RESOURCE_REPLACEMENT_MAP_2026-08-24.md) |
+| Export-ready Project context | [EVENTSIBLE_PROJECT_CONTEXT_2026-08-24.md](project-resources/EVENTSIBLE_PROJECT_CONTEXT_2026-08-24.md) |
+| Export-ready Chat Index | [EVENTSIBLE_CHAT_INDEX_2026-08-24.md](project-resources/EVENTSIBLE_CHAT_INDEX_2026-08-24.md) |
+| Export-ready bootstrap templates | [EVENTSIBLE_CHAT_BOOTSTRAP_TEMPLATES_2026-08-24.md](project-resources/EVENTSIBLE_CHAT_BOOTSTRAP_TEMPLATES_2026-08-24.md) |
+| Export-ready Project custom instructions | [EVENTSIBLE_PROJECT_CUSTOM_INSTRUCTIONS_2026-08-24.md](project-resources/EVENTSIBLE_PROJECT_CUSTOM_INSTRUCTIONS_2026-08-24.md) |
 | Ecosystem master plan | [EVENTSIBLE_ECOSYSTEM_MASTER_PLAN.md](ecosystem/EVENTSIBLE_ECOSYSTEM_MASTER_PLAN.md) |
 | Current state | [EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md](ecosystem/EVENTSIBLE_ECOSYSTEM_CURRENT_STATE.md) |
 | Domain and app index | [EVENTSIBLE_DOMAIN_AND_APP_INDEX.md](ecosystem/EVENTSIBLE_DOMAIN_AND_APP_INDEX.md) |
