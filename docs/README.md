@@ -77,6 +77,16 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | Discrepancy report | [EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md](EVENTSIBLE_DOCUMENTATION_DISCREPANCIES.md) |
 | Documentation inventory | [EVENTSIBLE_DOCUMENTATION_INVENTORY.md](ecosystem/EVENTSIBLE_DOCUMENTATION_INVENTORY.md) |
 | App-lane summaries | [EVENTSIBLE_APP_LANE_SUMMARIES.md](apps/EVENTSIBLE_APP_LANE_SUMMARIES.md) |
+| Supabase reliability standard | [EVENTSIBLE_SUPABASE_RELIABILITY_STANDARD.md](operations/EVENTSIBLE_SUPABASE_RELIABILITY_STANDARD.md) |
+| Supabase ecosystem inventory (2026-08-30) | [EVENTSIBLE_SUPABASE_ECOSYSTEM_INVENTORY_2026-08-30.md](operations/EVENTSIBLE_SUPABASE_ECOSYSTEM_INVENTORY_2026-08-30.md) |
+| EVENTSible OS Supabase keep-alive runbook | [EVENTSIBLE_OS_SUPABASE_KEEPALIVE.md](operations/EVENTSIBLE_OS_SUPABASE_KEEPALIVE.md) |
+| ECC/VINCE reliability implementation prompt | [ECC_VINCE_SUPABASE_RELIABILITY_IMPLEMENTATION_PROMPT.md](operations/ECC_VINCE_SUPABASE_RELIABILITY_IMPLEMENTATION_PROMPT.md) |
+
+## Mandatory Supabase Production-Readiness Gate
+
+Every current or future build that uses hosted Supabase must complete `operations/EVENTSIBLE_SUPABASE_RELIABILITY_STANDARD.md` before its Supabase reliability can be marked Production Ready. The record must identify project ownership and plan, determine whether pause prevention is required, document the secure schedule and read-only activity, verify failure visibility, record the project in the ecosystem inventory, and define retirement.
+
+A Preview or manual request is not scheduled Production proof. The mechanism remains `IMPLEMENTED / NOT ACTIVE` until at least one scheduled Production execution is verified in provider logs with corresponding genuine Supabase activity.
 
 ## Where Future Updates Belong
 
