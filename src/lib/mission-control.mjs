@@ -39,6 +39,70 @@ export function isBookedStatus(status) {
   return BOOKED_STATUSES.includes(String(status ?? ""));
 }
 
+function meaningful(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return typeof value === "string" ? value.trim() || null : value;
+}
+
+function objectValue(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function firstValue(...values) {
+  return values.map(meaningful).find((value) => value !== null) ?? null;
+}
+
+/**
+ * Builds the staff-facing lead view from canonical OS records and the normalized
+ * Builder contract. Raw payloads are deliberately excluded.
+ */
+export function buildLeadSummary({ lead = {}, event = {}, contact = {}, submission = {}, quote = {}, quoteItems = /** @type {Array<Record<string, unknown>>} */ ([]) } = {}) {
+  const normalized = objectValue(submission.normalized_payload);
+  const normalizedContact = objectValue(normalized.contact);
+  const normalizedEvent = objectValue(normalized.event);
+  const venue = objectValue(normalized.venue);
+  const pricing = objectValue(normalized.pricing);
+  const recommendedPackage = objectValue(normalized.recommended_package);
+  const services = quoteItems.length ? quoteItems : (Array.isArray(normalized.selected_services) ? normalized.selected_services : []);
+  const serviceNames = services
+    .map((service) => firstValue(service?.service_name, service?.name, service?.label, service?.service_code, service?.code))
+    .filter(Boolean);
+  const location = [
+    firstValue(event.venue_name, venue.name),
+    [firstValue(event.venue_city, venue.city), firstValue(event.venue_state, venue.state)].filter(Boolean).join(", ") || null,
+  ].filter(Boolean).join(" · ") || null;
+
+  return {
+    clientName: firstValue(contact.display_name, normalizedContact.name, normalized.client_name),
+    email: firstValue(contact.primary_email, normalizedContact.email),
+    phone: firstValue(contact.primary_phone, normalizedContact.phone),
+    preferredContact: firstValue(contact.preferred_channel, normalizedContact.preferred_contact_method, normalized.preferred_contact_method),
+    eventType: firstValue(event.event_type, normalized.event_type, normalizedEvent.type),
+    eventDate: firstValue(event.starts_at, normalized.event_date, normalized.date, normalizedEvent.date),
+    timeframe: firstValue(normalized.timeframe, normalized.start_time, normalizedEvent.start_time, normalized.service_length ? `${normalized.service_length} hours` : null),
+    location,
+    guestCount: firstValue(event.guest_count, normalized.guest_count, normalizedEvent.guest_count),
+    services: serviceNames,
+    packageName: firstValue(recommendedPackage.name, recommendedPackage.tier, normalized.package_name),
+    subtotal: firstValue(quote.subtotal, pricing.subtotal),
+    savings: firstValue(quote.discount_amount, pricing.package_savings),
+    travel: firstValue(quote.travel_amount, pricing.travel_fee),
+    total: firstValue(quote.total_amount, pricing.estimated_total, lead.estimated_value),
+    priorities: firstValue(normalized.planning_priorities, normalized.priorities, normalized.planning_stage),
+    notes: firstValue(lead.inquiry_summary, normalized.notes, normalized.additional_notes),
+    leadStatus: firstValue(lead.status, "new"),
+    quoteStatus: firstValue(quote.status),
+  };
+}
+
+export function nextLeadAction(summary = {}) {
+  if (!summary.quoteStatus) return "Review lead and prepare a quote";
+  if (summary.quoteStatus === "draft") return "Review and approve the draft quote";
+  if (["ready", "approved"].includes(String(summary.quoteStatus))) return "Convert approved quote to a gig";
+  if (["accepted", "converted"].includes(String(summary.quoteStatus)) || summary.leadStatus === "won") return "Open the booked Gig Workspace";
+  return "Review lead status and follow-up";
+}
+
 /**
  * @param {Array<Record<string, unknown>>} quoteVersions
  * @returns {Map<string, Record<string, unknown>>}

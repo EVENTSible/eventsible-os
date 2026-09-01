@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { activateWeddingCompanionAction, approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
 import { LogoutButton } from "@/components/logout-button";
 import { Wordmark } from "@/components/wordmark";
-import { latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus } from "@/lib/mission-control.mjs";
+import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, nextLeadAction } from "@/lib/mission-control.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { EventDashboardRow, isStaffRole } from "@/lib/types";
 
@@ -41,14 +41,6 @@ function idValue(row: AnyRow | null | undefined, key: string) {
 
 function eventTitle(event: EventDashboardRow | AnyRow | undefined, fallback = "EVENTSible event") {
   return stringValue(event?.title) ?? fallback;
-}
-
-function eventMeta(event: EventDashboardRow | AnyRow | undefined) {
-  return [
-    stringValue(event?.event_type) ?? "Event type not set",
-    formatDate(event?.starts_at),
-    stringValue(event?.venue_name) ?? "Venue not entered",
-  ].join(" / ");
 }
 
 async function optionalRows<T extends AnyRow>(
@@ -167,7 +159,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const events = (dashboardResult.data ?? []) as EventDashboardRow[];
   const dashboardWarning = dashboardResult.error ? `Dashboard: ${dashboardResult.error.message}` : null;
 
-  const [leadResult, quoteResult, itemResult, bookingResult] = await Promise.all([
+  const [leadResult, quoteResult, itemResult, bookingResult, contactResult, submissionResult] = await Promise.all([
     optionalRows<AnyRow>(
       supabase
         .from("os_leads")
@@ -200,9 +192,17 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         .limit(40),
       "Bookings",
     ),
+    optionalRows<AnyRow>(
+      supabase.from("os_contacts").select("id,display_name,primary_email,primary_phone,preferred_channel,notes").limit(100),
+      "Contacts",
+    ),
+    optionalRows<AnyRow>(
+      supabase.from("os_builder_submissions").select("id,contact_id,event_id,normalized_payload,submitted_from,submitted_at").order("submitted_at", { ascending: false }).limit(60),
+      "Builder submissions",
+    ),
   ]);
 
-  const warnings = [dashboardWarning, leadResult.warning, quoteResult.warning, itemResult.warning, bookingResult.warning].filter(Boolean);
+  const warnings = [dashboardWarning, leadResult.warning, quoteResult.warning, itemResult.warning, bookingResult.warning, contactResult.warning, submissionResult.warning].filter(Boolean);
   const eventsById = new Map(events.map((event) => [event.event_id, event]));
   const latestQuotes = latestQuoteByLead(quoteResult.rows);
   const quoteItemsByQuote = new Map<string, AnyRow[]>();
@@ -213,6 +213,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const bookingsByEvent = new Map(bookingResult.rows.map((booking) => [idValue(booking, "event_id"), booking]));
+  const contactsById = new Map(contactResult.rows.map((contact) => [idValue(contact, "id"), contact]));
+  const submissionsById = new Map(submissionResult.rows.map((submission) => [idValue(submission, "id"), submission]));
   const activeLeads = leadResult.rows.filter((lead) => isActiveLeadStatus(lead.status));
   const fallbackLeads = events
     .filter((event) => isActiveLeadStatus(event.lead_status))
@@ -286,7 +288,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <section className="mission-grid">
           <article className="panel lead-panel" id="lead-review">
             <div className="panel-heading">
-              <div><span className="eyebrow">Builder lead review</span><h2>New and active leads</h2></div>
+              <div><span className="eyebrow">Lead review</span><h2>Who they are, what they want, and what happens next</h2></div>
               <span className="status-dot">OS-owned</span>
             </div>
             <div className="lead-list">
@@ -297,13 +299,25 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 const quote = leadId ? latestQuotes.get(leadId) : undefined;
                 const quoteId = idValue(quote, "id");
                 const quoteItems = quoteItemsFor(quoteItemsByQuote, quoteId);
+                const contact = contactsById.get(idValue(lead, "contact_id"));
+                const submission = submissionsById.get(idValue(lead, "builder_submission_id"));
+                const summary = buildLeadSummary({ lead, event, contact, submission, quote, quoteItems });
+                const nextAction = nextLeadAction(summary);
                 return (
                   <article className="mission-card" key={String(lead.id ?? eventId)}>
                     <div className="mission-card-main">
-                      <span className="eyebrow">{statusLabel(lead.source ?? "eventsible_os")}</span>
-                      <h3>{eventTitle(event, String(lead.inquiry_summary ?? "Builder inquiry"))}</h3>
-                      <p>{eventMeta(event)} · {statusLabel(lead.status)}</p>
-                      <p>{String(lead.inquiry_summary ?? "Review contact details, event fit, and package notes before approval.")}</p>
+                      <div className="lead-card-heading">
+                        <div><span className="eyebrow">{statusLabel(lead.source ?? "eventsible_os")}</span><h3>{summary.clientName ?? "Name not provided"}</h3></div>
+                        <span className={`status-pill status-${String(summary.leadStatus ?? "new")}`}>{statusLabel(summary.leadStatus)}</span>
+                      </div>
+                      <p className="lead-event-title"><b>{eventTitle(event, summary.eventType ?? "Event inquiry")}</b> · {summary.eventDate ? formatDate(summary.eventDate) : "Date not provided"}</p>
+                      <dl className="lead-facts">
+                        <div><dt>Contact</dt><dd>{summary.email ?? "Email not provided"}<br />{summary.phone ?? "Phone not provided"}<small>{summary.preferredContact ? `Prefers ${statusLabel(summary.preferredContact)}` : "Contact preference not provided"}</small></dd></div>
+                        <div><dt>Event</dt><dd>{summary.eventType ?? "Event type not provided"}<br />{summary.location ?? "Venue/location not provided"}<small>{summary.guestCount ? `${summary.guestCount} guests` : "Guest count not provided"}{summary.timeframe ? ` · ${summary.timeframe}` : ""}</small></dd></div>
+                        <div><dt>Services</dt><dd>{summary.services.length ? summary.services.join(", ") : "Services not provided"}<small>{summary.packageName ? `Recommended: ${statusLabel(summary.packageName)}` : "Package not provided"}</small></dd></div>
+                        <div><dt>Planning notes</dt><dd>{String(summary.notes ?? summary.priorities ?? "No planning notes provided")}</dd></div>
+                      </dl>
+                      <div className="next-action"><span>Next required action</span><b>{nextAction}</b></div>
                       <LeadStatusForm lead={lead} eventId={eventId} />
                     </div>
                     <div className="mission-card-side">
@@ -393,6 +407,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <div className="workspace-status">
                     <span className="status-pill">{statusLabel(booking?.status ?? event.booking_status ?? event.event_status)}</span>
                     <small>Quote total: {formatMoney(booking?.total_amount)}</small>
+                    {event.event_id ? <a className="primary-button compact-button" href={`/admin/gigs/${event.event_id}`}>Open Gig Workspace</a> : null}
                     {hasWeddingCompanion ? (
                       <a className="secondary-button compact-button" href={`/admin/wedding/${event.event_id}`}>Review Wedding Hero</a>
                     ) : isWedding && event.event_id ? (

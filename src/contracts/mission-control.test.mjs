@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   bookingServicesFromQuoteItems,
+  buildLeadSummary,
   buildBookingPayload,
   formatMoney,
   isActiveLeadStatus,
   isBookedStatus,
   latestQuoteByLead,
+  nextLeadAction,
 } from "../lib/mission-control.mjs";
 
 test("Mission Control status helpers match lead and booking workflow states", () => {
@@ -74,4 +76,28 @@ test("Convert to Gig services are seeded only from quote item services", () => {
 test("Mission Control money formatting avoids fake exact totals for missing values", () => {
   assert.equal(formatMoney(null), "Custom quote");
   assert.equal(formatMoney(1275), "$1,275");
+});
+
+test("Mission Control builds a human lead summary without exposing raw payload data", () => {
+  const summary = buildLeadSummary({
+    lead: { status: "new", inquiry_summary: "Needs a lively dance floor" },
+    contact: { display_name: "Taylor Example", primary_email: "taylor@example.invalid" },
+    event: { event_type: "Wedding", guest_count: 140, venue_city: "South Bend", venue_state: "Indiana" },
+    submission: {
+      raw_payload: { secret: "must never surface" },
+      normalized_payload: {
+        contact: { preferred_contact_method: "text" },
+        recommended_package: { tier: "premium" },
+        selected_services: [{ name: "DJ / MC" }, { name: "Photo Booth" }],
+        pricing: { estimated_total: 1800 },
+      },
+    },
+  });
+
+  assert.equal(summary.clientName, "Taylor Example");
+  assert.equal(summary.preferredContact, "text");
+  assert.deepEqual(summary.services, ["DJ / MC", "Photo Booth"]);
+  assert.equal(summary.total, 1800);
+  assert.equal(JSON.stringify(summary).includes("must never surface"), false);
+  assert.equal(nextLeadAction(summary), "Review lead and prepare a quote");
 });
