@@ -19,8 +19,15 @@ import {
   operationalTimingRpcError,
   OPERATIONAL_TIMING_FACT_KEY_LIST,
 } from "@/lib/operational-timing.mjs";
+import {
+  buildEventDayLogisticsMutation,
+  eventDayLogisticsHasChanges,
+  eventDayLogisticsRpcArgs,
+  eventDayLogisticsRpcError,
+} from "@/lib/event-day-logistics.mjs";
 import { extractOperationalDetails } from "@/lib/gig-readiness.mjs";
 import type { OperationalTimingActionState } from "@/components/operational-timing-editor";
+import type { EventDayLogisticsActionState } from "@/components/event-day-logistics-editor";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -232,6 +239,45 @@ export async function updateOperationalTimingAction(
   if (rpcResult.error) return { status: "error", message: operationalTimingRpcError(rpcResult.error) };
   if (rpcResult.data?.status === "noop") return { status: "success", message: "No operational timing changes were needed." };
   if (rpcResult.data?.status !== "updated") return { status: "error", message: "Operational times could not be verified. Nothing was changed." };
+
+  revalidatePath(`/admin/gigs/${eventId}`);
+  return { status: "success", message: `${mutation.changedLabels.join(", ")} updated.` };
+}
+
+export async function updateEventDayLogisticsAction(
+  _previousState: EventDayLogisticsActionState,
+  formData: FormData,
+): Promise<EventDayLogisticsActionState> {
+  const eventId = value(formData, "event_id");
+  if (!eventId) return { status: "error", message: "The event was missing. No logistics details were changed." };
+
+  const submitted = {
+    staff_call_time: value(formData, "staff_call_time"),
+    setup_start: value(formData, "setup_start"),
+    room_area: value(formData, "room_area"),
+    load_in_details: value(formData, "load_in_details"),
+  };
+  const { supabase } = await requireStaffSupabase();
+  const eventResult = await supabase.from("os_events").select("id,settings").eq("id", eventId).maybeSingle();
+
+  if (eventResult.error || !eventResult.data) {
+    return { status: "error", message: "The canonical event could not be loaded. No logistics details were changed." };
+  }
+
+  const mutation = buildEventDayLogisticsMutation({ submitted, currentSettings: eventResult.data.settings ?? {} });
+  if (Object.keys(mutation.errors).length) {
+    return { status: "error", message: "Check the highlighted logistics fields. Nothing was saved.", errors: mutation.errors };
+  }
+  if (!eventDayLogisticsHasChanges(mutation.args)) {
+    return { status: "success", message: "No event-day logistics changes were needed." };
+  }
+
+  const rpcResult = await supabase.rpc("os_update_event_day_logistics", eventDayLogisticsRpcArgs(eventId, mutation.args));
+  if (rpcResult.error) return { status: "error", message: eventDayLogisticsRpcError(rpcResult.error) };
+  if (rpcResult.data?.status === "noop") return { status: "success", message: "No event-day logistics changes were needed." };
+  if (rpcResult.data?.status !== "updated") {
+    return { status: "error", message: "Event-day logistics could not be verified. Nothing was changed." };
+  }
 
   revalidatePath(`/admin/gigs/${eventId}`);
   return { status: "success", message: `${mutation.changedLabels.join(", ")} updated.` };
