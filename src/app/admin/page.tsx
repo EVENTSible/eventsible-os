@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { activateWeddingCompanionAction, approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
 import { LogoutButton } from "@/components/logout-button";
 import { Wordmark } from "@/components/wordmark";
-import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, MISSION_CONTROL_SELECTS, nextLeadAction } from "@/lib/mission-control.mjs";
+import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, MISSION_CONTROL_SELECTS, nextLeadAction, QUOTE_APPROVAL_STATUS } from "@/lib/mission-control.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { EventDashboardRow, isStaffRole } from "@/lib/types";
 
@@ -280,7 +280,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <section className="metrics" aria-label="Business overview">
           <article><span>Active leads</span><b>{leadRows.length}</b><small>Builder and direct inquiries</small></article>
-          <article><span>Quotes to review</span><b>{quoteResult.rows.filter((quote) => ["draft", "ready"].includes(String(quote.status ?? ""))).length}</b><small>Draft and approved quotes</small></article>
+          <article><span>Quotes to review</span><b>{quoteResult.rows.filter((quote) => ["draft", QUOTE_APPROVAL_STATUS].includes(String(quote.status ?? ""))).length}</b><small>Draft and approved quotes</small></article>
           <article><span>Booked gigs</span><b>{bookedRows.length}</b><small>Confirmed or workspace-ready</small></article>
           <article><span>Needs attention</span><b>{attention.length}</b><small>Contracts, deposits, or follow-up</small></article>
         </section>
@@ -339,9 +339,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <aside className="stack">
             <article className="panel" id="quote-review">
               <div className="panel-heading"><div><span className="eyebrow">Quote approval</span><h2>Approval lane</h2></div></div>
-              <p className="panel-note">Approval marks the quote ready and keeps final booking authority inside EVENTSible OS. Convert to Gig creates or updates the OS booking and service workspace.</p>
+              <p className="panel-note">Approval advances the quote through the canonical sent state and keeps final booking authority inside EVENTSible OS. Convert to Gig creates or updates the OS booking and service workspace.</p>
               <div className="mini-stat"><span>Draft quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "draft").length}</b></div>
-              <div className="mini-stat"><span>Ready quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "ready").length}</b></div>
+              <div className="mini-stat"><span>Approved quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === QUOTE_APPROVAL_STATUS).length}</b></div>
               <div className="mini-stat"><span>Accepted quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "accepted").length}</b></div>
             </article>
 

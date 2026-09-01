@@ -4,6 +4,7 @@ import {
   bookingServicesFromQuoteItems,
   buildLeadSummary,
   buildBookingPayload,
+  CONVERSION_QUOTE_SELECT,
   formatMoney,
   humanizeInquirySummary,
   isActiveLeadStatus,
@@ -11,6 +12,7 @@ import {
   latestQuoteByLead,
   MISSION_CONTROL_SELECTS,
   nextLeadAction,
+  QUOTE_APPROVAL_STATUS,
 } from "../lib/mission-control.mjs";
 
 test("Mission Control queries follow verified canonical relationship columns", () => {
@@ -90,6 +92,14 @@ test("Mission Control money formatting avoids fake exact totals for missing valu
   assert.equal(formatMoney(1275), "$1,275");
 });
 
+test("quote approval and conversion use the verified Production-shaped quote contract", () => {
+  assert.equal(QUOTE_APPROVAL_STATUS, "sent");
+  assert.match(CONVERSION_QUOTE_SELECT, /\blead_id\b/);
+  assert.match(CONVERSION_QUOTE_SELECT, /\bevent_id\b/);
+  assert.match(CONVERSION_QUOTE_SELECT, /\bsnapshot\b/);
+  assert.doesNotMatch(CONVERSION_QUOTE_SELECT, /\bmetadata\b|\bbuilder_submission_id\b/);
+});
+
 test("Mission Control builds a human lead summary without exposing raw payload data", () => {
   const summary = buildLeadSummary({
     lead: { status: "new", inquiry_summary: "Needs a lively dance floor" },
@@ -135,7 +145,7 @@ test("Mission Control preserves an ordinary human inquiry note", () => {
 });
 
 test("note cleanup does not change quote actions or conversion lineage", () => {
-  const summary = buildLeadSummary({ lead: { status: "quoted", inquiry_summary: "[CRM] {}" }, quote: { status: "approved" } });
+  const summary = buildLeadSummary({ lead: { status: "quoted", inquiry_summary: "[CRM] {}" }, quote: { status: QUOTE_APPROVAL_STATUS } });
   const payload = buildBookingPayload({ quote: { id: "quote-1", lead_id: "lead-1", event_id: "event-1", total_amount: 1000 } });
   assert.equal(nextLeadAction(summary), "Convert approved quote to a gig");
   assert.equal(payload.event_id, "event-1");

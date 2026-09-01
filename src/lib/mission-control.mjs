@@ -1,5 +1,7 @@
 export const ACTIVE_LEAD_STATUSES = ["new", "qualifying", "quoted", "follow_up"];
 export const BOOKED_STATUSES = ["pending", "pending_contract", "pending_deposit", "confirmed", "completed"];
+export const QUOTE_APPROVAL_STATUS = "sent";
+export const CONVERSION_QUOTE_SELECT = "id,lead_id,event_id,status,currency,total_amount,deposit_amount,snapshot";
 export const MISSION_CONTROL_SELECTS = Object.freeze({
   leads: "id,event_id,contact_id,builder_submission_id,status,source,inquiry_summary,estimated_value,next_follow_up_at,created_at,metadata",
   quoteVersions: "id,lead_id,event_id,version_number,status,currency,subtotal,discount_amount,travel_amount,total_amount,deposit_amount,created_at,snapshot",
@@ -138,7 +140,7 @@ export function buildLeadSummary({ lead = {}, event = {}, contact = {}, submissi
 export function nextLeadAction(summary = {}) {
   if (!summary.quoteStatus) return "Review lead and prepare a quote";
   if (summary.quoteStatus === "draft") return "Review and approve the draft quote";
-  if (["ready", "approved"].includes(String(summary.quoteStatus))) return "Convert approved quote to a gig";
+  if ([QUOTE_APPROVAL_STATUS, "ready", "approved"].includes(String(summary.quoteStatus))) return "Convert approved quote to a gig";
   if (["accepted", "converted"].includes(String(summary.quoteStatus)) || summary.leadStatus === "won") return "Open the booked Gig Workspace";
   return "Review lead status and follow-up";
 }
