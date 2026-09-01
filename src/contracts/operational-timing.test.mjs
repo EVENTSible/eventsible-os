@@ -8,6 +8,8 @@ import {
   formatLoadInWindow,
   operationalTimingFacts,
   operationalTimingFormValues,
+  operationalTimingRpcArgs,
+  operationalTimingRpcError,
   OPERATIONAL_TIMING_FACT_KEYS,
 } from "../lib/operational-timing.mjs";
 
@@ -87,6 +89,29 @@ test("no-op save creates no fact rows or activity-worthy changes", () => {
   assert.equal(result.changedLabels.length, 0);
 });
 
+test("RPC arguments expose only the five fixed operational timing parameters", () => {
+  const args = operationalTimingRpcArgs(EVENT_ID, [
+    { fact_key: OPERATIONAL_TIMING_FACT_KEYS.arrivalTime, value: "14:30" },
+    { fact_key: OPERATIONAL_TIMING_FACT_KEYS.loadInWindow, value: { start: "13:45", end: null } },
+  ]);
+  assert.deepEqual(args, {
+    p_event_id: EVENT_ID,
+    p_arrival_time: "14:30",
+    p_load_in_window: { start: "13:45", end: null },
+    p_setup_complete_by: null,
+    p_breakdown_start: null,
+    p_must_be_out: null,
+  });
+  assert.throws(() => operationalTimingRpcArgs(EVENT_ID, [{ fact_key: "event.private_payload", value: "no" }]), /unsupported/i);
+});
+
+test("RPC errors become controlled staff-facing action messages", () => {
+  assert.match(operationalTimingRpcError({ code: "42501" }), /not authorized/i);
+  assert.match(operationalTimingRpcError({ code: "22023" }), /nothing was saved/i);
+  assert.match(operationalTimingRpcError({ code: "P0002" }), /could not be found/i);
+  assert.match(operationalTimingRpcError({ code: "XX000" }), /nothing was changed/i);
+});
+
 test("operational facts refresh the existing readiness check without changing its model", () => {
   const operational = extractOperationalDetails({ facts: [{ fact_key: OPERATIONAL_TIMING_FACT_KEYS.arrivalTime, value: "14:30" }] });
   const readiness = buildGigReadiness({ operational });
@@ -99,7 +124,25 @@ test("server action preserves staff authorization and canonical event targeting"
   const action = source.slice(source.indexOf("export async function updateOperationalTimingAction"), source.indexOf("export async function activateWeddingCompanionAction"));
   assert.match(action, /requireStaffSupabase\(\)/);
   assert.match(action, /from\("os_events"\).*eq\("id", eventId\)/s);
-  assert.match(action, /from\("os_event_facts"\)\.upsert\(mutation\.rows, \{ onConflict: "event_id,fact_key" \}\)/);
+  assert.match(action, /supabase\.rpc\("os_update_event_operational_timing", operationalTimingRpcArgs\(eventId, mutation\.rows\)\)/);
+  assert.match(action, /operationalTimingRpcError\(rpcResult\.error\)/);
   assert.match(action, /revalidatePath\(`\/admin\/gigs\/\$\{eventId\}`\)/);
-  assert.doesNotMatch(action, /\.delete\(|\.update\(\{\s*settings|os_bookings.*\.update/s);
+  assert.doesNotMatch(action, /createAdminSupabase|SUPABASE_SERVICE_ROLE_KEY|from\("os_event_facts"\)\.upsert|recordActivity\(/);
+});
+
+test("migration defines one narrow transactional staff RPC without general activity RLS", async () => {
+  const sql = await readFile(new URL("../../supabase/migrations/20260901173856_event_operational_timing_rpc.sql", import.meta.url), "utf8");
+  assert.match(sql, /create or replace function public\.os_update_event_operational_timing\(/i);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /set search_path = ''/i);
+  assert.match(sql, /auth\.uid\(\)/i);
+  assert.match(sql, /public\.os_is_staff\(\)/i);
+  assert.match(sql, /public\.os_has_event_access\(p_event_id\)/i);
+  assert.match(sql, /for update/i);
+  assert.match(sql, /event\.operational_timing_updated/i);
+  assert.match(sql, /visibility[\s\S]*'staff'/i);
+  assert.match(sql, /revoke all on function[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function[\s\S]*to authenticated/i);
+  assert.doesNotMatch(sql, /create policy|alter policy|grant insert|service_role/i);
+  assert.doesNotMatch(sql, /\b(delete|truncate|drop table|alter table)\b/i);
 });

@@ -133,3 +133,37 @@ export function buildOperationalTimingMutation({ eventId, userId, submitted = {}
 
   return { errors, rows: Object.keys(errors).length ? [] : rows, changedLabels: Object.keys(errors).length ? [] : changedLabels };
 }
+
+export function operationalTimingRpcArgs(eventId, rows = []) {
+  const args = {
+    p_event_id: eventId,
+    p_arrival_time: null,
+    p_load_in_window: null,
+    p_setup_complete_by: null,
+    p_breakdown_start: null,
+    p_must_be_out: null,
+  };
+
+  const argumentByFactKey = {
+    [OPERATIONAL_TIMING_FACT_KEYS.arrivalTime]: "p_arrival_time",
+    [OPERATIONAL_TIMING_FACT_KEYS.loadInWindow]: "p_load_in_window",
+    [OPERATIONAL_TIMING_FACT_KEYS.setupComplete]: "p_setup_complete_by",
+    [OPERATIONAL_TIMING_FACT_KEYS.breakdownStart]: "p_breakdown_start",
+    [OPERATIONAL_TIMING_FACT_KEYS.mustBeOut]: "p_must_be_out",
+  };
+
+  for (const row of rows) {
+    const argument = argumentByFactKey[row?.fact_key];
+    if (!argument) throw new Error("Unsupported operational timing fact key.");
+    args[argument] = row.value;
+  }
+  return args;
+}
+
+export function operationalTimingRpcError(error) {
+  const code = String(error?.code ?? "");
+  if (code === "28000" || code === "42501") return "Your staff session is not authorized to update this event.";
+  if (code === "22023") return "Check the timing values. Nothing was saved.";
+  if (code === "P0002") return "The canonical event could not be found. Nothing was saved.";
+  return "Operational times could not be saved. Nothing was changed.";
+}

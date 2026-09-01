@@ -13,7 +13,12 @@ import {
   CONVERSION_QUOTE_SELECT,
   QUOTE_APPROVAL_STATUS,
 } from "@/lib/mission-control.mjs";
-import { buildOperationalTimingMutation, OPERATIONAL_TIMING_FACT_KEY_LIST } from "@/lib/operational-timing.mjs";
+import {
+  buildOperationalTimingMutation,
+  operationalTimingRpcArgs,
+  operationalTimingRpcError,
+  OPERATIONAL_TIMING_FACT_KEY_LIST,
+} from "@/lib/operational-timing.mjs";
 import { extractOperationalDetails } from "@/lib/gig-readiness.mjs";
 import type { OperationalTimingActionState } from "@/components/operational-timing-editor";
 
@@ -223,12 +228,11 @@ export async function updateOperationalTimingAction(
   if (Object.keys(mutation.errors).length) return { status: "error", message: "Check the highlighted times. Nothing was saved.", errors: mutation.errors };
   if (!mutation.rows.length) return { status: "success", message: "No operational timing changes were needed." };
 
-  const writeResult = await supabase.from("os_event_facts").upsert(mutation.rows, { onConflict: "event_id,fact_key" });
-  if (writeResult.error) return { status: "error", message: "Operational times could not be saved. Existing values were preserved." };
+  const rpcResult = await supabase.rpc("os_update_event_operational_timing", operationalTimingRpcArgs(eventId, mutation.rows));
+  if (rpcResult.error) return { status: "error", message: operationalTimingRpcError(rpcResult.error) };
+  if (rpcResult.data?.status === "noop") return { status: "success", message: "No operational timing changes were needed." };
+  if (rpcResult.data?.status !== "updated") return { status: "error", message: "Operational times could not be verified. Nothing was changed." };
 
-  await recordActivity(supabase, eventId, user.id, "event.operational_timing_updated", "Event-day operational timing updated.", {
-    fact_keys: mutation.rows.map((row) => row.fact_key),
-  });
   revalidatePath(`/admin/gigs/${eventId}`);
   return { status: "success", message: `${mutation.changedLabels.join(", ")} updated.` };
 }
