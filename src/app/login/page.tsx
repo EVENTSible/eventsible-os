@@ -1,17 +1,27 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
 import { Wordmark } from "@/components/wordmark";
+import { safeStaffNext, staffLoginNotice } from "@/lib/staff-auth.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Sign in | EVENTSible OS",
 };
 
-export default async function LoginPage() {
+type LoginPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const next = safeStaffNext(first(params.next));
+  const notice = staffLoginNotice(first(params.error));
   const supabase = await createServerSupabase();
   const { data } = await supabase.auth.getUser();
 
-  if (data.user) redirect("/admin");
+  if (data.user) redirect(next);
 
   return (
     <main className="auth-shell">
@@ -24,7 +34,7 @@ export default async function LoginPage() {
         <p className="lede">
           Secure access to leads, bookings, Wedding Hero, Event Hero, client messages, and event readiness.
         </p>
-        <LoginForm />
+        <LoginForm initialNotice={notice} next={next} />
       </section>
       <aside className="auth-story" aria-label="EVENTSible operating system overview">
         <div>
