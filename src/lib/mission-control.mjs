@@ -1,5 +1,10 @@
 export const ACTIVE_LEAD_STATUSES = ["new", "qualifying", "quoted", "follow_up"];
 export const BOOKED_STATUSES = ["pending", "pending_contract", "pending_deposit", "confirmed", "completed"];
+export const MISSION_CONTROL_SELECTS = Object.freeze({
+  leads: "id,event_id,contact_id,builder_submission_id,status,source,inquiry_summary,estimated_value,next_follow_up_at,created_at,metadata",
+  quoteVersions: "id,lead_id,event_id,version_number,status,currency,subtotal,discount_amount,travel_amount,total_amount,deposit_amount,created_at,snapshot",
+  builderSubmissions: "id,contact_id,normalized_payload,submitted_from,created_at",
+});
 
 /**
  * @param {unknown} value
@@ -52,6 +57,41 @@ function firstValue(...values) {
   return values.map(meaningful).find((value) => value !== null) ?? null;
 }
 
+function humanNote(value) {
+  return typeof value === "string" && value.trim() && !/^\s*(?:\[CRM\]\s*)?[{[]/i.test(value) ? value.trim() : null;
+}
+
+/**
+ * Keeps ordinary prose intact while ensuring a structured Builder CRM envelope
+ * is never rendered as a note. Only allow-listed human note fields are used.
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+export function humanizeInquirySummary(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const crmPrefixed = /^\[CRM\]\s*/i.test(trimmed);
+  const candidate = trimmed.replace(/^\[CRM\]\s*/i, "").trim();
+  if (!crmPrefixed && !/^[{[]/.test(candidate)) return trimmed;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(candidate);
+  } catch {
+    return crmPrefixed ? null : trimmed;
+  }
+
+  const envelope = objectValue(parsed);
+  const lead = objectValue(envelope.lead);
+  const crm = objectValue(envelope.crm);
+  const notes = [humanNote(lead.notes), humanNote(crm.notes), humanNote(envelope.notes), humanNote(envelope.additional_notes), humanNote(envelope.additionalNotes)].filter(Boolean);
+  if (crmPrefixed || envelope.crm || envelope.lead || envelope.services || envelope.eventType) {
+    return [...new Set(notes)].join(" · ") || null;
+  }
+  return trimmed;
+}
+
 /**
  * Builds the staff-facing lead view from canonical OS records and the normalized
  * Builder contract. Raw payloads are deliberately excluded.
@@ -89,7 +129,7 @@ export function buildLeadSummary({ lead = {}, event = {}, contact = {}, submissi
     travel: firstValue(quote.travel_amount, pricing.travel_fee),
     total: firstValue(quote.total_amount, pricing.estimated_total, lead.estimated_value),
     priorities: firstValue(normalized.planning_priorities, normalized.priorities, normalized.planning_stage),
-    notes: firstValue(lead.inquiry_summary, normalized.notes, normalized.additional_notes),
+    notes: firstValue(humanizeInquirySummary(lead.inquiry_summary), humanNote(normalized.notes), humanNote(normalized.additional_notes)),
     leadStatus: firstValue(lead.status, "new"),
     quoteStatus: firstValue(quote.status),
   };

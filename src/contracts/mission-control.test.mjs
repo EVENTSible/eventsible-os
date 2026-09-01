@@ -5,11 +5,23 @@ import {
   buildLeadSummary,
   buildBookingPayload,
   formatMoney,
+  humanizeInquirySummary,
   isActiveLeadStatus,
   isBookedStatus,
   latestQuoteByLead,
+  MISSION_CONTROL_SELECTS,
   nextLeadAction,
 } from "../lib/mission-control.mjs";
+
+test("Mission Control queries follow verified canonical relationship columns", () => {
+  assert.match(MISSION_CONTROL_SELECTS.leads, /builder_submission_id/);
+  assert.match(MISSION_CONTROL_SELECTS.leads, /event_id/);
+  assert.match(MISSION_CONTROL_SELECTS.quoteVersions, /lead_id/);
+  assert.match(MISSION_CONTROL_SELECTS.quoteVersions, /event_id/);
+  assert.doesNotMatch(MISSION_CONTROL_SELECTS.quoteVersions, /builder_submission_id|metadata/);
+  assert.doesNotMatch(MISSION_CONTROL_SELECTS.builderSubmissions, /event_id|submitted_at/);
+  assert.match(MISSION_CONTROL_SELECTS.builderSubmissions, /created_at/);
+});
 
 test("Mission Control status helpers match lead and booking workflow states", () => {
   assert.equal(isActiveLeadStatus("new"), true);
@@ -100,4 +112,33 @@ test("Mission Control builds a human lead summary without exposing raw payload d
   assert.equal(summary.total, 1800);
   assert.equal(JSON.stringify(summary).includes("must never surface"), false);
   assert.equal(nextLeadAction(summary), "Review lead and prepare a quote");
+});
+
+test("Mission Control suppresses a structured CRM envelope without human notes", () => {
+  const payload = `[CRM] ${JSON.stringify({ lead: { name: "QA" }, services: [{ name: "DJ" }], crm: { internal: true } })}`;
+  const summary = buildLeadSummary({ lead: { inquiry_summary: payload }, submission: { normalized_payload: {} } });
+  assert.equal(humanizeInquirySummary(payload), null);
+  assert.equal(summary.notes, null);
+  assert.equal(JSON.stringify(summary).includes("internal"), false);
+});
+
+test("Mission Control humanizes only allow-listed prose inside a CRM envelope", () => {
+  const payload = `[CRM] ${JSON.stringify({ lead: { notes: "Client requested a quiet setup." }, crm: { private_flag: "do not render" } })}`;
+  assert.equal(humanizeInquirySummary(payload), "Client requested a quiet setup.");
+  assert.equal(humanizeInquirySummary(payload).includes("private_flag"), false);
+});
+
+test("Mission Control preserves an ordinary human inquiry note", () => {
+  const note = "Please use the side entrance and call when you arrive.";
+  assert.equal(humanizeInquirySummary(note), note);
+  assert.equal(buildLeadSummary({ lead: { inquiry_summary: note } }).notes, note);
+});
+
+test("note cleanup does not change quote actions or conversion lineage", () => {
+  const summary = buildLeadSummary({ lead: { status: "quoted", inquiry_summary: "[CRM] {}" }, quote: { status: "approved" } });
+  const payload = buildBookingPayload({ quote: { id: "quote-1", lead_id: "lead-1", event_id: "event-1", total_amount: 1000 } });
+  assert.equal(nextLeadAction(summary), "Convert approved quote to a gig");
+  assert.equal(payload.event_id, "event-1");
+  assert.equal(payload.metadata.quote_version_id, "quote-1");
+  assert.equal(payload.metadata.lead_id, "lead-1");
 });

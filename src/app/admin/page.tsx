@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { activateWeddingCompanionAction, approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
 import { LogoutButton } from "@/components/logout-button";
 import { Wordmark } from "@/components/wordmark";
-import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, nextLeadAction } from "@/lib/mission-control.mjs";
+import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, MISSION_CONTROL_SELECTS, nextLeadAction } from "@/lib/mission-control.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { EventDashboardRow, isStaffRole } from "@/lib/types";
 
@@ -163,7 +163,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     optionalRows<AnyRow>(
       supabase
         .from("os_leads")
-        .select("id,event_id,contact_id,builder_submission_id,status,source,inquiry_summary,estimated_value,next_follow_up_at,created_at,metadata")
+        .select(MISSION_CONTROL_SELECTS.leads)
         .order("created_at", { ascending: false })
         .limit(30),
       "Leads",
@@ -171,7 +171,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     optionalRows<AnyRow>(
       supabase
         .from("os_quote_versions")
-        .select("id,lead_id,event_id,builder_submission_id,version_number,status,currency,subtotal,discount_amount,travel_amount,total_amount,deposit_amount,created_at,metadata")
+        .select(MISSION_CONTROL_SELECTS.quoteVersions)
         .order("created_at", { ascending: false })
         .limit(60),
       "Quotes",
@@ -197,7 +197,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       "Contacts",
     ),
     optionalRows<AnyRow>(
-      supabase.from("os_builder_submissions").select("id,contact_id,event_id,normalized_payload,submitted_from,submitted_at").order("submitted_at", { ascending: false }).limit(60),
+      supabase.from("os_builder_submissions").select(MISSION_CONTROL_SELECTS.builderSubmissions).order("created_at", { ascending: false }).limit(60),
       "Builder submissions",
     ),
   ]);
