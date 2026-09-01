@@ -7,7 +7,12 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
 import { WEDDING_COMPANION_VERSION } from "@/lib/wedding-companion.mjs";
-import { bookingServicesFromQuoteItems, buildBookingPayload } from "@/lib/mission-control.mjs";
+import {
+  bookingServicesFromQuoteItems,
+  buildBookingPayload,
+  CONVERSION_QUOTE_SELECT,
+  QUOTE_APPROVAL_STATUS,
+} from "@/lib/mission-control.mjs";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -85,7 +90,7 @@ export async function approveQuoteAction(formData: FormData) {
   if (!quoteVersionId || !eventId) adminRedirect("Quote approval was missing required data.", "error");
 
   const { supabase, user } = await requireStaffSupabase();
-  const { error: quoteError } = await supabase.from("os_quote_versions").update({ status: "ready" }).eq("id", quoteVersionId);
+  const { error: quoteError } = await supabase.from("os_quote_versions").update({ status: QUOTE_APPROVAL_STATUS }).eq("id", quoteVersionId);
   if (quoteError) adminRedirect("Quote could not be approved.", "error");
 
   if (leadId) {
@@ -115,7 +120,7 @@ export async function convertToGigAction(formData: FormData) {
   const [quoteResult, eventResult, bookingResult, itemResult] = await Promise.all([
     supabase
       .from("os_quote_versions")
-      .select("id,lead_id,event_id,status,currency,total_amount,deposit_amount,metadata")
+      .select(CONVERSION_QUOTE_SELECT)
       .eq("id", quoteVersionId)
       .maybeSingle(),
     supabase.from("os_events").select("id,starts_at,ends_at,title,event_type").eq("id", eventId).maybeSingle(),
