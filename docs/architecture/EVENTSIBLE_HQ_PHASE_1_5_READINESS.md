@@ -1,6 +1,6 @@
 # EVENTSible HQ Phase 1.5: Gig Readiness and Operations
 
-- Status: IMPLEMENTED / AUTHENTICATED PREVIEW QA DEFERRED
+- Status: IMPLEMENTED / PREVIEW VERIFIED
 - Scope: canonical Gig Workspace composition and rule-based readiness
 - Data authority: existing EVENTSible OS records
 - Schema or data changes: NONE
@@ -67,6 +67,6 @@ Each record should reference `contact_id`, `event_id`, optional `booking_id`, ch
 
 Gmail/email providers send and reconcile communication records. Google Calendar synchronizes canonical event schedule changes. GigSalad imports or links leads and activity. PayPal sends/reconciles invoices and payments. Drive stores files while `os_files` owns their searchable business association. SMS providers send/reconcile communication records. None becomes a competing OS system of record.
 
-## Deferred verification
+## Verification status
 
-Authenticated Preview QA remains required before Production readiness. It is currently deferred by the Supabase magic-link email rate limit. Do not weaken Auth limits or change Production Auth behavior to bypass that gate.
+Authenticated Preview QA verified the canonical workflow, Gig Workspace, readiness behavior, responsive layouts, and clean browser/runtime behavior using a synthetic TEST ONLY fixture. Repeat conversion is classified as PASS WITH RUNTIME LIMITATION: the post-conversion UI correctly removed the action, while source tests and canonical post-conversion counts confirmed one event, one booking, one booking service, stable IDs, and no duplicate conversion activity. No Auth-limit change or new Preview alias was introduced solely to force a second live invocation.
