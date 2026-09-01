@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { updateOperationalTimingAction } from "@/app/admin/actions";
+import { OperationalTimingEditor } from "@/components/operational-timing-editor";
 import { Wordmark } from "@/components/wordmark";
 import { buildGigReadiness, extractOperationalDetails } from "@/lib/gig-readiness.mjs";
 import { formatMoney } from "@/lib/mission-control.mjs";
+import { formatClockTime, formatLoadInWindow, operationalTimingFormValues, OPERATIONAL_TIMING_FACT_KEY_LIST } from "@/lib/operational-timing.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
 
@@ -11,6 +14,7 @@ export const metadata = { title: "Gig Workspace | EVENTSible HQ" };
 type PageProps = { params: Promise<{ eventId: string }> };
 type AnyRow = Record<string, unknown>;
 type ReadinessCheck = { id: string; state: string; target: string; label: string; message: string };
+const WORKSPACE_FACT_KEYS = [...OPERATIONAL_TIMING_FACT_KEY_LIST, "event.requested_start_time", "event.requested_end_time", "experience.goal"];
 
 function text(value: unknown, fallback = "Not provided") { return typeof value === "string" && value.trim() ? value.trim() : fallback; }
 function status(value: unknown, fallback = "Unknown") { return text(value, fallback).replaceAll("_", " "); }
@@ -33,6 +37,12 @@ function duration(start: unknown, end: unknown) {
 }
 function safePhone(value: unknown) { return typeof value === "string" ? value.replace(/[^+\d]/g, "") : ""; }
 function safeEmail(value: unknown) { return typeof value === "string" && !/[\r\n]/.test(value) ? value.trim() : ""; }
+function operationalTime(label: string, value: unknown) {
+  if (label.startsWith("Service")) return timeOnly(value);
+  if (label === "Load-in window") return formatLoadInWindow(value);
+  if (["Arrival", "Setup complete by", "Breakdown start", "Must be out"].includes(label)) return formatClockTime(value);
+  return text(value);
+}
 function nestedValue(value: unknown, key: string) { return value && typeof value === "object" && !Array.isArray(value) ? (value as AnyRow)[key] : null; }
 function EmptyFoundation({ children }: { children: ReactNode }) { return <p className="workspace-empty">{children}</p>; }
 function Fact({ label, children }: { label: string; children: ReactNode }) { return <div><dt>{label}</dt><dd>{children}</dd></div>; }
@@ -51,7 +61,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
     supabase.from("os_quote_versions").select("id,status,currency,subtotal,discount_amount,travel_amount,total_amount,deposit_amount,created_at").eq("event_id", eventId).order("version_number", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("os_tasks").select("id,title,description,status,priority,due_at,completed_at,task_type,created_at").eq("event_id", eventId).order("due_at", { ascending: true, nullsFirst: false }).limit(50),
     supabase.from("os_files").select("id,file_name,category,mime_type,size_bytes,visibility,created_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(50),
-    supabase.from("os_event_facts").select("id,fact_key,value,is_confirmed,source").eq("event_id", eventId).in("fact_key", ["event.requested_start_time", "event.requested_end_time", "experience.goal"]),
+    supabase.from("os_event_facts").select("id,fact_key,value,is_confirmed,source").eq("event_id", eventId).in("fact_key", WORKSPACE_FACT_KEYS),
     supabase.from("os_planning_assignments").select("id,status,progress_percent,last_saved_at,submitted_at,created_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
@@ -87,6 +97,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   const directions = fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}` : null;
   const importantDetails = [["Room / area", operational.roomArea], ["Environment", operational.environment], ["Load-in", operational.loadInDetails], ["Special instructions", operational.specialInstructions], ["Experience goal", operational.experienceGoal], ["Client notes", contact?.notes]].filter(([, value]) => value);
   const operationalTimes: Array<[string, unknown]> = [["Staff call", operational.staffCallTime], ["Arrival", operational.arrivalTime], ["Load-in window", operational.loadInWindow], ["Setup start", operational.setupStart], ["Setup complete by", operational.setupComplete], ["Service start", event.starts_at ?? operational.requestedStart], ["Service end", event.ends_at ?? operational.requestedEnd], ["Breakdown start", operational.breakdownStart], ["Must be out", operational.mustBeOut]];
+  const timingFormValues = operationalTimingFormValues(operational);
 
   return <div className="workspace-shell">
     <nav className="review-nav"><div><Wordmark compact /><span>Gig Workspace</span></div><div><Link href="/admin">Mission Control</Link></div></nav>
@@ -109,7 +120,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
 
       <div className="workspace-grid">
         <section className="workspace-section workspace-overview" id="overview"><header><span className="eyebrow">Gig at a glance</span><h2>Event-day essentials</h2></header><dl className="workspace-facts workspace-facts-priority"><Fact label="Client / organization">{text(contact?.display_name, "Client not provided")}{contact?.organization_name ? ` · ${contact.organization_name}` : ""}</Fact><Fact label="Event">{text(event.title, "Untitled event")} · {text(event.event_type, "Type not provided")}</Fact><Fact label="Date">{dateOnly(event.starts_at)}</Fact><Fact label="Event time">{timeOnly(event.starts_at)} – {timeOnly(event.ends_at)}</Fact><Fact label="Venue">{text(event.venue_name, "Venue not provided")}</Fact><Fact label="Address">{fullAddress || "Full address not provided"}</Fact><Fact label="Room / area">{text(operational.roomArea)}</Fact><Fact label="Indoor / outdoor">{text(operational.environment)}</Fact></dl></section>
-        <section className="workspace-section workspace-wide" id="operations"><header><span className="eyebrow">Our operational times</span><h2>Arrival through load-out</h2></header><dl className="operations-timeline">{operationalTimes.map(([label, value]) => <Fact key={label} label={label}>{label.startsWith("Service") ? timeOnly(value) : text(value)}</Fact>)}</dl><p className="workspace-help">Missing operational times are shown honestly. Event start/end do not imply staff arrival, load-in, setup, breakdown, or must-be-out times.</p></section>
+        <section className="workspace-section workspace-wide" id="operations"><header><span className="eyebrow">Our operational times</span><h2>Arrival through load-out</h2></header><dl className="operations-timeline">{operationalTimes.map(([label, value]) => <Fact key={label} label={label}>{operationalTime(label, value)}</Fact>)}</dl><p className="workspace-help">Missing operational times are shown honestly. Event start/end do not imply staff arrival, load-in, setup, breakdown, or must-be-out times.</p><OperationalTimingEditor action={updateOperationalTimingAction} eventId={eventId} initialValues={timingFormValues} /></section>
         <section className="workspace-section workspace-wide important-section" id="important"><header><span className="eyebrow">Important details</span><h2>What could matter on event day</h2></header>{importantDetails.length ? <dl className="workspace-facts">{importantDetails.map(([label, value]) => <Fact key={String(label)} label={String(label)}>{text(value)}</Fact>)}</dl> : <EmptyFoundation>No load-in, special-instruction, environment, room, experience-goal, or client-note details are recorded in the current allow-listed fields.</EmptyFoundation>}</section>
         <section className="workspace-section" id="client"><header><span className="eyebrow">Client</span><h2>{text(contact?.display_name, "Client not provided")}</h2></header>{contact ? <dl className="workspace-facts"><Fact label="Organization">{text(contact.organization_name)}</Fact><Fact label="Email">{text(contact.primary_email)}</Fact><Fact label="Phone">{text(contact.primary_phone)}</Fact><Fact label="Preferred contact">{status(contact.preferred_channel)}</Fact><Fact label="Day-of contact">{text(operational.dayOfContact, "Not recorded; may be primary client")}</Fact><Fact label="Day-of phone">{text(operational.dayOfPhone)}</Fact></dl> : <EmptyFoundation>No canonical contact is linked to this event.</EmptyFoundation>}</section>
         <section className="workspace-section" id="money"><header><span className="eyebrow">Money / contract</span><h2>Canonical booking state</h2></header>{booking || quote ? <dl className="workspace-facts"><Fact label="Quote">{status(quote?.status)}</Fact><Fact label="Total">{formatMoney(booking?.total_amount ?? quote?.total_amount)}</Fact><Fact label="Deposit">{formatMoney(booking?.deposit_amount ?? quote?.deposit_amount)}</Fact><Fact label="Balance">{formatMoney(booking?.balance_due)}</Fact><Fact label="Balance due">{dateTime(booking?.balance_due_at)}</Fact><Fact label="Payment status">{status(booking?.payment_status)}</Fact><Fact label="Contract status">{status(booking?.contract_status)}</Fact><Fact label="Payment terms">{text(nestedValue(booking?.metadata, "payment_terms"))}</Fact></dl> : <EmptyFoundation>No canonical quote or booking money record is available.</EmptyFoundation>}<p className="workspace-help">A balance does not automatically block readiness. The due date and recorded terms determine urgency.</p></section>

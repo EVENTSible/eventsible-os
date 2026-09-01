@@ -13,6 +13,14 @@ import {
   CONVERSION_QUOTE_SELECT,
   QUOTE_APPROVAL_STATUS,
 } from "@/lib/mission-control.mjs";
+import {
+  buildOperationalTimingMutation,
+  operationalTimingRpcArgs,
+  operationalTimingRpcError,
+  OPERATIONAL_TIMING_FACT_KEY_LIST,
+} from "@/lib/operational-timing.mjs";
+import { extractOperationalDetails } from "@/lib/gig-readiness.mjs";
+import type { OperationalTimingActionState } from "@/components/operational-timing-editor";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -188,6 +196,45 @@ export async function convertToGigAction(formData: FormData) {
 
   revalidatePath("/admin");
   adminRedirect("Converted to booked gig.");
+}
+
+export async function updateOperationalTimingAction(
+  _previousState: OperationalTimingActionState,
+  formData: FormData,
+): Promise<OperationalTimingActionState> {
+  const eventId = value(formData, "event_id");
+  if (!eventId) return { status: "error", message: "The event was missing. No timing details were changed." };
+
+  const submitted = {
+    arrival_time: value(formData, "arrival_time"),
+    load_in_start: value(formData, "load_in_start"),
+    load_in_end: value(formData, "load_in_end"),
+    setup_complete_by: value(formData, "setup_complete_by"),
+    breakdown_start: value(formData, "breakdown_start"),
+    must_be_out: value(formData, "must_be_out"),
+  };
+  const { supabase, user } = await requireStaffSupabase();
+  const [eventResult, bookingResult, factResult] = await Promise.all([
+    supabase.from("os_events").select("id,settings").eq("id", eventId).maybeSingle(),
+    supabase.from("os_bookings").select("metadata").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("os_event_facts").select("fact_key,value").eq("event_id", eventId).in("fact_key", OPERATIONAL_TIMING_FACT_KEY_LIST),
+  ]);
+
+  if (eventResult.error || !eventResult.data) return { status: "error", message: "The canonical event could not be loaded. No timing details were changed." };
+  if (bookingResult.error || factResult.error) return { status: "error", message: "Existing operational times could not be verified. No timing details were changed." };
+
+  const current = extractOperationalDetails({ event: eventResult.data, booking: bookingResult.data, facts: factResult.data ?? [] });
+  const mutation = buildOperationalTimingMutation({ eventId, userId: user.id, submitted, current });
+  if (Object.keys(mutation.errors).length) return { status: "error", message: "Check the highlighted times. Nothing was saved.", errors: mutation.errors };
+  if (!mutation.rows.length) return { status: "success", message: "No operational timing changes were needed." };
+
+  const rpcResult = await supabase.rpc("os_update_event_operational_timing", operationalTimingRpcArgs(eventId, mutation.rows));
+  if (rpcResult.error) return { status: "error", message: operationalTimingRpcError(rpcResult.error) };
+  if (rpcResult.data?.status === "noop") return { status: "success", message: "No operational timing changes were needed." };
+  if (rpcResult.data?.status !== "updated") return { status: "error", message: "Operational times could not be verified. Nothing was changed." };
+
+  revalidatePath(`/admin/gigs/${eventId}`);
+  return { status: "success", message: `${mutation.changedLabels.join(", ")} updated.` };
 }
 
 export async function activateWeddingCompanionAction(formData: FormData) {

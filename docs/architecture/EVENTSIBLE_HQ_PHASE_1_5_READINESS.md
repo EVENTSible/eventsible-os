@@ -25,6 +25,20 @@ Readiness has five states: `ready`, `needs_attention`, `not_ready`, `not_applica
 - Staffing and equipment: Unknown because no verified event relationship currently exists in the schema.
 - Query failures: affected areas are Unknown and explicitly warned; partial data is not treated as complete.
 
+## Operational timing edit contract
+
+Authenticated staff may edit five event-local clock-time facts from the canonical Gig Workspace. The existing `os_event_facts` record remains authoritative; no workspace or metadata copy is created.
+
+| Workspace field | Canonical fact key | Value contract |
+| --- | --- | --- |
+| Arrival time | `event.arrival_time` | normalized `HH:MM` string |
+| Load-in | `event.load_in_window` | `{ start: "HH:MM", end: "HH:MM" | null }` |
+| Setup complete by | `event.setup_complete_by` | normalized `HH:MM` string |
+| Breakdown | `event.breakdown_start` | normalized `HH:MM` string |
+| Must be out by | `event.must_be_out` | normalized `HH:MM` string |
+
+Clock times are intentionally stored without date or timezone conversion because they describe the event's local operating schedule. Event date and timezone remain canonical on `os_events`. Blank form values preserve existing facts; fact removal is not part of this slice. The authenticated staff action calls the fixed-parameter `os_update_event_operational_timing` RPC, which validates the five allow-listed facts and atomically commits their `(event_id, fact_key)` upserts with one staff activity entry only when values actually change. The RPC derives the actor from `auth.uid()` and does not grant general activity insertion.
+
 ## Service readiness template contract
 
 Future service templates for DJ, Karaoke, Photo Booth, 360 Booth, Kids DJ, Arts and Crafts, Games/Trivia, and Wedding DJ should define versioned requirement keys, applicability rules, responsible role, evidence source, severity, and completion criteria. Template results must reference canonical `event_id`, `booking_service_id`, and optional task/equipment/staff assignment IDs. They must not create a second service catalog or readiness database.
