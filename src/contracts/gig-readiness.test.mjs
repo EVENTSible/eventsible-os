@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildGigReadiness, extractOperationalDetails, READINESS_STATES } from "../lib/gig-readiness.mjs";
+import { OPERATIONAL_TIMING_FACT_KEYS } from "../lib/operational-timing.mjs";
 
 test("unknown operational systems never count as ready", () => {
   const result = buildGigReadiness({ event: {}, now: new Date("2026-09-01T12:00:00Z") });
@@ -55,5 +56,19 @@ test("operational extraction uses only explicit allow-listed fields", () => {
   assert.equal(details.dayOfContact, "QA Coordinator");
   assert.equal(details.experienceGoal, "Keep guests engaged");
   assert.equal(JSON.stringify(details).includes("never render"), false);
+  assert.equal(JSON.stringify(details).includes("private"), false);
+});
+
+test("canonical timing facts take precedence over legacy settings without exposing unrelated facts", () => {
+  const details = extractOperationalDetails({
+    event: { settings: { arrival_time: "3:30 PM" } },
+    facts: [
+      { fact_key: OPERATIONAL_TIMING_FACT_KEYS.arrivalTime, value: "16:00" },
+      { fact_key: OPERATIONAL_TIMING_FACT_KEYS.loadInWindow, value: { start: "15:00", end: "15:30" } },
+      { fact_key: "builder.full_submission", value: { private: true } },
+    ],
+  });
+  assert.equal(details.arrivalTime, "16:00");
+  assert.deepEqual(details.loadInWindow, { start: "15:00", end: "15:30" });
   assert.equal(JSON.stringify(details).includes("private"), false);
 });

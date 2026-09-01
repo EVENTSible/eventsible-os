@@ -1,3 +1,5 @@
+import { operationalTimingFacts } from "./operational-timing.mjs";
+
 export const READINESS_STATES = Object.freeze({
   READY: "ready",
   NEEDS_ATTENTION: "needs_attention",
@@ -125,15 +127,16 @@ export function extractOperationalDetails({ event = {}, contact = null, booking 
   const contactMetadata = contact?.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata : {};
   const bookingMetadata = booking?.metadata && typeof booking.metadata === "object" && !Array.isArray(booking.metadata) ? booking.metadata : {};
   const factMap = new Map(facts.map((fact) => [fact?.fact_key, fact?.value]));
+  const timingFacts = operationalTimingFacts(facts);
   const scalar = (...values) => values.find((value) => ["string", "number"].includes(typeof value) && String(value).trim()) ?? null;
   return {
     staffCallTime: scalar(settings.staff_call_time, bookingMetadata.staff_call_time),
-    arrivalTime: scalar(settings.arrival_time, bookingMetadata.arrival_time),
-    loadInWindow: scalar(settings.load_in_window, bookingMetadata.load_in_window),
+    arrivalTime: scalar(timingFacts.arrivalTime, settings.arrival_time, bookingMetadata.arrival_time),
+    loadInWindow: timingFacts.loadInWindow.start ? timingFacts.loadInWindow : scalar(settings.load_in_window, bookingMetadata.load_in_window),
     setupStart: scalar(settings.setup_start, bookingMetadata.setup_start),
-    setupComplete: scalar(settings.setup_complete_by, bookingMetadata.setup_complete_by),
-    breakdownStart: scalar(settings.breakdown_start, bookingMetadata.breakdown_start),
-    mustBeOut: scalar(settings.must_be_out, bookingMetadata.must_be_out),
+    setupComplete: scalar(timingFacts.setupComplete, settings.setup_complete_by, bookingMetadata.setup_complete_by),
+    breakdownStart: scalar(timingFacts.breakdownStart, settings.breakdown_start, bookingMetadata.breakdown_start),
+    mustBeOut: scalar(timingFacts.mustBeOut, settings.must_be_out, bookingMetadata.must_be_out),
     roomArea: scalar(settings.room_area, settings.room, bookingMetadata.room_area),
     environment: scalar(settings.environment, bookingMetadata.environment),
     dayOfContact: scalar(contactMetadata.day_of_contact_name, bookingMetadata.day_of_contact_name),

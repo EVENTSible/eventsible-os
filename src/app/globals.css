@@ -194,6 +194,24 @@ a { color: inherit; text-decoration: none; }
 .operations-timeline > div { min-width: 0; border-left: 3px solid #d8c5ea; border-radius: 8px; padding: 11px; background: #faf8fd; }
 .operations-timeline dt { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .operations-timeline dd { margin: 5px 0 0; overflow-wrap: anywhere; font-weight: 700; }
+.operational-editor { margin-top: 16px; border-top: 1px solid #eee9f4; padding-top: 16px; }
+.operational-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.operational-editor-heading p { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.45; }
+.operational-editor-heading button { min-height: 44px; flex: 0 0 auto; }
+.operational-form { margin-top: 16px; border-radius: 14px; padding: 16px; background: #faf8fd; }
+.operational-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.operational-form label, .operational-form fieldset { min-width: 0; display: grid; gap: 6px; margin: 0; border: 0; padding: 0; }
+.operational-form label > span, .operational-form legend { color: #5a4b68; font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.operational-form input { width: 100%; min-height: 44px; border: 1px solid #d8cfe2; border-radius: 9px; padding: 9px 11px; color: #21112f; background: white; font: inherit; }
+.operational-form input:focus-visible { outline: 3px solid rgba(109,65,145,.2); outline-offset: 2px; border-color: #6d4191; }
+.operational-form input[aria-invalid="true"] { border-color: #b7384d; }
+.load-in-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.field-error { color: #a22c42; font-size: .75rem; font-weight: 700; }
+.operational-form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.operational-form-actions button { min-height: 44px; }
+.operational-message { margin: 12px 0 0; border-radius: 10px; padding: 11px 13px; font-size: .84rem; font-weight: 750; }
+.operational-message.success { color: #235e50; background: #edf9f4; }
+.operational-message.error { color: #7a3340; background: #fff1ef; }
 .important-section { border-color: rgba(213,154,0,.35); background: #fffdf7; }
 .workspace-empty, .workspace-help { margin: 18px 0 0; border-radius: 12px; padding: 14px; color: var(--muted); background: #faf8fd; line-height: 1.55; }
 .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 18px; }
@@ -831,6 +849,10 @@ a { color: inherit; text-decoration: none; }
   .readiness-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .readiness-alerts a { grid-template-columns: 1fr; gap: 4px; }
   .operations-timeline { grid-template-columns: 1fr; }
+  .operational-editor-heading { align-items: stretch; flex-direction: column; }
+  .operational-editor-heading button { width: 100%; }
+  .operational-form-grid, .load-in-fields { grid-template-columns: 1fr; }
+  .operational-form-actions > * { flex: 1 1 120px; }
   .readiness-list li { grid-template-columns: 1fr; gap: 4px; }
   .task-list li div { align-items: flex-start; flex-direction: column; gap: 4px; }
   .activity-list li div { align-items: flex-start; flex-direction: column; }
