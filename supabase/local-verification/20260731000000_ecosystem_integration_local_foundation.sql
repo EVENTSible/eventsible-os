@@ -3,6 +3,25 @@
 
 create extension if not exists pgcrypto with schema extensions;
 
+create or replace function public.os_set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create or replace function public.os_is_staff()
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') in ('owner','manager','staff','host');
+$$;
+
 create table if not exists public.os_contacts (
   id uuid primary key default gen_random_uuid(),
   display_name text not null,
@@ -49,6 +68,12 @@ create table if not exists public.os_events (
 );
 
 create index if not exists os_events_primary_contact_id_idx on public.os_events(primary_contact_id);
+
+-- Local-only FK target required to apply later booking-linked migrations. The
+-- production booking contract remains owned by the canonical core schema.
+create table if not exists public.os_bookings (
+  id uuid primary key default gen_random_uuid()
+);
 
 create table if not exists public.os_builder_submissions (
   id uuid primary key default gen_random_uuid(),
@@ -194,6 +219,7 @@ create index if not exists os_integration_outbox_status_next_attempt_idx
 
 alter table public.os_contacts enable row level security;
 alter table public.os_events enable row level security;
+alter table public.os_bookings enable row level security;
 alter table public.os_builder_submissions enable row level security;
 alter table public.os_leads enable row level security;
 alter table public.os_quote_versions enable row level security;
@@ -203,6 +229,7 @@ alter table public.os_integration_outbox enable row level security;
 
 revoke all on public.os_contacts from anon, authenticated;
 revoke all on public.os_events from anon, authenticated;
+revoke all on public.os_bookings from anon, authenticated;
 revoke all on public.os_builder_submissions from anon, authenticated;
 revoke all on public.os_leads from anon, authenticated;
 revoke all on public.os_quote_versions from anon, authenticated;
@@ -212,6 +239,7 @@ revoke all on public.os_integration_outbox from anon, authenticated;
 
 grant all on public.os_contacts to service_role;
 grant all on public.os_events to service_role;
+grant all on public.os_bookings to service_role;
 grant all on public.os_builder_submissions to service_role;
 grant all on public.os_leads to service_role;
 grant all on public.os_quote_versions to service_role;
@@ -225,6 +253,10 @@ create policy "Service role manages contacts" on public.os_contacts
 
 drop policy if exists "Service role manages events" on public.os_events;
 create policy "Service role manages events" on public.os_events
+  for all to service_role using (true) with check (true);
+
+drop policy if exists "Service role manages bookings" on public.os_bookings;
+create policy "Service role manages bookings" on public.os_bookings
   for all to service_role using (true) with check (true);
 
 drop policy if exists "Service role manages builder submissions" on public.os_builder_submissions;
