@@ -52,6 +52,14 @@ Four existing allow-listed `os_events.settings` paths are the canonical writable
 
 Blank form values preserve existing settings; explicit clearing is deferred. The fixed-parameter `os_update_event_day_logistics` RPC locks and authorizes the canonical event, merges only supplied changed keys into the existing settings object, preserves every unrelated setting, and atomically inserts one staff activity. It derives the actor from `auth.uid()`, accepts no arbitrary JSON or activity input, and performs neither an event update nor an activity insert for a no-op. Current readiness continues to consume staff call and setup start only through its existing operational context; this slice adds no new readiness rule or percentage.
 
+## Day-Of Contact relationship contract
+
+`os_events.day_of_contact_id` is the nullable, event-scoped relationship to an existing canonical `os_contacts.id`. It does not duplicate a name, phone, or email. The Gig Workspace resolves those values from the linked contact and derives “Same as primary” only when `day_of_contact_id = primary_contact_id`.
+
+Authenticated staff assign or change the relationship through the fixed-parameter `os_update_event_day_of_contact` RPC. The function verifies the staff session, event access, canonical event, and active target contact, then atomically updates the relationship and records one staff activity. Matching assignments are no-ops. Clearing, new-contact creation, and contact deduplication are outside this slice.
+
+The earlier `os_contacts.metadata` and `os_bookings.metadata` name/phone fields remain read-only compatibility fallbacks only when no canonical relationship exists. They are never written or backfilled by the Day-Of Contact workflow. The existing readiness check recognizes a canonical relationship without adding a new score or percentage.
+
 ## Service readiness template contract
 
 Future service templates for DJ, Karaoke, Photo Booth, 360 Booth, Kids DJ, Arts and Crafts, Games/Trivia, and Wedding DJ should define versioned requirement keys, applicability rules, responsible role, evidence source, severity, and completion criteria. Template results must reference canonical `event_id`, `booking_service_id`, and optional task/equipment/staff assignment IDs. They must not create a second service catalog or readiness database.

@@ -25,9 +25,11 @@ import {
   eventDayLogisticsRpcArgs,
   eventDayLogisticsRpcError,
 } from "@/lib/event-day-logistics.mjs";
+import { dayOfContactRpcArgs, dayOfContactRpcError } from "@/lib/day-of-contact.mjs";
 import { extractOperationalDetails } from "@/lib/gig-readiness.mjs";
 import type { OperationalTimingActionState } from "@/components/operational-timing-editor";
 import type { EventDayLogisticsActionState } from "@/components/event-day-logistics-editor";
+import type { DayOfContactActionState } from "@/components/day-of-contact-editor";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -281,6 +283,33 @@ export async function updateEventDayLogisticsAction(
 
   revalidatePath(`/admin/gigs/${eventId}`);
   return { status: "success", message: `${mutation.changedLabels.join(", ")} updated.` };
+}
+
+export async function updateDayOfContactAction(
+  _previousState: DayOfContactActionState,
+  formData: FormData,
+): Promise<DayOfContactActionState> {
+  const eventId = value(formData, "event_id");
+  const contactId = value(formData, "day_of_contact_id");
+  if (!eventId || !contactId) {
+    return { status: "error", message: "Select an existing contact. Nothing was changed.", errors: { day_of_contact_id: "Choose an existing contact." } };
+  }
+
+  let rpcArgs: ReturnType<typeof dayOfContactRpcArgs>;
+  try {
+    rpcArgs = dayOfContactRpcArgs(eventId, contactId);
+  } catch {
+    return { status: "error", message: "Select an existing contact. Nothing was changed.", errors: { day_of_contact_id: "Choose a valid existing contact." } };
+  }
+
+  const { supabase } = await requireStaffSupabase();
+  const rpcResult = await supabase.rpc("os_update_event_day_of_contact", rpcArgs);
+  if (rpcResult.error) return { status: "error", message: dayOfContactRpcError(rpcResult.error) };
+  if (rpcResult.data?.status === "noop") return { status: "success", message: "That contact is already assigned for the event day." };
+  if (rpcResult.data?.status !== "updated") return { status: "error", message: "The day-of contact could not be verified. Nothing was changed." };
+
+  revalidatePath(`/admin/gigs/${eventId}`);
+  return { status: "success", message: "Day-of contact updated." };
 }
 
 export async function activateWeddingCompanionAction(formData: FormData) {

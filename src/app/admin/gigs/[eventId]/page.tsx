@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { updateEventDayLogisticsAction, updateOperationalTimingAction } from "@/app/admin/actions";
+import { updateDayOfContactAction, updateEventDayLogisticsAction, updateOperationalTimingAction } from "@/app/admin/actions";
+import { DayOfContactEditor } from "@/components/day-of-contact-editor";
 import { EventDayLogisticsEditor } from "@/components/event-day-logistics-editor";
 import { OperationalTimingEditor } from "@/components/operational-timing-editor";
 import { Wordmark } from "@/components/wordmark";
 import { buildGigReadiness, extractOperationalDetails } from "@/lib/gig-readiness.mjs";
 import { formatMoney } from "@/lib/mission-control.mjs";
+import { contactDisplayName, dayOfContactOption, dayOfContactRelationshipLabel, resolveDayOfContact } from "@/lib/day-of-contact.mjs";
 import { eventDayLogisticsFormValues } from "@/lib/event-day-logistics.mjs";
 import { formatClockTime, formatLoadInWindow, operationalTimingFormValues, OPERATIONAL_TIMING_FACT_KEY_LIST } from "@/lib/operational-timing.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -57,7 +59,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   if (!isStaffRole(authData.user.app_metadata?.role)) redirect("/login?error=access");
 
   const [eventResult, bookingResult, activityResult, quoteResult, tasksResult, filesResult, factsResult, planningResult] = await Promise.all([
-    supabase.from("os_events").select("id,primary_contact_id,title,event_type,status,starts_at,ends_at,timezone,guest_count,venue_name,venue_address_1,venue_address_2,venue_city,venue_state,venue_postal_code,venue_country,settings,created_at,updated_at").eq("id", eventId).maybeSingle(),
+    supabase.from("os_events").select("id,primary_contact_id,day_of_contact_id,title,event_type,status,starts_at,ends_at,timezone,guest_count,venue_name,venue_address_1,venue_address_2,venue_city,venue_state,venue_postal_code,venue_country,settings,created_at,updated_at").eq("id", eventId).maybeSingle(),
     supabase.from("os_bookings").select("id,event_id,accepted_quote_version_id,status,contract_status,payment_status,total_amount,deposit_amount,balance_due,balance_due_at,booked_at,metadata,created_at,updated_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("os_activity_events").select("id,event_type,occurred_at,created_at,visibility").eq("event_id", eventId).order("occurred_at", { ascending: false }).limit(20),
     supabase.from("os_quote_versions").select("id,status,currency,subtotal,discount_amount,travel_amount,total_amount,deposit_amount,created_at").eq("event_id", eventId).order("version_number", { ascending: false }).limit(1).maybeSingle(),
@@ -74,24 +76,39 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   const servicesResult = bookingId
     ? await supabase.from("os_booking_services").select("id,booking_id,service_id,service_code,service_name,status,starts_at,ends_at,location_label,configuration,quote_item_id").eq("booking_id", bookingId).order("starts_at", { ascending: true })
     : { data: [], error: null };
-  const contactResult = event.primary_contact_id
-    ? await supabase.from("os_contacts").select("id,display_name,first_name,last_name,organization_name,primary_email,primary_phone,preferred_channel,notes,metadata").eq("id", event.primary_contact_id).maybeSingle()
-    : { data: null, error: null };
+  const [contactResult, dayOfContactResult, contactOptionsResult] = await Promise.all([
+    event.primary_contact_id
+      ? supabase.from("os_contacts").select("id,display_name,first_name,last_name,organization_name,primary_email,primary_phone,preferred_channel,notes,metadata").eq("id", event.primary_contact_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    event.day_of_contact_id
+      ? supabase.from("os_contacts").select("id,display_name,first_name,last_name,organization_name,primary_phone,status").eq("id", event.day_of_contact_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    supabase.from("os_contacts").select("id,display_name,first_name,last_name,organization_name").eq("status", "active").order("display_name", { ascending: true, nullsFirst: false }).limit(200),
+  ]);
   const contact = (contactResult.data ?? null) as AnyRow | null;
+  const canonicalDayOfContact = (dayOfContactResult.data ?? null) as AnyRow | null;
   const quote = (quoteResult.data ?? null) as AnyRow | null;
   const services = (servicesResult.data ?? []) as AnyRow[];
   const tasks = (tasksResult.data ?? []) as AnyRow[];
   const files = (filesResult.data ?? []) as AnyRow[];
   const planning = (planningResult.data ?? null) as AnyRow | null;
-  const loadResults = [["Booking", bookingResult.error], ["Services", servicesResult.error], ["Activity", activityResult.error], ["Quote", quoteResult.error], ["Contact", contactResult.error], ["Tasks", tasksResult.error], ["Documents", filesResult.error], ["Event facts", factsResult.error], ["Planning", planningResult.error]] as const;
+  const loadResults = [["Booking", bookingResult.error], ["Services", servicesResult.error], ["Activity", activityResult.error], ["Quote", quoteResult.error], ["Contact", contactResult.error], ["Day-of contact", dayOfContactResult.error], ["Contact selector", contactOptionsResult.error], ["Tasks", tasksResult.error], ["Documents", filesResult.error], ["Event facts", factsResult.error], ["Planning", planningResult.error]] as const;
   const loadWarnings = loadResults.filter(([, error]) => error).map(([label]) => label);
   const operational = extractOperationalDetails({ event, contact, booking, facts: factsResult.data ?? [] });
-  const readiness = buildGigReadiness({ event, contact, booking, services, tasks, files, planning, operational, loadWarnings });
+  const dayOfContact = resolveDayOfContact({
+    event,
+    primaryContact: contact,
+    dayOfContact: canonicalDayOfContact,
+    legacyName: operational.dayOfContact,
+    legacyPhone: operational.dayOfPhone,
+  });
+  const readinessOperational = { ...operational, dayOfContactId: dayOfContact.isCanonical ? dayOfContact.id : null, dayOfContact: dayOfContact.name };
+  const readiness = buildGigReadiness({ event, contact, booking, services, tasks, files, planning, operational: readinessOperational, loadWarnings });
   const criticalChecks = readiness.critical as ReadinessCheck[];
   const attentionChecks = readiness.attention as ReadinessCheck[];
   const allChecks = readiness.checks as ReadinessCheck[];
   const phone = safePhone(contact?.primary_phone);
-  const dayOfPhone = safePhone(operational.dayOfPhone);
+  const dayOfPhone = safePhone(dayOfContact.phone);
   const email = safeEmail(contact?.primary_email);
   const addressLines = [event.venue_address_1, event.venue_address_2, [event.venue_city, event.venue_state, event.venue_postal_code].filter(Boolean).join(" "), event.venue_country].filter(Boolean);
   const fullAddress = addressLines.join(", ");
@@ -101,6 +118,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   const operationalTimes: Array<[string, unknown]> = [["Staff call", operational.staffCallTime], ["Arrival", operational.arrivalTime], ["Load-in window", operational.loadInWindow], ["Setup start", operational.setupStart], ["Setup complete by", operational.setupComplete], ["Service start", event.starts_at ?? operational.requestedStart], ["Service end", event.ends_at ?? operational.requestedEnd], ["Breakdown start", operational.breakdownStart], ["Must be out", operational.mustBeOut]];
   const timingFormValues = operationalTimingFormValues(operational);
   const logisticsFormValues = eventDayLogisticsFormValues(operational);
+  const contactOptions = (contactOptionsResult.data ?? []).map((candidate) => dayOfContactOption(candidate, event.primary_contact_id)).filter(Boolean) as Array<{ id: string; label: string; isPrimary: boolean }>;
 
   return <div className="workspace-shell">
     <nav className="review-nav"><div><Wordmark compact /><span>Gig Workspace</span></div><div><Link href="/admin">Mission Control</Link></div></nav>
@@ -126,7 +144,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
         <section className="workspace-section workspace-wide" id="operations"><header><span className="eyebrow">Our operational times</span><h2>Arrival through load-out</h2></header><dl className="operations-timeline">{operationalTimes.map(([label, value]) => <Fact key={label} label={label}>{operationalTime(label, value)}</Fact>)}</dl><p className="workspace-help">Missing operational times are shown honestly. Event start/end do not imply staff arrival, load-in, setup, breakdown, or must-be-out times.</p><OperationalTimingEditor action={updateOperationalTimingAction} eventId={eventId} initialValues={timingFormValues} /></section>
         <section className="workspace-section workspace-wide logistics-section" id="logistics"><header><span className="eyebrow">Event-day logistics</span><h2>Staff arrival and venue access</h2></header><dl className="workspace-facts logistics-facts"><Fact label="Staff call">{formatClockTime(operational.staffCallTime)}</Fact><Fact label="Setup start">{formatClockTime(operational.setupStart)}</Fact><Fact label="Room / area">{text(operational.roomArea)}</Fact><Fact label="Load-in / access notes">{text(operational.loadInDetails)}</Fact></dl><EventDayLogisticsEditor action={updateEventDayLogisticsAction} eventId={eventId} initialValues={logisticsFormValues} /></section>
         <section className="workspace-section workspace-wide important-section" id="important"><header><span className="eyebrow">Important details</span><h2>What could matter on event day</h2></header>{importantDetails.length ? <dl className="workspace-facts">{importantDetails.map(([label, value]) => <Fact key={String(label)} label={String(label)}>{text(value)}</Fact>)}</dl> : <EmptyFoundation>No special-instruction, environment, experience-goal, or client-note details are recorded in the current allow-listed fields.</EmptyFoundation>}</section>
-        <section className="workspace-section" id="client"><header><span className="eyebrow">Client</span><h2>{text(contact?.display_name, "Client not provided")}</h2></header>{contact ? <dl className="workspace-facts"><Fact label="Organization">{text(contact.organization_name)}</Fact><Fact label="Email">{text(contact.primary_email)}</Fact><Fact label="Phone">{text(contact.primary_phone)}</Fact><Fact label="Preferred contact">{status(contact.preferred_channel)}</Fact><Fact label="Day-of contact">{text(operational.dayOfContact, "Not recorded; may be primary client")}</Fact><Fact label="Day-of phone">{text(operational.dayOfPhone)}</Fact></dl> : <EmptyFoundation>No canonical contact is linked to this event.</EmptyFoundation>}</section>
+        <section className="workspace-section workspace-wide day-of-contact-section" id="client"><header><span className="eyebrow">Client</span><h2>Primary and day-of contacts</h2></header>{contact ? <dl className="workspace-facts"><Fact label="Primary client">{text(contactDisplayName(contact), "Client not provided")}</Fact><Fact label="Organization">{text(contact.organization_name)}</Fact><Fact label="Email">{text(contact.primary_email)}</Fact><Fact label="Primary phone">{text(contact.primary_phone)}</Fact><Fact label="Preferred contact">{status(contact.preferred_channel)}</Fact><Fact label="Day-of contact">{text(dayOfContact.name, dayOfContact.isCanonical ? "Canonical contact unavailable" : "Not provided")}</Fact><Fact label="Day-of phone">{text(dayOfContact.phone)}</Fact><Fact label="Relationship">{dayOfContact.isCanonical ? dayOfContactRelationshipLabel(dayOfContact.relationship) : dayOfContact.source === "legacy" ? "Legacy details; relationship not established" : "Not provided"}</Fact></dl> : <EmptyFoundation>No canonical primary contact is linked to this event.</EmptyFoundation>}{dayOfPhone ? <div className="day-of-contact-actions"><a className="btn" href={`tel:${dayOfPhone}`}>Call day-of contact</a><a className="btn" href={`sms:${dayOfPhone}`}>Text day-of contact</a></div> : null}<DayOfContactEditor action={updateDayOfContactAction} contacts={contactOptions} eventId={eventId} initialContactId={String(event.day_of_contact_id ?? "")} primaryContactId={String(event.primary_contact_id ?? "")} /></section>
         <section className="workspace-section" id="money"><header><span className="eyebrow">Money / contract</span><h2>Canonical booking state</h2></header>{booking || quote ? <dl className="workspace-facts"><Fact label="Quote">{status(quote?.status)}</Fact><Fact label="Total">{formatMoney(booking?.total_amount ?? quote?.total_amount)}</Fact><Fact label="Deposit">{formatMoney(booking?.deposit_amount ?? quote?.deposit_amount)}</Fact><Fact label="Balance">{formatMoney(booking?.balance_due)}</Fact><Fact label="Balance due">{dateTime(booking?.balance_due_at)}</Fact><Fact label="Payment status">{status(booking?.payment_status)}</Fact><Fact label="Contract status">{status(booking?.contract_status)}</Fact><Fact label="Payment terms">{text(nestedValue(booking?.metadata, "payment_terms"))}</Fact></dl> : <EmptyFoundation>No canonical quote or booking money record is available.</EmptyFoundation>}<p className="workspace-help">A balance does not automatically block readiness. The due date and recorded terms determine urgency.</p></section>
         <section className="workspace-section workspace-wide" id="services"><header><span className="eyebrow">Services</span><h2>Booked services</h2></header>{services.length ? <div className="service-grid">{services.map((service) => <article key={String(service.id)}><div><h3>{text(service.service_name, text(service.service_code, "Service"))}</h3><span className="status-pill">{status(service.status)}</span></div><dl><Fact label="Time">{service.starts_at ? `${timeOnly(service.starts_at)} – ${timeOnly(service.ends_at)}` : "Follows event schedule unless separately configured"}</Fact><Fact label="Duration">{duration(service.starts_at, service.ends_at) || "Not separately recorded"}</Fact><Fact label="Location">{text(service.location_label)}</Fact><Fact label="Package / add-on">{text(nestedValue(service.configuration, "package_name") ?? nestedValue(service.configuration, "addon_name"))}</Fact></dl></article>)}</div> : <EmptyFoundation>No booked service records are linked. Convert to Gig seeds these from the approved canonical quote.</EmptyFoundation>}</section>
         <section className="workspace-section" id="tasks"><header><span className="eyebrow">Tasks / planning</span><h2>Outstanding work</h2></header>{tasks.length ? <ol className="task-list">{tasks.map((task) => <li key={String(task.id)}><div><b>{text(task.title, "Untitled task")}</b><span>{status(task.priority)} · {status(task.status)}</span></div><small>{task.due_at ? `Due ${dateTime(task.due_at)}` : "No due date"}</small></li>)}</ol> : <EmptyFoundation>No event-linked tasks are recorded. This is Unknown, not proof that planning is complete.</EmptyFoundation>}<p className="workspace-help">Client planning: {planning ? `${status(planning.status)}${planning.progress_percent !== null ? ` · ${planning.progress_percent}% of the canonical planning form` : ""}` : "No assignment linked"}.</p></section>
