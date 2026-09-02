@@ -3,7 +3,7 @@
 - Status: IMPLEMENTED / PREVIEW VERIFIED
 - Scope: canonical Gig Workspace composition and rule-based readiness
 - Data authority: existing EVENTSible OS records
-- Schema or data changes: NONE
+- Schema changes: narrow transactional RPCs only; no new tables or columns
 - Production changes: NONE
 
 ## Implemented composition
@@ -38,6 +38,19 @@ Authenticated staff may edit five event-local clock-time facts from the canonica
 | Must be out by | `event.must_be_out` | normalized `HH:MM` string |
 
 Clock times are intentionally stored without date or timezone conversion because they describe the event's local operating schedule. Event date and timezone remain canonical on `os_events`. Blank form values preserve existing facts; fact removal is not part of this slice. The authenticated staff action calls the fixed-parameter `os_update_event_operational_timing` RPC, which validates the five allow-listed facts and atomically commits their `(event_id, fact_key)` upserts with one staff activity entry only when values actually change. The RPC derives the actor from `auth.uid()` and does not grant general activity insertion.
+
+## Event-day logistics edit contract
+
+Four existing allow-listed `os_events.settings` paths are the canonical writable storage for the focused logistics editor. Legacy `os_bookings.metadata` values remain read-only fallbacks and are not migrated or rewritten.
+
+| Workspace field | Canonical settings key | Value contract |
+| --- | --- | --- |
+| Staff call | `staff_call_time` | normalized event-local `HH:MM` string |
+| Setup start | `setup_start` | normalized event-local `HH:MM` string |
+| Room / area | `room_area` | trimmed plain text, maximum 160 characters |
+| Load-in / access notes | `load_in_details` | trimmed plain text, maximum 1,500 characters |
+
+Blank form values preserve existing settings; explicit clearing is deferred. The fixed-parameter `os_update_event_day_logistics` RPC locks and authorizes the canonical event, merges only supplied changed keys into the existing settings object, preserves every unrelated setting, and atomically inserts one staff activity. It derives the actor from `auth.uid()`, accepts no arbitrary JSON or activity input, and performs neither an event update nor an activity insert for a no-op. Current readiness continues to consume staff call and setup start only through its existing operational context; this slice adds no new readiness rule or percentage.
 
 ## Service readiness template contract
 
