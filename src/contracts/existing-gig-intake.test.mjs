@@ -100,9 +100,10 @@ test("candidate schema is staff-private, bounded, unique, and has no delete capa
   assert.doesNotMatch(migration, /grant delete/i);
 });
 
-test("CI-local schema provides only the apply-time booking and timestamp dependencies", () => {
+test("CI-local schema provides only the apply-time intake dependencies", () => {
   assert.match(localVerificationSchema, /create table if not exists public\.os_bookings \(\s*id uuid primary key default gen_random_uuid\(\)\s*\);/i);
   assert.match(localVerificationSchema, /create or replace function public\.os_set_updated_at\(\)[^]*returns trigger[^]*new\.updated_at = now\(\)/i);
+  assert.match(localVerificationSchema, /create or replace function public\.os_is_staff\(\)[^]*auth\.jwt\(\) -> 'app_metadata' ->> 'role'[^]*'owner','manager','staff','host'/i);
   assert.match(localVerificationSchema, /alter table public\.os_bookings enable row level security/i);
   assert.match(localVerificationSchema, /revoke all on public\.os_bookings from anon, authenticated/i);
   assert.doesNotMatch(localVerificationSchema, /create table if not exists public\.os_booking_services/i);

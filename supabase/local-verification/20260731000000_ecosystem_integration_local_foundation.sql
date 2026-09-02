@@ -13,6 +13,15 @@ begin
 end;
 $$;
 
+create or replace function public.os_is_staff()
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') in ('owner','manager','staff','host');
+$$;
+
 create table if not exists public.os_contacts (
   id uuid primary key default gen_random_uuid(),
   display_name text not null,
