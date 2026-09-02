@@ -982,8 +982,9 @@ a { color: inherit; text-decoration: none; }
   .calendar-navigation input { width: 100%; }
   .calendar-weekdays { display: none; }
   .calendar-grid { grid-template-columns: 1fr; border-top: 0; border-radius: 12px; }
-  .calendar-day, .calendar-day.outside { min-height: 0; display: grid; grid-template-columns: 40px minmax(0,1fr); border-top: 1px solid #e8e3ee; padding: 10px; background: white; }
+  .calendar-day, .calendar-day.outside { min-height: 0; display: grid; grid-template-columns: 44px minmax(0,1fr); border-top: 1px solid #e8e3ee; padding: 10px; background: white; }
   .calendar-day.outside { display: none; }
+  .calendar-day-number { width: 44px; height: 44px; }
   .calendar-day-state { position: static; align-self: center; justify-self: end; max-width: 100%; }
   .calendar-day-events { grid-column: 1 / -1; }
   .calendar-event.compact { min-height: 44px; align-content: center; }

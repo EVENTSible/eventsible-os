@@ -64,3 +64,9 @@ test("Calendar UI exposes Month, Agenda, date navigation, and conservative avail
   assert.match(component, /does not promise partial-day, staff, service, travel, or equipment availability/i);
   assert.doesNotMatch(component, /Partially Available|partially available/i);
 });
+
+test("mobile Month day controls preserve a practical 44px touch target", () => {
+  const styles = fs.readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day[^}]*grid-template-columns:\s*44px minmax\(0,1fr\)/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day-number\s*\{[^}]*width:\s*44px;\s*height:\s*44px;/);
+});
