@@ -61,7 +61,7 @@ export function buildGigReadiness({ event = {}, contact = null, booking = null, 
   checks.push(present(contact?.preferred_channel)
     ? item("preferred-channel", "Client", "Preferred contact method", READINESS_STATES.READY, `Use ${contact.preferred_channel}.`, "client")
     : item("preferred-channel", "Client", "Preferred contact method", READINESS_STATES.UNKNOWN, "Not recorded.", "client"));
-  checks.push(present(operational?.dayOfContact)
+  checks.push(present(operational?.dayOfContactId) || present(operational?.dayOfContact)
     ? item("day-of-contact", "Client", "Day-of contact", READINESS_STATES.READY, "Day-of contact is recorded.", "client")
     : item("day-of-contact", "Client", "Day-of contact", READINESS_STATES.UNKNOWN, "Not recorded; it may be the primary client.", "client"));
 
@@ -130,6 +130,7 @@ export function extractOperationalDetails({ event = {}, contact = null, booking 
   const timingFacts = operationalTimingFacts(facts);
   const scalar = (...values) => values.find((value) => ["string", "number"].includes(typeof value) && String(value).trim()) ?? null;
   return {
+    dayOfContactId: scalar(event?.day_of_contact_id),
     staffCallTime: scalar(settings.staff_call_time, bookingMetadata.staff_call_time),
     arrivalTime: scalar(timingFacts.arrivalTime, settings.arrival_time, bookingMetadata.arrival_time),
     loadInWindow: timingFacts.loadInWindow.start ? timingFacts.loadInWindow : scalar(settings.load_in_window, bookingMetadata.load_in_window),
