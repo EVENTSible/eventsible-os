@@ -26,10 +26,12 @@ import {
   eventDayLogisticsRpcError,
 } from "@/lib/event-day-logistics.mjs";
 import { dayOfContactRpcArgs, dayOfContactRpcError } from "@/lib/day-of-contact.mjs";
+import { EVENT_DAY_NOTE_BODY_LIMIT, eventDayNoteRpcArgs, eventDayNoteRpcError } from "@/lib/event-day-notes.mjs";
 import { extractOperationalDetails } from "@/lib/gig-readiness.mjs";
 import type { OperationalTimingActionState } from "@/components/operational-timing-editor";
 import type { EventDayLogisticsActionState } from "@/components/event-day-logistics-editor";
 import type { DayOfContactActionState } from "@/components/day-of-contact-editor";
+import type { EventDayNoteActionState } from "@/components/event-day-notes-editor";
 
 function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -310,6 +312,42 @@ export async function updateDayOfContactAction(
 
   revalidatePath(`/admin/gigs/${eventId}`);
   return { status: "success", message: "Day-of contact updated." };
+}
+
+export async function upsertEventDayNoteAction(
+  _previousState: EventDayNoteActionState,
+  formData: FormData,
+): Promise<EventDayNoteActionState> {
+  const eventId = value(formData, "event_id");
+  const noteId = value(formData, "note_id");
+  const body = value(formData, "body");
+  const isPinned = value(formData, "is_pinned") === "true";
+
+  if (!body || body.length > EVENT_DAY_NOTE_BODY_LIMIT) {
+    return {
+      status: "error",
+      message: "Check the event-day note. Nothing was saved.",
+      errors: { body: `Enter 1 to ${EVENT_DAY_NOTE_BODY_LIMIT.toLocaleString("en-US")} characters.` },
+    };
+  }
+
+  let rpcArgs: ReturnType<typeof eventDayNoteRpcArgs>;
+  try {
+    rpcArgs = eventDayNoteRpcArgs({ eventId, noteId, body, isPinned });
+  } catch {
+    return { status: "error", message: "Check the event-day note. Nothing was saved.", errors: { body: "Enter a valid staff event-day note." } };
+  }
+
+  const { supabase } = await requireStaffSupabase();
+  const rpcResult = await supabase.rpc("os_upsert_event_day_note", rpcArgs);
+  if (rpcResult.error) return { status: "error", message: eventDayNoteRpcError(rpcResult.error) };
+  if (rpcResult.data?.status === "noop") return { status: "success", message: "No event-day note changes were needed." };
+  if (!["created", "updated"].includes(String(rpcResult.data?.status ?? ""))) {
+    return { status: "error", message: "The event-day note could not be verified. Nothing was changed." };
+  }
+
+  revalidatePath(`/admin/gigs/${eventId}`);
+  return { status: "success", message: rpcResult.data.status === "created" ? "Event-day note added." : "Event-day note updated." };
 }
 
 export async function activateWeddingCompanionAction(formData: FormData) {

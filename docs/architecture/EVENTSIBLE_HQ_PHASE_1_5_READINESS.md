@@ -60,6 +60,12 @@ Authenticated staff assign or change the relationship through the fixed-paramete
 
 The earlier `os_contacts.metadata` and `os_bookings.metadata` name/phone fields remain read-only compatibility fallbacks only when no canonical relationship exists. They are never written or backfilled by the Day-Of Contact workflow. The existing readiness check recognizes a canonical relationship without adding a new score or percentage.
 
+## Event-day notes contract
+
+Active staff-private `event_day` records in `os_event_notes` are the canonical source for event-day instructions and reminders. `is_pinned` controls prominence; pinned notes sort before unpinned notes, with newest notes first within each group. This focused workspace does not expose shared/client notes, deletion, archiving, rich text, attachments, or threaded discussion.
+
+Authenticated staff create or update one note through the fixed-parameter `os_upsert_event_day_note` RPC. The function verifies the staff session and event access, locks the canonical event and existing note when applicable, forces `note_type = 'event_day'`, `visibility = 'staff'`, and `status = 'active'`, derives the author/activity actor from `auth.uid()`, and atomically commits the note plus one focused activity event. Note bodies are trimmed plain text with a 1,500-character maximum and are not copied into activity payloads. A no-op creates neither a note update nor activity. Event-day notes do not affect readiness in this slice.
+
 ## Service readiness template contract
 
 Future service templates for DJ, Karaoke, Photo Booth, 360 Booth, Kids DJ, Arts and Crafts, Games/Trivia, and Wedding DJ should define versioned requirement keys, applicability rules, responsible role, evidence source, severity, and completion criteria. Template results must reference canonical `event_id`, `booking_service_id`, and optional task/equipment/staff assignment IDs. They must not create a second service catalog or readiness database.
