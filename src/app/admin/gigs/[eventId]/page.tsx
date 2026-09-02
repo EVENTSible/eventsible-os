@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { updateDayOfContactAction, updateEventDayLogisticsAction, updateOperationalTimingAction } from "@/app/admin/actions";
+import { updateDayOfContactAction, updateEventDayLogisticsAction, updateOperationalTimingAction, upsertEventDayNoteAction } from "@/app/admin/actions";
 import { DayOfContactEditor } from "@/components/day-of-contact-editor";
 import { EventDayLogisticsEditor } from "@/components/event-day-logistics-editor";
+import { EventDayNotesEditor, type EventDayNote } from "@/components/event-day-notes-editor";
 import { OperationalTimingEditor } from "@/components/operational-timing-editor";
 import { Wordmark } from "@/components/wordmark";
 import { buildGigReadiness, extractOperationalDetails } from "@/lib/gig-readiness.mjs";
@@ -58,7 +59,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   if (!authData.user) redirect("/login");
   if (!isStaffRole(authData.user.app_metadata?.role)) redirect("/login?error=access");
 
-  const [eventResult, bookingResult, activityResult, quoteResult, tasksResult, filesResult, factsResult, planningResult] = await Promise.all([
+  const [eventResult, bookingResult, activityResult, quoteResult, tasksResult, filesResult, factsResult, planningResult, notesResult] = await Promise.all([
     supabase.from("os_events").select("id,primary_contact_id,day_of_contact_id,title,event_type,status,starts_at,ends_at,timezone,guest_count,venue_name,venue_address_1,venue_address_2,venue_city,venue_state,venue_postal_code,venue_country,settings,created_at,updated_at").eq("id", eventId).maybeSingle(),
     supabase.from("os_bookings").select("id,event_id,accepted_quote_version_id,status,contract_status,payment_status,total_amount,deposit_amount,balance_due,balance_due_at,booked_at,metadata,created_at,updated_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("os_activity_events").select("id,event_type,occurred_at,created_at,visibility").eq("event_id", eventId).order("occurred_at", { ascending: false }).limit(20),
@@ -67,6 +68,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
     supabase.from("os_files").select("id,file_name,category,mime_type,size_bytes,visibility,created_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(50),
     supabase.from("os_event_facts").select("id,fact_key,value,is_confirmed,source").eq("event_id", eventId).in("fact_key", WORKSPACE_FACT_KEYS),
     supabase.from("os_planning_assignments").select("id,status,progress_percent,last_saved_at,submitted_at,created_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("os_event_notes").select("id,body,is_pinned,created_at,updated_at").eq("event_id", eventId).eq("note_type", "event_day").eq("status", "active").eq("visibility", "staff").order("is_pinned", { ascending: false }).order("created_at", { ascending: false }),
   ]);
 
   if (eventResult.error || !eventResult.data) notFound();
@@ -92,6 +94,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   const tasks = (tasksResult.data ?? []) as AnyRow[];
   const files = (filesResult.data ?? []) as AnyRow[];
   const planning = (planningResult.data ?? null) as AnyRow | null;
+  const eventDayNotes = (notesResult.data ?? []) as EventDayNote[];
   const loadResults = [["Booking", bookingResult.error], ["Services", servicesResult.error], ["Activity", activityResult.error], ["Quote", quoteResult.error], ["Contact", contactResult.error], ["Day-of contact", dayOfContactResult.error], ["Contact selector", contactOptionsResult.error], ["Tasks", tasksResult.error], ["Documents", filesResult.error], ["Event facts", factsResult.error], ["Planning", planningResult.error]] as const;
   const loadWarnings = loadResults.filter(([, error]) => error).map(([label]) => label);
   const operational = extractOperationalDetails({ event, contact, booking, facts: factsResult.data ?? [] });
@@ -141,6 +144,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
 
       <div className="workspace-grid">
         <section className="workspace-section workspace-overview" id="overview"><header><span className="eyebrow">Gig at a glance</span><h2>Event-day essentials</h2></header><dl className="workspace-facts workspace-facts-priority"><Fact label="Client / organization">{text(contact?.display_name, "Client not provided")}{contact?.organization_name ? ` · ${contact.organization_name}` : ""}</Fact><Fact label="Event">{text(event.title, "Untitled event")} · {text(event.event_type, "Type not provided")}</Fact><Fact label="Date">{dateOnly(event.starts_at)}</Fact><Fact label="Event time">{timeOnly(event.starts_at)} – {timeOnly(event.ends_at)}</Fact><Fact label="Venue">{text(event.venue_name, "Venue not provided")}</Fact><Fact label="Address">{fullAddress || "Full address not provided"}</Fact><Fact label="Room / area">{text(operational.roomArea)}</Fact><Fact label="Indoor / outdoor">{text(operational.environment)}</Fact></dl></section>
+        <section className="workspace-section workspace-wide event-day-notes-section" id="event-day-notes"><header><span className="eyebrow">Event-Day Notes</span><h2>Pinned instructions and reminders</h2></header><EventDayNotesEditor action={upsertEventDayNoteAction} eventId={eventId} loadFailed={Boolean(notesResult.error)} notes={eventDayNotes} /></section>
         <section className="workspace-section workspace-wide" id="operations"><header><span className="eyebrow">Our operational times</span><h2>Arrival through load-out</h2></header><dl className="operations-timeline">{operationalTimes.map(([label, value]) => <Fact key={label} label={label}>{operationalTime(label, value)}</Fact>)}</dl><p className="workspace-help">Missing operational times are shown honestly. Event start/end do not imply staff arrival, load-in, setup, breakdown, or must-be-out times.</p><OperationalTimingEditor action={updateOperationalTimingAction} eventId={eventId} initialValues={timingFormValues} /></section>
         <section className="workspace-section workspace-wide logistics-section" id="logistics"><header><span className="eyebrow">Event-day logistics</span><h2>Staff arrival and venue access</h2></header><dl className="workspace-facts logistics-facts"><Fact label="Staff call">{formatClockTime(operational.staffCallTime)}</Fact><Fact label="Setup start">{formatClockTime(operational.setupStart)}</Fact><Fact label="Room / area">{text(operational.roomArea)}</Fact><Fact label="Load-in / access notes">{text(operational.loadInDetails)}</Fact></dl><EventDayLogisticsEditor action={updateEventDayLogisticsAction} eventId={eventId} initialValues={logisticsFormValues} /></section>
         <section className="workspace-section workspace-wide important-section" id="important"><header><span className="eyebrow">Important details</span><h2>What could matter on event day</h2></header>{importantDetails.length ? <dl className="workspace-facts">{importantDetails.map(([label, value]) => <Fact key={String(label)} label={String(label)}>{text(value)}</Fact>)}</dl> : <EmptyFoundation>No special-instruction, environment, experience-goal, or client-note details are recorded in the current allow-listed fields.</EmptyFoundation>}</section>
