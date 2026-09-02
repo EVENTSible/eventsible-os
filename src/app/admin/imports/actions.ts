@@ -7,6 +7,7 @@ import {
   existingGigImportRpcError,
   EXISTING_GIG_CANDIDATE_VERSION,
 } from "@/lib/existing-gig-intake.mjs";
+import { executeGigSaladCandidateSync, GigSaladSyncError } from "@/lib/gigsalad-ical-sync.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
 
@@ -16,6 +17,22 @@ export type ImportActionState = {
   errors?: Record<string, string>;
   candidateId?: string;
   eventId?: string;
+};
+
+export type GigSaladSyncCounts = {
+  discovered: number;
+  new: number;
+  refreshed: number;
+  unchanged: number;
+  preserved: number;
+  skipped: number;
+  warnings: number;
+};
+
+export type GigSaladSyncActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  counts?: GigSaladSyncCounts;
 };
 
 function value(formData: FormData, name: string) {
@@ -34,6 +51,76 @@ function refreshIntake(eventId?: string) {
   revalidatePath("/admin/calendar");
   revalidatePath("/admin");
   if (eventId) revalidatePath(`/admin/gigs/${eventId}`);
+}
+
+function gigSaladSyncErrorMessage(error: unknown) {
+  const code = error instanceof GigSaladSyncError ? error.code : "unknown";
+  const messages: Record<string, string> = {
+    feed_not_configured: "GigSalad is not configured for this environment.",
+    feed_configuration_invalid: "The server-side GigSalad feed configuration is invalid.",
+    feed_fetch_timeout: "GigSalad did not respond within the bounded sync window. Nothing was imported.",
+    feed_fetch_failed: "The GigSalad calendar could not be fetched. Nothing was imported.",
+    feed_too_large: "The GigSalad calendar exceeds the 1 MiB safety limit. Nothing was imported.",
+    feed_parse_failed: "The GigSalad calendar could not be parsed safely. Nothing was imported.",
+    candidate_read_failed: "Existing import candidates could not be checked. No candidate was created.",
+  };
+  return messages[code] ?? "GigSalad sync could not be completed safely.";
+}
+
+export async function syncGigSaladCandidatesAction(
+  _previousState: GigSaladSyncActionState,
+  _formData: FormData,
+): Promise<GigSaladSyncActionState> {
+  void _previousState;
+  void _formData;
+  const staff = await requireStaff();
+  if (!staff) return { status: "error", message: "Sign in with an approved staff account." };
+
+  try {
+    const synced = await executeGigSaladCandidateSync({
+      actorUserId: staff.user.id,
+      feedUrl: process.env.GIGSALAD_ICAL_FEED_URL,
+      loadExistingCandidates: async (references: string[]) => {
+        const existing: Array<Record<string, unknown>> = [];
+        for (let index = 0; index < references.length; index += 40) {
+          const read = await staff.supabase
+            .from("os_event_import_candidates")
+            .select("id,source,external_reference,proposed_data,review_status")
+            .eq("source", "gigsalad_ical")
+            .in("external_reference", references.slice(index, index + 40));
+          if (read.error) throw new Error("candidate_read_failed");
+          existing.push(...(read.data ?? []));
+        }
+        return existing;
+      },
+      insertCandidate: async (candidate: Record<string, unknown>) => {
+        const write = await staff.supabase
+          .from("os_event_import_candidates")
+          .insert(candidate)
+          .select("id")
+          .maybeSingle();
+        if (write.error?.code === "23505") return "duplicate";
+        if (write.error || !write.data) return "failed";
+        return "created";
+      },
+    });
+
+    if (synced.counts.new > 0) refreshIntake();
+    if (synced.write_failures > 0) {
+      return {
+        status: "error",
+        message: "GigSalad was read, but some candidate writes were skipped. No canonical gigs were created.",
+        counts: synced.counts,
+      };
+    }
+    return {
+      status: "success",
+      message: "GigSalad sync completed. Import Review candidates only; no canonical gigs were created.",
+      counts: synced.counts,
+    };
+  } catch (error) {
+    return { status: "error", message: gigSaladSyncErrorMessage(error) };
+  }
 }
 
 export async function createManualImportCandidateAction(

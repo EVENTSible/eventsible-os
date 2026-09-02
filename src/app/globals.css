@@ -868,6 +868,13 @@ a { color: inherit; text-decoration: none; }
 .intake-main { min-width: 0; }
 .intake-header p { max-width: 800px; line-height: 1.6; }
 .intake-foundation { display: grid; gap: 24px; margin-top: 28px; }
+.intake-source-panel { border-color: rgba(82,48,123,.2); background: linear-gradient(135deg, #fff 0%, #faf7fd 100%); }
+.intake-source-actions { margin-top: 16px; }
+.intake-source-actions button { min-height: 44px; }
+.intake-sync-counts { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin: 16px 0 0; }
+.intake-sync-counts > div { min-width: 0; display: grid; gap: 3px; border-radius: 10px; padding: 10px; background: white; }
+.intake-sync-counts dt { color: var(--muted); font-size: .65rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.intake-sync-counts dd { margin: 0; color: var(--ink); font-size: 1.05rem; font-weight: 900; }
 .intake-add-panel .panel-heading button { min-height: 44px; }
 .intake-form { margin-top: 18px; border-top: 1px solid #eee9f4; padding-top: 18px; }
 .intake-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -950,6 +957,7 @@ a { color: inherit; text-decoration: none; }
   .agenda-classification { grid-column: 2; }
   .intake-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .intake-candidate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .intake-sync-counts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 700px) {
@@ -1044,6 +1052,8 @@ a { color: inherit; text-decoration: none; }
   .agenda-classification { grid-column: auto; }
   .date-checker .panel-heading { align-items: flex-start; flex-direction: column; }
   .intake-form-grid, .intake-candidate-grid { grid-template-columns: 1fr; }
+  .intake-sync-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .intake-source-actions button { width: 100%; }
   .intake-add-panel .panel-heading, .intake-review-heading, .intake-candidate > header { align-items: stretch; flex-direction: column; }
   .intake-add-panel .panel-heading button { width: 100%; }
   .intake-choice-row { display: grid; grid-template-columns: 1fr; }
