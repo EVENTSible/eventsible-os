@@ -245,6 +245,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <nav>
           <a className="active" href="/admin">Mission Control</a>
           <a href="/admin/calendar">Calendar / Date Book</a>
+          <a href="/admin/imports">Existing Gig Intake</a>
           <a href="#lead-review">Lead Review</a>
           <a href="#quote-review">Quotes</a>
           <a href="#hero-workspaces">Hero Workspaces</a>
@@ -266,6 +267,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </div>
           <div className="header-actions">
             <a className="secondary-button" href="/admin/calendar">Open calendar</a>
+            <a className="secondary-button" href="/admin/imports">Add existing gig</a>
             <a className="secondary-button" href="#lead-review">Review leads</a>
             <a className="primary-button" href="#quote-review">Approve quotes</a>
           </div>

@@ -32,6 +32,7 @@ export default async function CalendarPage() {
         <nav>
           <a href="/admin">Mission Control</a>
           <a className="active" href="/admin/calendar">Calendar / Date Book</a>
+          <a href="/admin/imports">Existing Gig Intake</a>
           <a href="/admin#lead-review">Lead Review</a>
           <a href="/admin#gig-workspace">Booked Gigs</a>
         </nav>
