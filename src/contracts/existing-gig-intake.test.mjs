@@ -12,6 +12,7 @@ const migration = readFileSync(new URL("../../supabase/migrations/20260902172423
 const actions = readFileSync(new URL("../app/admin/imports/actions.ts", import.meta.url), "utf8");
 const page = readFileSync(new URL("../app/admin/imports/page.tsx", import.meta.url), "utf8");
 const component = readFileSync(new URL("../components/existing-gig-import-review.tsx", import.meta.url), "utf8");
+const localVerificationSchema = readFileSync(new URL("../../supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql", import.meta.url), "utf8");
 const schemaDdl = migration.split("create function public.os_import_existing_gig")[0];
 const authenticatedUpdateGrant = migration.match(/grant update \([^]*?\) on table public\.os_event_import_candidates to authenticated;/i)?.[0] ?? "";
 
@@ -97,6 +98,14 @@ test("candidate schema is staff-private, bounded, unique, and has no delete capa
   assert.match(migration, /for insert\s+to authenticated\s+with check[^]*created_by_user_id = \(select auth\.uid\(\)\)/i);
   assert.doesNotMatch(migration, /create policy[^;]+for delete/i);
   assert.doesNotMatch(migration, /grant delete/i);
+});
+
+test("CI-local schema provides only the apply-time booking and timestamp dependencies", () => {
+  assert.match(localVerificationSchema, /create table if not exists public\.os_bookings \(\s*id uuid primary key default gen_random_uuid\(\)\s*\);/i);
+  assert.match(localVerificationSchema, /create or replace function public\.os_set_updated_at\(\)[^]*returns trigger[^]*new\.updated_at = now\(\)/i);
+  assert.match(localVerificationSchema, /alter table public\.os_bookings enable row level security/i);
+  assert.match(localVerificationSchema, /revoke all on public\.os_bookings from anon, authenticated/i);
+  assert.doesNotMatch(localVerificationSchema, /create table if not exists public\.os_booking_services/i);
 });
 
 test("direct staff review cannot claim an imported result", () => {
