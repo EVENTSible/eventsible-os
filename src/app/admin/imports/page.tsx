@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
-import { createManualImportCandidateAction, importExistingGigAction, reviewImportCandidateAction } from "@/app/admin/imports/actions";
+import {
+  createManualImportCandidateAction,
+  importExistingGigAction,
+  reviewImportCandidateAction,
+  syncGigSaladCandidatesAction,
+} from "@/app/admin/imports/actions";
 import { ExistingGigImportReview } from "@/components/existing-gig-import-review";
 import { LogoutButton } from "@/components/logout-button";
 import { Wordmark } from "@/components/wordmark";
@@ -117,9 +122,11 @@ export default async function ExistingGigIntakePage() {
         contacts={contacts}
         createAction={createManualImportCandidateAction}
         events={events}
+        gigsaladConfigured={Boolean(process.env.GIGSALAD_ICAL_FEED_URL?.trim())}
         importAction={importExistingGigAction}
         reviewAction={reviewImportCandidateAction}
         services={services}
+        syncGigSaladAction={syncGigSaladCandidatesAction}
         todayKey={todayKey}
       />
     </main>

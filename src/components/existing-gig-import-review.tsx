@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ImportActionState } from "@/app/admin/imports/actions";
+import type { GigSaladSyncActionState, ImportActionState } from "@/app/admin/imports/actions";
 import { EXISTING_GIG_NOTES_LIMIT, EXISTING_GIG_TIME_ZONES } from "@/lib/existing-gig-intake.mjs";
 
 type ContactOption = { id: string; label: string; email: string | null; phone: string | null };
@@ -29,12 +29,15 @@ type Props = {
   services: ServiceOption[];
   events: EventOption[];
   todayKey: string;
+  gigsaladConfigured: boolean;
   createAction: (state: ImportActionState, formData: FormData) => Promise<ImportActionState>;
   reviewAction: (state: ImportActionState, formData: FormData) => Promise<ImportActionState>;
   importAction: (state: ImportActionState, formData: FormData) => Promise<ImportActionState>;
+  syncGigSaladAction: (state: GigSaladSyncActionState, formData: FormData) => Promise<GigSaladSyncActionState>;
 };
 
 const INITIAL: ImportActionState = { status: "idle", message: "" };
+const SYNC_INITIAL: GigSaladSyncActionState = { status: "idle", message: "" };
 
 function plainObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -65,6 +68,32 @@ function Message({ state }: { state: ImportActionState }) {
 
 function FieldError({ name, state }: { name: string; state: ImportActionState }) {
   return state.errors?.[name] ? <small className="field-error" id={`${name}-error`}>{state.errors[name]}</small> : null;
+}
+
+function GigSaladSourcePanel({ configured, syncAction }: { configured: boolean; syncAction: Props["syncGigSaladAction"] }) {
+  const router = useRouter();
+  async function submit(state: GigSaladSyncActionState, formData: FormData) {
+    const next = await syncAction(state, formData);
+    if (next.status === "success" && next.counts?.new) router.refresh();
+    return next;
+  }
+  const [state, action, pending] = useActionState(submit, SYNC_INITIAL);
+  const counts = state.counts;
+
+  return <section className="panel intake-source-panel" aria-labelledby="gigsalad-source-heading">
+    <header className="panel-heading">
+      <div><span className="eyebrow">External source</span><h2 id="gigsalad-source-heading">GigSalad iCal</h2></div>
+      <span className={`status-pill ${configured ? "success" : "warning"}`}>{configured ? "Configured" : "Not configured"}</span>
+    </header>
+    <p className="panel-note">Manual sync creates staff-private Import Review candidates only. It never creates contacts, events, bookings, services, or Calendar entries.</p>
+    <form action={action} className="intake-source-actions">
+      <button className="secondary-button" disabled={!configured || pending} type="submit">{pending ? "Syncing GigSalad…" : "Sync GigSalad"}</button>
+    </form>
+    {state.message ? <p className={state.status === "error" ? "operational-message error" : "operational-message success"} role={state.status === "error" ? "alert" : "status"}>{state.message}</p> : null}
+    {counts ? <dl className="intake-sync-counts">
+      {Object.entries(counts).map(([name, count]) => <div key={name}><dt>{name.replaceAll("_", " ")}</dt><dd>{count}</dd></div>)}
+    </dl> : null}
+  </section>;
 }
 
 function ManualCandidateForm({ contacts, services, todayKey, createAction }: Pick<Props, "contacts" | "services" | "todayKey" | "createAction">) {
@@ -142,12 +171,13 @@ function CandidateCard({ candidate, services, events, reviewAction, importAction
   const [importState, importFormAction, importPending] = useActionState(refreshAfter.bind(null, importAction), INITIAL);
   const status = candidate.review_status.replaceAll("_", " ");
   const canonicalLink = candidate.imported_event_id ?? candidate.matched_event_id;
+  const address = [event.venue_address_1, event.venue_city, event.venue_state].map(stringValue).filter(Boolean).join(", ");
 
   return <article className={`intake-candidate intake-candidate-${candidate.review_status}`}>
     <header><div><span className="eyebrow">{candidate.source}</span><h3>{stringValue(event.title) ?? "Untitled candidate"}</h3></div><span className="status-pill">{status}</span></header>
     <div className="intake-candidate-grid">
       <div><span>Date / time</span><b>{dateTime(event.starts_at, stringValue(event.timezone) ?? undefined)}</b><small>{event.ends_at ? `Ends ${dateTime(event.ends_at, stringValue(event.timezone) ?? undefined)}` : "End not supplied"}</small></div>
-      <div><span>Venue</span><b>{stringValue(event.venue_name) ?? "Not supplied"}</b><small>{[event.venue_city, event.venue_state].map(stringValue).filter(Boolean).join(", ") || "Address not supplied"}</small></div>
+      <div><span>Venue / location</span><b>{stringValue(event.venue_name) ?? stringValue(event.venue_address_1) ?? "Not supplied"}</b><small>{stringValue(event.venue_name) ? address || "Address not supplied" : address ? "Source address evidence" : "Address not supplied"}</small></div>
       <div><span>Contact decision</span><b>{contact.mode === "reuse" ? "Reuse canonical contact" : stringValue(contact.display_name) ?? "Create reviewed contact"}</b><small>{contact.mode === "reuse" ? "Selected by canonical ID" : contact.primary_email ? "Email supplied" : contact.primary_phone ? "Phone supplied" : "Contact channel missing"}</small></div>
       <div><span>Booked amount</span><b>{money(proposal.booked_amount)}</b><small>{selectedServices.length ? selectedServices.map((service) => service.name).join(", ") : "No valid services selected"}</small></div>
     </div>
@@ -169,6 +199,7 @@ function CandidateCard({ candidate, services, events, reviewAction, importAction
 export function ExistingGigImportReview(props: Props) {
   const [adding, setAdding] = useState(false);
   return <div className="intake-foundation">
+    <GigSaladSourcePanel configured={props.gigsaladConfigured} syncAction={props.syncGigSaladAction} />
     <section className="panel intake-add-panel">
       <header className="panel-heading"><div><span className="eyebrow">Manual Add Existing Gig</span><h2>Create a reviewed proposal first</h2></div><button className="secondary-button" onClick={() => setAdding((current) => !current)} type="button" aria-expanded={adding}>{adding ? "Close form" : "Add Existing Gig"}</button></header>
       <p className="panel-note">This step creates a staff-private candidate only. A canonical gig is created only after a separate Import as New Gig decision.</p>
