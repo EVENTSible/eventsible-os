@@ -1429,3 +1429,163 @@ a { color: inherit; text-decoration: none; }
   .hq-main-content > .review-main,
   .hq-main-content > .workspace-main { padding: 0; }
 }
+
+/* Public eventsible.biz front door */
+.front-door {
+  min-height: 100svh;
+  overflow-x: clip;
+  color: #281733;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(109, 40, 217, .12), transparent 28rem),
+    linear-gradient(180deg, #fff 0%, #faf7fc 58%, #f3edf7 100%);
+}
+.front-door-header,
+.front-door-content,
+.front-door-footer { width: min(1180px, calc(100% - 48px)); margin-inline: auto; }
+.front-door-header {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid rgba(53, 20, 95, .12);
+}
+.front-door-header .wordmark { color: #35145f; }
+.front-door-header .wordmark small { color: #725f7e; }
+.front-door-help-link,
+.front-door-support-actions a,
+.front-door-contact-actions a,
+.front-door-staff-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 850;
+  text-decoration: none;
+}
+.front-door-help-link { border: 1px solid rgba(78, 35, 110, .22); color: #4d176b; background: rgba(255,255,255,.72); }
+.front-door-content { padding-block: 48px 34px; }
+.front-door-intro { max-width: 800px; }
+.front-door-kicker {
+  margin: 0 0 8px;
+  color: #6d28d9;
+  font-size: .78rem;
+  font-weight: 950;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+.front-door-intro h1 {
+  max-width: 760px;
+  margin: 0;
+  color: #35145f;
+  font-size: clamp(2.7rem, 6vw, 5.2rem);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+.front-door-lede { max-width: 660px; margin: 18px 0 0; color: #66556f; font-size: clamp(1.02rem, 2vw, 1.25rem); line-height: 1.55; }
+.front-door-routes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 34px; }
+.front-door-route {
+  min-width: 0;
+  min-height: 184px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 20px;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid rgba(67, 34, 88, .15);
+  border-radius: 18px;
+  padding: 20px;
+  color: #2f1b39;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 12px 30px rgba(55, 28, 73, .06);
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.front-door-route:hover { transform: translateY(-2px); border-color: rgba(109, 40, 217, .4); box-shadow: 0 16px 34px rgba(55, 28, 73, .1); }
+.front-door-route-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: #fff;
+  background: #6d28d9;
+  font-size: 1.1rem;
+  font-weight: 950;
+}
+.front-door-route-copy { min-width: 0; display: grid; gap: 6px; }
+.front-door-route-eyebrow { color: #7b6685; font-size: .72rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+.front-door-route-copy strong { color: #35145f; font-size: 1.2rem; line-height: 1.15; }
+.front-door-route-copy > span:last-child { color: #6b5c73; font-size: .91rem; line-height: 1.45; }
+.front-door-route-arrow { color: #6d28d9; font-size: 1.2rem; font-weight: 950; }
+.front-door-support,
+.front-door-contact,
+.front-door-staff {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  border-radius: 18px;
+  padding: 22px 24px;
+}
+.front-door-support { margin-top: 24px; border: 1px solid #e4d9eb; background: #fff; }
+.front-door-contact { margin-top: 14px; color: #fff; background: #35145f; }
+.front-door-staff { margin-top: 14px; border: 1px dashed #cfc0d8; background: rgba(255,255,255,.5); }
+.front-door-support h2,
+.front-door-contact h2,
+.front-door-staff h2 { margin: 0; font-size: clamp(1.3rem, 2vw, 1.65rem); }
+.front-door-support p:last-child,
+.front-door-contact p:last-child,
+.front-door-staff p:last-child { margin: 6px 0 0; color: #74627d; line-height: 1.5; }
+.front-door-contact .front-door-kicker { color: #d8b4fe; }
+.front-door-contact p:last-child { color: #ddcfe5; }
+.front-door-support-actions,
+.front-door-contact-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.front-door-support-actions a { border: 1px solid #d9cce2; color: #531b76; background: #faf7fc; }
+.front-door-contact-actions a { border: 1px solid rgba(255,255,255,.24); color: #fff; background: rgba(255,255,255,.08); }
+.front-door-staff-link { min-width: 118px; color: #fff; background: #6d28d9; }
+.front-door a:focus-visible { outline: 3px solid #d4a017; outline-offset: 3px; }
+.front-door-footer {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid rgba(53, 20, 95, .12);
+  color: #75657d;
+  font-size: .88rem;
+}
+.front-door-footer a { min-height: 44px; display: inline-flex; align-items: center; color: #531b76; font-weight: 800; }
+
+@media (max-width: 1040px) {
+  .front-door-routes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .front-door-route { min-height: 154px; }
+}
+
+@media (max-width: 700px) {
+  .front-door-header,
+  .front-door-content,
+  .front-door-footer { width: min(100% - 28px, 1180px); }
+  .front-door-header { min-height: 72px; gap: 12px; }
+  .front-door-header .wordmark small { display: none; }
+  .front-door-help-link { padding-inline: 12px; font-size: .82rem; }
+  .front-door-content { padding-block: 30px 24px; }
+  .front-door-intro h1 { font-size: clamp(2.45rem, 13vw, 3.6rem); }
+  .front-door-lede { margin-top: 14px; font-size: 1rem; }
+  .front-door-routes { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 24px; }
+  .front-door-route { min-height: 0; grid-template-columns: 42px minmax(0, 1fr) 20px; padding: 16px; }
+  .front-door-support,
+  .front-door-contact,
+  .front-door-staff { align-items: stretch; flex-direction: column; gap: 16px; padding: 18px; }
+  .front-door-support-actions,
+  .front-door-contact-actions { justify-content: stretch; }
+  .front-door-support-actions a,
+  .front-door-contact-actions a,
+  .front-door-staff-link { width: 100%; }
+  .front-door-footer { align-items: flex-start; flex-direction: column; justify-content: center; gap: 2px; padding-block: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .front-door-route { scroll-behavior: auto; transition: none; }
+}
