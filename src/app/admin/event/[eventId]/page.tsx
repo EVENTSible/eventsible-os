@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Wordmark } from "@/components/wordmark";
 import { formatEventAnswer } from "@/lib/event-hero.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
@@ -45,12 +44,10 @@ export default async function EventHeroReviewPage({ params }: PageProps) {
   const latestUpdate = (answersResult.data ?? []).map((row) => row.updated_at).filter(Boolean).sort().at(-1) ?? null;
 
   return (
-    <div className="review-shell">
-      <nav className="review-nav"><div><Wordmark compact /><span>Event Hero review</span></div><div><Link href="/admin">Back to Mission Control</Link><Link href={`/client/event/${eventId}`}>Open client preview</Link></div></nav>
-      <main className="review-main">
+    <div className="review-main">
         <header className="review-header">
           <div><span className="eyebrow">Event Hero summary</span><h1>{eventResult.data.title ?? "Event"}</h1><p>{eventResult.data.primary_contact_name ?? "Client"} · {formatDate(eventResult.data.starts_at)} · {eventResult.data.venue_name ?? "Venue not set"}</p></div>
-          <div className="review-status"><b>{eventResult.data.progress_percent ?? 0}%</b><span>{statusLabel(eventResult.data.planning_status)}</span><small>{latestUpdate ? `Last answer ${formatDate(latestUpdate)}` : "No answers saved yet"}</small></div>
+          <div className="review-status"><b>{eventResult.data.progress_percent ?? 0}%</b><span>{statusLabel(eventResult.data.planning_status)}</span><small>{latestUpdate ? `Last answer ${formatDate(latestUpdate)}` : "No answers saved yet"}</small><Link className="secondary-button compact-button" href={`/client/event/${eventId}`}>Open client preview</Link></div>
         </header>
         {sectionResult.error || questionResult.error || answersResult.error ? <div className="alert error">Event Hero answers could not be fully loaded.</div> : null}
         <div className="review-sections">{(sectionResult.data ?? []).map((section) => (
@@ -63,7 +60,6 @@ export default async function EventHeroReviewPage({ params }: PageProps) {
             })}</dl>
           </section>
         ))}</div>
-      </main>
     </div>
   );
 }

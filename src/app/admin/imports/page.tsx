@@ -6,8 +6,6 @@ import {
   syncGigSaladCandidatesAction,
 } from "@/app/admin/imports/actions";
 import { ExistingGigImportReview } from "@/components/existing-gig-import-review";
-import { LogoutButton } from "@/components/logout-button";
-import { Wordmark } from "@/components/wordmark";
 import { HQ_CALENDAR_TIME_ZONE, localDateKey } from "@/lib/hq-calendar.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
@@ -99,19 +97,7 @@ export default async function ExistingGigIntakePage() {
   const events = (eventResult.data ?? []).filter((row) => row.event_id).map((row) => ({ id: row.event_id as string, label: eventLabel(row), startsAt: row.starts_at }));
   const todayKey = localDateKey(new Date(), HQ_CALENDAR_TIME_ZONE) ?? new Date().toISOString().slice(0, 10);
 
-  return <div className="admin-shell intake-shell">
-    <aside className="sidebar">
-      <div className="sidebar-brand"><Wordmark compact /><span>Operating System</span></div>
-      <nav>
-        <a href="/admin">Mission Control</a>
-        <a href="/admin/calendar">Calendar / Date Book</a>
-        <a className="active" href="/admin/imports">Existing Gig Intake</a>
-        <a href="/admin#lead-review">Lead Review</a>
-        <a href="/admin#gig-workspace">Booked Gigs</a>
-      </nav>
-      <div className="sidebar-footer"><span className="role-pill">{String(role)}</span><LogoutButton /></div>
-    </aside>
-    <main className="admin-main intake-main">
+  return <div className="admin-main intake-main">
       <header className="admin-header intake-header">
         <div><span className="eyebrow">Existing Gig Intake / Import Review</span><h1>Review first. Import once. Keep one canonical gig.</h1><p>Manual and future source adapters create bounded staff-private proposals. Only an explicit Import as New Gig decision creates the canonical contact, event, confirmed booking, services, and workspace.</p></div>
         <div className="header-actions"><a className="secondary-button" href="/admin/calendar">Calendar</a><a className="primary-button" href="/admin">Mission Control</a></div>
@@ -129,6 +115,5 @@ export default async function ExistingGigIntakePage() {
         syncGigSaladAction={syncGigSaladCandidatesAction}
         todayKey={todayKey}
       />
-    </main>
   </div>;
 }

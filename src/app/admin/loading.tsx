@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <main className="loading-shell">
+    <div className="loading-shell">
       <div className="loading-card" />
       <div className="loading-grid">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -8,6 +8,6 @@ export default function Loading() {
         ))}
       </div>
       <div className="loading-card tall" />
-    </main>
+    </div>
   );
 }

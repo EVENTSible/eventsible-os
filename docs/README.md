@@ -57,6 +57,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | HQ Phase 1 foundation | [EVENTSIBLE_HQ_PHASE_1_FOUNDATION.md](architecture/EVENTSIBLE_HQ_PHASE_1_FOUNDATION.md) |
 | HQ Phase 1.5 readiness and operations contract | [EVENTSIBLE_HQ_PHASE_1_5_READINESS.md](architecture/EVENTSIBLE_HQ_PHASE_1_5_READINESS.md) |
 | HQ Calendar and Existing Gig Intake foundation | [EVENTSIBLE_HQ_CALENDAR_AND_INTAKE_FOUNDATION.md](architecture/EVENTSIBLE_HQ_CALENDAR_AND_INTAKE_FOUNDATION.md) |
+| HQ shared application shell | [EVENTSIBLE_HQ_SHARED_SHELL.md](architecture/EVENTSIBLE_HQ_SHARED_SHELL.md) |
 | Builder to OS integration | [EVENT_BUILDER_TO_OS.md](integrations/EVENT_BUILDER_TO_OS.md) |
 | Wedding Hero resources | [WEDDING_HERO_RESOURCES_2026-08-19.md](integrations/WEDDING_HERO_RESOURCES_2026-08-19.md) |
 | Ecosystem integration foundation | [ECOSYSTEM_INTEGRATION_FOUNDATION.md](integrations/ECOSYSTEM_INTEGRATION_FOUNDATION.md) |
