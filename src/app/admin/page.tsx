@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 import { activateWeddingCompanionAction, approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
-import { LogoutButton } from "@/components/logout-button";
-import { Wordmark } from "@/components/wordmark";
 import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, MISSION_CONTROL_SELECTS, nextLeadAction, QUOTE_APPROVAL_STATUS } from "@/lib/mission-control.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { EventDashboardRow, isStaffRole } from "@/lib/types";
@@ -236,29 +234,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const errorNotice = noticeText(params, "error");
 
   return (
-    <div className="admin-shell">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <Wordmark compact />
-          <span>Operating System</span>
-        </div>
-        <nav>
-          <a className="active" href="/admin">Mission Control</a>
-          <a href="/admin/calendar">Calendar / Date Book</a>
-          <a href="/admin/imports">Existing Gig Intake</a>
-          <a href="#lead-review">Lead Review</a>
-          <a href="#quote-review">Quotes</a>
-          <a href="#hero-workspaces">Hero Workspaces</a>
-          <a href="#gig-workspace">Booked Gigs</a>
-          <a href="#automation">Automation</a>
-        </nav>
-        <div className="sidebar-footer">
-          <span className="role-pill">{String(role)}</span>
-          <LogoutButton />
-        </div>
-      </aside>
-
-      <main className="admin-main">
+      <div className="admin-main mission-main">
         <header className="admin-header mission-header">
           <div>
             <span className="eyebrow">Mission Control</span>
@@ -432,7 +408,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             )}
           </div>
         </section>
-      </main>
-    </div>
+      </div>
   );
 }

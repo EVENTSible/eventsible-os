@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 import { HqCalendar, type CalendarEvent } from "@/components/hq-calendar";
-import { LogoutButton } from "@/components/logout-button";
-import { Wordmark } from "@/components/wordmark";
 import { HQ_CALENDAR_TIME_ZONE, localDateKey, shapeCalendarEvent } from "@/lib/hq-calendar.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
@@ -26,22 +24,9 @@ export default async function CalendarPage() {
   const todayKey = localDateKey(new Date(), HQ_CALENDAR_TIME_ZONE) ?? new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="admin-shell calendar-shell">
-      <aside className="sidebar">
-        <div className="sidebar-brand"><Wordmark compact /><span>Operating System</span></div>
-        <nav>
-          <a href="/admin">Mission Control</a>
-          <a className="active" href="/admin/calendar">Calendar / Date Book</a>
-          <a href="/admin/imports">Existing Gig Intake</a>
-          <a href="/admin#lead-review">Lead Review</a>
-          <a href="/admin#gig-workspace">Booked Gigs</a>
-        </nav>
-        <div className="sidebar-footer"><span className="role-pill">{String(role)}</span><LogoutButton /></div>
-      </aside>
-      <main className="admin-main calendar-main">
+      <div className="admin-main calendar-main">
         <header className="admin-header calendar-header"><div><span className="eyebrow">Calendar / Date Book</span><h1>Know what is booked before the day gets complicated.</h1><p>Canonical EVENTSible OS events, conservative booked/open dates, and one path back to each Gig Workspace.</p></div><div className="header-actions"><a className="secondary-button" href="/admin">Mission Control</a><a className="primary-button" href="/admin#gig-workspace">Booked Gigs</a></div></header>
         {result.error ? <div className="alert warning"><b>Calendar data could not be loaded.</b><p>No date is being represented as Open or Booked from an unavailable query.</p></div> : <HqCalendar events={scheduled} todayKey={todayKey} unscheduledCount={unscheduledCount} />}
-      </main>
-    </div>
+      </div>
   );
 }

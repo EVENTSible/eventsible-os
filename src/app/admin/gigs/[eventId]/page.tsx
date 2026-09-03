@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { updateDayOfContactAction, updateEventDayLogisticsAction, updateOperationalTimingAction, upsertEventDayNoteAction } from "@/app/admin/actions";
@@ -6,7 +5,6 @@ import { DayOfContactEditor } from "@/components/day-of-contact-editor";
 import { EventDayLogisticsEditor } from "@/components/event-day-logistics-editor";
 import { EventDayNotesEditor, type EventDayNote } from "@/components/event-day-notes-editor";
 import { OperationalTimingEditor } from "@/components/operational-timing-editor";
-import { Wordmark } from "@/components/wordmark";
 import { buildGigReadiness, extractOperationalDetails } from "@/lib/gig-readiness.mjs";
 import { formatMoney } from "@/lib/mission-control.mjs";
 import { contactDisplayName, dayOfContactOption, dayOfContactRelationshipLabel, resolveDayOfContact } from "@/lib/day-of-contact.mjs";
@@ -123,9 +121,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   const logisticsFormValues = eventDayLogisticsFormValues(operational);
   const contactOptions = (contactOptionsResult.data ?? []).map((candidate) => dayOfContactOption(candidate, event.primary_contact_id)).filter(Boolean) as Array<{ id: string; label: string; isPrimary: boolean }>;
 
-  return <div className="workspace-shell">
-    <nav className="review-nav"><div><Wordmark compact /><span>Gig Workspace</span></div><div><Link href="/admin">Mission Control</Link></div></nav>
-    <main className="workspace-main">
+  return <div className="workspace-main">
       <header className="workspace-hero"><div><span className="eyebrow">Canonical Gig Workspace</span><h1>{text(event.title, "Untitled event")}</h1><p>{text(event.event_type, "Event type not provided")} · {dateOnly(event.starts_at)} · {location || "Venue/location not provided"}</p></div><div className="workspace-status-card"><span>Booking</span><b>{status(booking?.status ?? event.status)}</b><small>Event ID {eventId}</small></div></header>
       <div className="event-day-actions" aria-label="Event-day quick actions">
         {directions ? <a className="btn primary" href={directions} target="_blank" rel="noreferrer">Directions</a> : <span className="btn disabled" aria-disabled="true">Directions unavailable</span>}
@@ -158,6 +154,5 @@ export default async function GigWorkspacePage({ params }: PageProps) {
         <section className="workspace-section workspace-wide" id="activity"><header><span className="eyebrow">Activity / notes</span><h2>Event history</h2></header>{(activityResult.data ?? []).length ? <ol className="activity-list">{(activityResult.data ?? []).map((activity) => <li key={activity.id}><div><b>{status(activity.event_type)}</b><span>{dateTime(activity.occurred_at ?? activity.created_at)}</span></div></li>)}</ol> : <EmptyFoundation>No canonical activity entries are available for this event.</EmptyFoundation>}</section>
         <section className="workspace-section workspace-wide closeout-foundation"><header><span className="eyebrow">Closeout foundation</span><h2>Post-event work is not active yet</h2></header><p>Future closeout will track returned equipment, issues, payment completion, staff notes, Gig Log completion, deliverables, thank-you, and review-request eligibility. Lifecycle status and readiness remain separate.</p></section>
       </div>
-    </main>
   </div>;
 }
