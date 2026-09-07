@@ -60,3 +60,11 @@ test("front door preserves accessible responsive interaction contracts", () => {
   assert.match(page, /aria-label="EVENTSible gateway links"/);
   assert.match(page, /aria-label="Current client and live event access"/);
 });
+
+test("front door keeps the one-sheet dense without shrinking interaction targets", () => {
+  assert.match(styles, /\.front-door-hero \{[\s\S]*?min-height:\s*480px;/);
+  assert.match(styles, /\.front-door-path \{[^}]*min-height:\s*300px;/);
+  assert.match(styles, /\.front-door-hero-actions \{ display:\s*grid; grid-template-columns:\s*1fr 1fr;/);
+  assert.match(styles, /\.front-door-service-grid \{ grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(styles, /\.front-door-contact-actions a,[\s\S]*?min-height:\s*44px/);
+});
