@@ -55,6 +55,8 @@ test("front door preserves accessible responsive interaction contracts", () => {
   assert.match(styles, /@media \(max-width: 700px\)/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(styles, /overflow-x:\s*clip/);
+  assert.match(styles, /\.front-door-hero-actions > a \{ height:\s*48px;/);
+  assert.match(styles, /\.front-door-contact-actions \{[^}]*flex-wrap:\s*nowrap;/);
   assert.match(page, /aria-label="EVENTSible gateway links"/);
   assert.match(page, /aria-label="Current client and live event access"/);
 });

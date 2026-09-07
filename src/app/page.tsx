@@ -70,7 +70,7 @@ export default function HomePage() {
 
       <section className="front-door-contact" aria-labelledby="front-door-contact-title">
         <div><p className="front-door-kicker">Let’s make it happen</p><h2 id="front-door-contact-title">Tell us what you’re planning.</h2><p>Serving South Bend and surrounding Midwest areas within approximately 300 miles.</p></div>
-        <div className="front-door-contact-actions"><a href="https://eventsible.info/fast-track">Start a Quick Quote</a><a href="tel:+15742745213">Call (574) 274-5213</a><a href="sms:+15742745213">Text EVENTSible</a><a href="mailto:thepartys@eventsible.info">thepartys@eventsible.info</a></div>
+        <div className="front-door-contact-actions"><a href="https://eventsible.info/fast-track">Quick Quote</a><a href="tel:+15742745213" aria-label="Call EVENTSible at (574) 274-5213">Call</a><a href="sms:+15742745213" aria-label="Text EVENTSible at (574) 274-5213">Text</a><a href="mailto:thepartys@eventsible.info" aria-label="Email EVENTSible at thepartys@eventsible.info">Email</a></div>
       </section>
 
       <footer className="front-door-footer">

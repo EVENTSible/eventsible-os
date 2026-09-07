@@ -1645,6 +1645,7 @@ a { color: inherit; text-decoration: none; }
 .front-door-tagline { margin: 26px 0 0; color: #8b3b14; font-size: clamp(1.25rem, 2.4vw, 1.8rem); font-weight: 900; }
 .front-door-lede { max-width: 680px; margin-top: 10px; color: #5f4d66; }
 .front-door-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 28px; }
+.front-door-hero-actions > a { height: 48px; min-height: 48px; padding-block: 0; line-height: 1.2; }
 .front-door-primary,
 .front-door-secondary,
 .front-door-text-link,
@@ -1661,7 +1662,7 @@ a { color: inherit; text-decoration: none; }
 }
 .front-door-primary { color: #fff; background: var(--fd-purple); box-shadow: 5px 5px 0 var(--fd-gold); }
 .front-door-secondary { border: 2px solid var(--fd-purple); color: var(--fd-purple-dark); background: #fff; }
-.front-door-text-link { color: var(--fd-purple-dark); }
+.front-door-text-link { border: 2px solid transparent; color: var(--fd-purple-dark); }
 .front-door-hero-poster {
   position: relative;
   overflow: hidden;
@@ -1679,7 +1680,8 @@ a { color: inherit; text-decoration: none; }
 .front-door-hero-poster p { position: relative; z-index: 1; margin: 24px 0 0; color: #e9dcef; line-height: 1.55; }
 .front-door-one-sheet,
 .front-door-pathways { padding-block: clamp(64px, 9vw, 110px); }
-.front-door-one-sheet { border-block: 1px solid rgba(55, 16, 79, .12); }
+.front-door-one-sheet { border-block: 1px solid rgba(55, 16, 79, .12); padding-bottom: clamp(36px, 5vw, 56px); }
+.front-door-pathways { padding-top: clamp(36px, 5vw, 56px); }
 .front-door-section-heading { max-width: 790px; }
 .front-door-section-heading h2,
 .front-door-contact h2 { margin: 0; color: var(--fd-purple-dark); font-size: clamp(2.2rem, 5vw, 4.4rem); line-height: .98; letter-spacing: -.05em; }
@@ -1713,11 +1715,12 @@ a { color: inherit; text-decoration: none; }
 .front-door-now article > div:last-child { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; }
 .front-door-now article > div:last-child a { border: 1px solid #dacbe2; color: var(--fd-purple-dark); background: #faf6fc; }
 .front-door-now article > .front-door-primary { grid-column: 2; justify-self: start; color: #fff; }
-.front-door-contact { margin-top: 0; border-radius: 28px 8px 28px 8px; padding: clamp(30px, 5vw, 56px); background: var(--fd-purple-dark); }
+.front-door-contact { margin-top: 0; border-radius: 28px 8px 28px 8px; padding: clamp(22px, 3vw, 34px); background: var(--fd-purple-dark); }
 .front-door-contact h2 { color: #fff; }
 .front-door-contact p:last-child { color: #e5d7eb; }
-.front-door-contact-actions { max-width: 480px; }
-.front-door-contact-actions a { border-color: rgba(255,255,255,.28); }
+.front-door-contact h2 { font-size: clamp(1.85rem, 3vw, 2.75rem); }
+.front-door-contact-actions { flex: 1 1 620px; max-width: none; flex-wrap: nowrap; }
+.front-door-contact-actions a { flex: 1 1 auto; border-color: rgba(255,255,255,.28); padding-inline: 14px; white-space: nowrap; }
 .front-door-footer { min-height: 0; display: grid; grid-template-columns: minmax(220px,.8fr) 1.4fr auto; align-items: start; gap: 34px; margin-top: 70px; padding-block: 34px; }
 .front-door-footer > div { display: flex; align-items: center; gap: 12px; }
 .front-door-footer-logo { width: 112px; height: auto; }
@@ -1754,6 +1757,8 @@ a { color: inherit; text-decoration: none; }
   .front-door-path-grid { grid-template-columns: 1fr; }
   .front-door-path { min-height: 0; }
   .front-door-now { grid-template-columns: 1fr; }
+  .front-door-contact { align-items: flex-start; flex-direction: column; gap: 18px; }
+  .front-door-contact-actions { flex-basis: auto; width: 100%; }
   .front-door-footer { grid-template-columns: 1fr 1fr; }
   .front-door-footer address { align-items: start; }
 }
@@ -1780,7 +1785,8 @@ a { color: inherit; text-decoration: none; }
   .front-door-now article > span { width: 44px; height: 44px; }
   .front-door-now article > div:last-child,
   .front-door-now article > .front-door-primary { grid-column: 1 / -1; width: 100%; }
-  .front-door-contact-actions { width: 100%; }
+  .front-door-contact-actions { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .front-door-contact-actions a { width: auto; flex: 1 1 calc(50% - 4px); }
   .front-door-footer { grid-template-columns: 1fr; gap: 16px; }
   .front-door-footer nav { gap: 0 16px; }
   .event-hero-preview-page { padding: 14px; }
