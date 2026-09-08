@@ -79,19 +79,21 @@ test("server actions guard every approved mutation with a named capability", asy
 });
 
 test("unauthorized authenticated users get a stable access-denied route and logout", async () => {
-  const [login, layout, denied, form] = await Promise.all([
+  const [login, layout, denied, form, recovery] = await Promise.all([
     read("src/app/login/page.tsx"),
     read("src/app/admin/layout.tsx"),
     read("src/app/access-denied/page.tsx"),
     read("src/components/login-form.tsx"),
+    read("src/components/password-recovery-form.tsx"),
   ]);
-  assert.match(login, /isStaffRole\(data\.user\.app_metadata\?\.role\) \? "\/admin" : "\/access-denied"/);
+  assert.match(login, /isStaffRole\(data\.user\.app_metadata\?\.role\) \? next : "\/access-denied"/);
   assert.match(layout, /redirect\("\/access-denied"\)/);
   assert.match(denied, /HQ access has not been assigned/);
   assert.match(denied, /<LogoutButton \/>/);
   assert.doesNotMatch(denied, /user_metadata/);
-  assert.match(form, /If this address is approved/);
-  assert.doesNotMatch(form, /error instanceof Error|error\.message/);
+  assert.match(form, /Email or password was not accepted/);
+  assert.match(recovery, /If this address is approved/);
+  assert.doesNotMatch(form + recovery, /error instanceof Error|error\.message/);
 });
 
 test("database migration uses app_metadata, restrictive boundaries, and fixed RPCs", async () => {
