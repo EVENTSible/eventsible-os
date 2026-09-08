@@ -66,25 +66,42 @@ test("Calendar UI exposes Month, Upcoming, date navigation, and conservative ava
 
 test("Calendar-first layout keeps the month and selected day ahead of entry and owner controls", () => {
   const component = fs.readFileSync(fileURLToPath(new URL("../components/hq-calendar.tsx", import.meta.url)), "utf8");
+  const page = fs.readFileSync(fileURLToPath(new URL("../app/admin/calendar/page.tsx", import.meta.url)), "utf8");
   assert.ok(component.indexOf('className="calendar-toolbar"') < component.indexOf('className="calendar-primary-layout"'));
   assert.ok(component.indexOf('className="calendar-primary-layout"') < component.indexOf('id="add-availability"'));
   assert.ok(component.indexOf('id="selected-day-agenda"') < component.indexOf('id="add-availability"'));
   assert.ok(component.indexOf('id="add-availability"') < component.indexOf('className="calendar-owner-tools"'));
   assert.match(component, /<details className="calendar-owner-tools">/);
   assert.match(component, /aria-controls="calendar-filters"/);
+  assert.doesNotMatch(page, /calendar-header|Mission Control/);
+  assert.match(page, /<h1 className="sr-only">Team Calendar<\/h1>/);
 });
 
-test("occupied dates select the day, empty dates prefill a new entry, and overflow stays in month context", () => {
+test("occupied dates select the day, empty dates prefill a new entry, and compact overflow stays in month context", () => {
   const component = fs.readFileSync(fileURLToPath(new URL("../components/hq-calendar.tsx", import.meta.url)), "utf8");
   assert.match(component, /onClick=\{\(\) => totalItems \? selectDay\(day\.key\) : startEntry\(day\.key\)\}/);
-  assert.match(component, /className="calendar-more"[^>]*onClick=\{\(\) => selectDay\(day\.key\)\}/);
+  assert.match(component, /calendar-indicator-overflow/);
   assert.doesNotMatch(component, /setView\("agenda"\).*more/);
 });
 
-test("mobile Month remains a seven-column grid with practical 44px date targets", () => {
+test("mobile Month is a fixed six-row, seven-column overview with compact indicators", () => {
+  const component = fs.readFileSync(fileURLToPath(new URL("../components/hq-calendar.tsx", import.meta.url)), "utf8");
   const styles = fs.readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-grid\s*\{[^}]*grid-template-columns:\s*repeat\(7,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-toolbar\s*\{[^}]*margin-inline:\s*-14px/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-grid\s*\{[^}]*width:\s*100%;[^}]*grid-template-columns:\s*repeat\(7,\s*minmax\(0,\s*1fr\)\);[^}]*grid-template-rows:\s*repeat\(6,\s*54px\)/);
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-weekdays\s*\{[^}]*display:\s*grid/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day\.outside\s*\{[^}]*display:\s*block/);
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day-number\s*\{[^}]*width:\s*44px;\s*height:\s*44px;/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day-events\s*\{[^}]*display:\s*none/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day-indicators\s*\{[^}]*display:\s*flex/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day-number\s*\{[^}]*width:\s*min\(44px,\s*100%\);\s*height:\s*44px;/);
+  assert.match(component, /const visibleIndicators = indicators\.slice\(0, 3\)/);
+  assert.match(component, /calendar-indicator-overflow/);
+  assert.match(component, /data-calendar-month-grid/);
+});
+
+test("Calendar exposes one contextual Add action and keeps the editor out of the layout until opened", () => {
+  const component = fs.readFileSync(fileURLToPath(new URL("../components/hq-calendar.tsx", import.meta.url)), "utf8");
+  assert.match(component, /editorOpen \? <section className="calendar-add-panel panel"/);
+  assert.doesNotMatch(component, /calendar-entry-panel-heading/);
+  assert.match(component, /calendar-empty-day"><p>No entries for this date\.<\/p><\/div>/);
+  assert.doesNotMatch(component, /calendar-empty-day[\s\S]{0,180}Add entry/);
 });
