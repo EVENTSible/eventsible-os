@@ -16,7 +16,7 @@ export function LoginForm() {
     try {
       const supabase = getBrowserSupabase();
       const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
-      const { error } = await supabase.auth.signInWithOtp({
+      await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: false,
@@ -24,13 +24,13 @@ export function LoginForm() {
         },
       });
 
-      if (error) throw error;
-
       setStatus("sent");
-      setMessage("Check your inbox for a secure one-time sign-in link.");
-    } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "We could not send the sign-in link.");
+      setMessage("If this address is approved, check its inbox for a secure one-time sign-in link.");
+    } catch {
+      // Keep the response indistinguishable so this form cannot reveal whether
+      // another person's email address has an account.
+      setStatus("sent");
+      setMessage("If this address is approved, check its inbox for a secure one-time sign-in link.");
     }
   }
 

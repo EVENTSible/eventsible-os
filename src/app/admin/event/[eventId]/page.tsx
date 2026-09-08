@@ -22,7 +22,7 @@ export default async function EventHeroReviewPage({ params }: PageProps) {
   const { data: authData } = await supabase.auth.getUser();
   const user = authData.user;
   if (!user) redirect("/login");
-  if (!isStaffRole(user.app_metadata?.role)) redirect("/login?error=access");
+  if (!isStaffRole(user.app_metadata?.role)) redirect("/access-denied");
 
   const eventResult = await supabase
     .from("os_event_dashboard_v")

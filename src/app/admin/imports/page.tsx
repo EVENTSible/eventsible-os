@@ -9,6 +9,7 @@ import { ExistingGigImportReview } from "@/components/existing-gig-import-review
 import { HQ_CALENDAR_TIME_ZONE, localDateKey } from "@/lib/hq-calendar.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
+import { hasHqCapability } from "@/lib/hq-authorization";
 
 export const metadata = { title: "Existing Gig Intake | EVENTSible HQ" };
 
@@ -54,7 +55,7 @@ export default async function ExistingGigIntakePage() {
   const user = authData.user;
   if (!user) redirect("/login");
   const role = user.app_metadata?.role;
-  if (!isStaffRole(role)) redirect("/login?error=access");
+  if (!isStaffRole(role)) redirect("/access-denied");
 
   const [candidateResult, contactResult, serviceResult, eventResult] = await Promise.all([
     supabase
@@ -104,6 +105,8 @@ export default async function ExistingGigIntakePage() {
       </header>
       {warnings.length ? <div className="alert warning"><b>Some review data is unavailable.</b>{warnings.map((warning) => <p key={warning}>{warning}</p>)}<p>No import will be represented as safe while required canonical data is unavailable.</p></div> : null}
       <ExistingGigImportReview
+        canCreateCandidates={hasHqCapability(role, "import.candidate.create")}
+        canFinalizeImports={hasHqCapability(role, "import.finalize")}
         candidates={(candidateResult.data ?? []) as CandidateRow[]}
         contacts={contacts}
         createAction={createManualImportCandidateAction}

@@ -12,7 +12,7 @@ export default async function CalendarPage() {
   const user = authData.user;
   if (!user) redirect("/login");
   const role = user.app_metadata?.role;
-  if (!isStaffRole(role)) redirect("/login?error=access");
+  if (!isStaffRole(role)) redirect("/access-denied");
 
   const result = await supabase
     .from("os_event_dashboard_v")

@@ -154,11 +154,10 @@ test("preserves changed pending, review-later, imported, matched, and ignored ca
   }
 });
 
-test("server action is authenticated staff-only and writes candidates only", () => {
-  assert.match(actionSource, /async function requireStaff\(\)/);
-  assert.match(actionSource, /supabase\.auth\.getUser\(\)/);
-  assert.match(actionSource, /isStaffRole\(user\.app_metadata\?\.role\)/);
-  assert.ok(syncActionSource.indexOf("requireStaff()") < syncActionSource.indexOf("executeGigSaladCandidateSync"));
+test("server action is Owner-only and writes candidates only", () => {
+  assert.match(actionSource, /async function requireCapability\(capability: HqCapability\)/);
+  assert.match(actionSource, /authorizeHqCapability\(capability\)/);
+  assert.ok(syncActionSource.indexOf('requireCapability("import.candidate.create")') < syncActionSource.indexOf("executeGigSaladCandidateSync"));
   assert.match(syncActionSource, /GIGSALAD_ICAL_FEED_URL/);
   assert.match(syncActionSource, /\.from\("os_event_import_candidates"\)/);
   assert.doesNotMatch(syncActionSource, /\.from\("os_(?:events|bookings|booking_services|contacts|leads|quote_versions)"\)/);

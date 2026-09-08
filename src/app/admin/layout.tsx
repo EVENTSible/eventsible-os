@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = data.user;
   if (!user) redirect("/login");
   const role = user.app_metadata?.role;
-  if (!isStaffRole(role)) redirect("/login?error=access");
+  if (!isStaffRole(role)) redirect("/access-denied");
 
   return <HqShell role={String(role)}>{children}</HqShell>;
 }

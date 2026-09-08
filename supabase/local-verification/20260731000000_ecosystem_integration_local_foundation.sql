@@ -217,6 +217,37 @@ create unique index if not exists os_integration_outbox_idempotency_key_idx
 create index if not exists os_integration_outbox_status_next_attempt_idx
   on public.os_integration_outbox (status, next_attempt_at, created_at);
 
+-- BEGIN HQ AUTHORIZATION CI TABLE STUBS
+-- These intentionally minimal, data-less tables model canonical OS relations
+-- that predate the repository migration chain. They exist only so CI can apply
+-- and inspect later authorization policies without copying Production data or
+-- pretending to reproduce the canonical business schema.
+do $$
+declare
+  v_table text;
+begin
+  foreach v_table in array array[
+    'os_booking_services', 'os_builder_intake_requests', 'os_contact_users',
+    'os_event_facts', 'os_event_members', 'os_event_notes',
+    'os_event_page_messages', 'os_event_page_modules', 'os_event_pages',
+    'os_files', 'os_import_batches', 'os_message_threads', 'os_messages',
+    'os_owner_bootstrap_state', 'os_planning_answers',
+    'os_planning_assignments', 'os_planning_questions',
+    'os_planning_sections', 'os_planning_templates', 'os_profiles',
+    'os_rsvps', 'os_service_catalog', 'os_tasks'
+  ] loop
+    execute format(
+      'create table if not exists public.%I (id uuid primary key default gen_random_uuid())',
+      v_table
+    );
+    execute format('alter table public.%I enable row level security', v_table);
+    execute format('revoke all on public.%I from anon, authenticated', v_table);
+    execute format('grant all on public.%I to service_role', v_table);
+  end loop;
+end;
+$$;
+-- END HQ AUTHORIZATION CI TABLE STUBS
+
 alter table public.os_contacts enable row level security;
 alter table public.os_events enable row level security;
 alter table public.os_bookings enable row level security;
