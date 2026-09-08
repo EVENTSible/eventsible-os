@@ -1,6 +1,28 @@
-export const TEAM_AVAILABILITY_TYPES = Object.freeze(["outside_booking", "unavailable", "vacation"]);
+export const TEAM_AVAILABILITY_TYPES = Object.freeze(["available", "unavailable", "outside_booking", "vacation", "reminder", "note"]);
 export const TEAM_AVAILABILITY_PRIVACY = Object.freeze(["busy_only", "team_details", "private"]);
 export const STAFF_ASSIGNMENT_ROLES = Object.freeze(["dj", "mc", "vocalist", "assistant", "activity_helper", "operator", "other"]);
+export const BLOCKING_TEAM_AVAILABILITY_TYPES = Object.freeze(["unavailable", "outside_booking", "vacation"]);
+
+export function isBlockingAvailability(entry) {
+  return BLOCKING_TEAM_AVAILABILITY_TYPES.includes(entry?.entryType);
+}
+
+export function availabilityPrivacyDefault(entryType) {
+  if (entryType === "available") return "team_details";
+  if (entryType === "reminder" || entryType === "note") return "private";
+  return "busy_only";
+}
+
+export function availabilityTypeLabel(entryType) {
+  return ({
+    available: "Available",
+    unavailable: "Unavailable",
+    outside_booking: "Outside booking",
+    vacation: "Vacation / time off",
+    reminder: "Reminder",
+    note: "Note / idea",
+  })[entryType] ?? "Schedule entry";
+}
 
 export function dateRangeKeys(startKey, endKey) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(startKey)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(endKey))) return [];
@@ -48,6 +70,7 @@ export function detectScheduleConflicts({ availability = [], assignments = [], e
   const eventsById = new Map(events.map((event) => [event.id, event]));
   const occupiedByMember = new Map();
   for (const entry of availability) {
+    if (!isBlockingAvailability(entry)) continue;
     const interval = scheduleInterval(entry, eventsById);
     if (!interval) continue;
     const item = { id: entry.id, kind: "availability", teamMemberId: entry.teamMemberId, ...interval };
@@ -91,6 +114,9 @@ export function conflictIds(conflicts = []) {
 
 export function teamAvailabilityLabel(entry) {
   if (entry?.title) return entry.title;
+  if (entry?.entryType === "available") return "Available";
+  if (entry?.entryType === "reminder") return "Reminder";
+  if (entry?.entryType === "note") return "Note / idea";
   if (entry?.entryType === "outside_booking") return "Busy";
   if (entry?.entryType === "vacation") return "Unavailable";
   return "Unavailable";
