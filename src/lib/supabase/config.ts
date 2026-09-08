@@ -1,2 +1,6 @@
-export const SUPABASE_URL = "https://cplpbzudjprzbnzocirc.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5NyW5fp5p7XINRWu88BFQQ_e1HZNHfq";
+const PRODUCTION_SUPABASE_URL = "https://cplpbzudjprzbnzocirc.supabase.co";
+const PRODUCTION_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5NyW5fp5p7XINRWu88BFQQ_e1HZNHfq";
+
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? PRODUCTION_SUPABASE_URL;
+export const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? PRODUCTION_SUPABASE_PUBLISHABLE_KEY;

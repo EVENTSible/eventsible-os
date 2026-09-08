@@ -92,20 +92,31 @@ test("database migration uses app_metadata, restrictive boundaries, and fixed RP
   assert.match(migration, /as restrictive for delete/);
   assert.match(migration, /public\.os_has_hq_capability\(''data\.delete''\)/);
   assert.match(migration, /public\.os_has_hq_capability\('task\.write'\)/);
+  assert.match(migration, /'os_service_catalog', 'os_tasks',\s*'os_leads'/);
+  assert.match(migration, /'os_service_catalog', 'os_leads'/);
   assert.match(migration, /os_owner_bootstrap_owner_read_boundary/);
   assert.match(migration, /create or replace function public\.os_review_event_import_candidate\(/);
   assert.match(migration, /create or replace function public\.os_finalize_existing_gig_import\(/);
   assert.match(migration, /security definer[\s\S]*set search_path = ''/i);
   assert.match(migration, /revoke all on function public\.os_import_existing_gig\(uuid\) from authenticated/);
+  assert.match(migration, /revoke all on function public\.os_staff_role\(\) from public, anon/);
+  assert.match(migration, /revoke all on function public\.os_has_hq_capability\(text\) from public, anon/);
+  assert.match(migration, /revoke all on function public\.os_is_owner\(\) from public, anon/);
   assert.doesNotMatch(migration, /grant execute on function public\.os_(?:staff_role|has_hq_capability|is_owner)[^;]*to anon/);
   assert.doesNotMatch(migration, /insert into auth\.|update auth\.|delete from auth\./i);
 });
 
 test("the administrative Supabase client is explicitly server-only", async () => {
-  const adminClient = await read("src/lib/supabase/admin.ts");
+  const [adminClient, config] = await Promise.all([
+    read("src/lib/supabase/admin.ts"),
+    read("src/lib/supabase/config.ts"),
+  ]);
   assert.match(adminClient, /^import "server-only";/);
   assert.match(adminClient, /process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(adminClient, /NEXT_PUBLIC_|VITE_/);
+  assert.match(config, /process\.env\.NEXT_PUBLIC_SUPABASE_URL \?\?/);
+  assert.match(config, /process\.env\.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \?\?/);
+  assert.doesNotMatch(config, /SERVICE_ROLE|SECRET_KEY/);
 });
 
 test("non-owner UI omits commercial and provisioning controls", async () => {

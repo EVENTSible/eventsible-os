@@ -55,9 +55,9 @@ as $$
   select public.os_staff_role() = 'owner';
 $$;
 
-revoke all on function public.os_staff_role() from public;
-revoke all on function public.os_has_hq_capability(text) from public;
-revoke all on function public.os_is_owner() from public;
+revoke all on function public.os_staff_role() from public, anon;
+revoke all on function public.os_has_hq_capability(text) from public, anon;
+revoke all on function public.os_is_owner() from public, anon;
 grant execute on function public.os_staff_role() to authenticated, service_role;
 grant execute on function public.os_has_hq_capability(text) to authenticated, service_role;
 grant execute on function public.os_is_owner() to authenticated, service_role;
@@ -77,7 +77,8 @@ begin
     'os_events', 'os_files', 'os_import_batches',
     'os_planning_assignments', 'os_planning_questions',
     'os_planning_sections', 'os_planning_templates', 'os_quote_items',
-    'os_quote_versions', 'os_rsvps', 'os_service_catalog', 'os_tasks'
+    'os_quote_versions', 'os_rsvps', 'os_service_catalog', 'os_tasks',
+    'os_leads'
   ] loop
     execute format(
       'create policy %I on public.%I as restrictive for delete to authenticated using ((not public.os_is_staff()) or public.os_has_hq_capability(''data.delete''))',
@@ -104,7 +105,7 @@ begin
     'os_planning_assignments', 'os_planning_questions',
     'os_planning_sections', 'os_planning_templates', 'os_profiles',
     'os_quote_items', 'os_quote_versions', 'os_rsvps',
-    'os_service_catalog'
+    'os_service_catalog', 'os_leads'
   ] loop
     foreach v_command in array array['insert', 'update'] loop
       if exists (
