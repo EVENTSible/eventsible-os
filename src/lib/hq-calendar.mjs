@@ -61,8 +61,8 @@ export function availabilityForDate(events, dateKey) {
   const booked = scheduled.filter(isConfirmedBooked);
   const inquiries = scheduled.filter(isInquiryOrHold);
   return {
-    state: booked.length > 1 ? "multiple" : booked.length === 1 ? "booked" : "open",
-    label: booked.length > 1 ? "Multiple events" : booked.length === 1 ? "Booked" : "Open",
+    state: booked.length > 1 ? "multiple" : booked.length === 1 ? "booked" : "unknown",
+    label: booked.length > 1 ? "Multiple events" : booked.length === 1 ? "Booked" : "No booked event",
     booked,
     inquiries,
     scheduled,

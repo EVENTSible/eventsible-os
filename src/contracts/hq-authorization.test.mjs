@@ -17,6 +17,8 @@ test("role matrix keeps Owner broad and Manager, Staff, and Host equally bounded
       "event.operations.write",
       "hq.read",
       "import.review",
+      "schedule.read",
+      "schedule.self.manage",
       "task.write",
     ]);
     for (const capability of [
@@ -67,6 +69,13 @@ test("server actions guard every approved mutation with a named capability", asy
   }
   assert.match(imports, /os_review_event_import_candidate/);
   assert.match(imports, /os_finalize_existing_gig_import/);
+
+  const calendarActions = await read("src/app/admin/calendar/actions.ts");
+  assert.match(calendarActions, /authorized\("schedule\.self\.manage"\)/);
+  assert.match(calendarActions, /authorized\("schedule\.assignments\.manage"\)/);
+  assert.match(calendarActions, /authorized\("schedule\.team\.manage"\)/);
+  assert.match(calendarActions, /os_upsert_team_availability/);
+  assert.match(calendarActions, /os_manage_staff_assignment/);
 });
 
 test("unauthorized authenticated users get a stable access-denied route and logout", async () => {

@@ -117,6 +117,9 @@ jobs:
       - name: Run ecosystem integration verification
         run: npm run test:ecosystem:local-supabase
 
+      - name: Run Team Availability authorization verification
+        run: npm run test:team-calendar:local-supabase
+
       - name: Verify Production-shaped Builder quote lookup
         run: npm run test:builder-outbox:production-quote-shape
 

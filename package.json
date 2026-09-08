@@ -10,6 +10,7 @@
     "lint:ci": "node scripts/check-lint-known-issues.mjs",
     "test": "node --test src/contracts/*.test.mjs src/lib/notifications/*.test.mjs src/lib/reliability/*.test.mjs",
     "test:ecosystem:local-supabase": "node scripts/ecosystem-local-supabase-verify.mjs",
+    "test:team-calendar:local-supabase": "node scripts/team-availability-local-supabase-verify.mjs",
     "test:outbox-helper-grants": "node scripts/verify-outbox-helper-grants.mjs",
     "test:builder-outbox:production-quote-shape": "node scripts/verify-builder-outbox-production-quote-shape.mjs",
     "test:builder-event-staff-label": "node scripts/verify-builder-event-staff-label.mjs",
