@@ -59,17 +59,17 @@ export async function upsertAvailabilityAction(formData: FormData) {
       privacy: value(formData, "privacy"),
     },
   });
-  if (result.error) calendarRedirect(rpcMessage(String(result.error.code ?? ""), "Availability could not be saved."), "error");
+  if (result.error) calendarRedirect(rpcMessage(String(result.error.code ?? ""), "Calendar entry could not be saved."), "error");
   revalidatePath("/admin/calendar");
-  calendarRedirect(result.data?.status === "updated" ? "Availability updated." : "Availability added.");
+  calendarRedirect(result.data?.status === "updated" ? "Calendar entry updated." : "Calendar entry added.");
 }
 
 export async function removeAvailabilityAction(formData: FormData) {
   const auth = await authorized("schedule.self.manage");
   const result = await auth.supabase.rpc("os_remove_team_availability", { p_entry_id: value(formData, "entry_id") });
-  if (result.error) calendarRedirect(rpcMessage(String(result.error.code ?? ""), "Availability could not be removed."), "error");
+  if (result.error) calendarRedirect(rpcMessage(String(result.error.code ?? ""), "Calendar entry could not be removed."), "error");
   revalidatePath("/admin/calendar");
-  calendarRedirect("Availability removed.");
+  calendarRedirect("Calendar entry removed.");
 }
 
 export async function manageAssignmentAction(formData: FormData) {

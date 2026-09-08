@@ -868,17 +868,24 @@ a { color: inherit; text-decoration: none; }
 .calendar-filter-bar label { display: grid; gap: 4px; min-width: min(220px, 100%); color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .calendar-filter-bar select, .calendar-form-grid input, .calendar-form-grid select, .calendar-form-grid textarea { width: 100%; min-height: 44px; border: 1px solid #d9d3e3; border-radius: 10px; padding: 9px 11px; color: var(--ink); background: white; font: inherit; }
 .calendar-form-grid textarea { min-height: 86px; resize: vertical; }
-.calendar-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-left: auto; color: var(--muted); font-size: .78rem; }
+.calendar-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 12px; margin-left: auto; color: var(--muted); font-size: .78rem; }
+.calendar-legend > span { display: inline-flex; align-items: center; gap: 5px; }
 .calendar-legend i { width: 12px; height: 12px; border-radius: 3px; background: #8d6aae; }
 .calendar-legend .legend-event { background: var(--green); }
 .calendar-legend .legend-tentative { background: var(--gold); }
 .calendar-legend .legend-personal { background: #6e5b7f; }
-.calendar-add-panel summary, .calendar-inline-editor summary { min-height: 44px; cursor: pointer; }
-.calendar-add-panel > summary { display: flex; align-items: center; list-style: none; padding: 16px 18px; }
-.calendar-add-panel > summary::-webkit-details-marker { display: none; }
-.calendar-add-panel > summary span { display: grid; gap: 3px; }
-.calendar-add-panel > summary small { color: var(--muted); }
-.calendar-add-panel[open] > summary { border-bottom: 1px solid #ece6f1; }
+.calendar-legend .legend-assignment { background: #475569; }
+.calendar-legend .legend-available { background: #23845a; }
+.calendar-legend .legend-reminder { background: #3b69a8; }
+.calendar-legend .legend-note { background: #8a55a2; }
+.calendar-entry-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; }
+.calendar-entry-panel-heading > span { display: grid; gap: 3px; }
+.calendar-entry-panel-heading small { color: var(--muted); }
+.calendar-entry-editor { border-top: 1px solid #ece6f1; outline: none; }
+.calendar-entry-editor > header { display: flex; align-items: start; justify-content: space-between; gap: 18px; padding: 18px 18px 0; }
+.calendar-entry-editor > header h2, .calendar-entry-editor > header p { margin: 4px 0 0; }
+.calendar-entry-editor > header p { color: var(--muted); }
+.calendar-remove-entry { border-top: 1px solid #ece6f1; margin: 0 18px; padding: 14px 0 18px; }
 .calendar-form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; padding: 18px; }
 .calendar-form-grid label { min-width: 0; display: grid; align-content: start; gap: 5px; color: var(--muted); font-size: .76rem; font-weight: 750; }
 .calendar-form-grid label small { font-weight: 500; line-height: 1.4; }
@@ -894,20 +901,26 @@ a { color: inherit; text-decoration: none; }
 .calendar-event .calendar-conflict-badge { grid-column: -2; grid-row: 1; justify-self: end; }
 .calendar-assignment-chips { grid-column: 2; display: flex; flex-wrap: wrap; gap: 5px; }
 .calendar-assignment-chips span { border-radius: 999px; padding: 3px 7px; color: #49345f; background: #eee6f5; font-size: .68rem; font-weight: 800; }
-.calendar-availability-compact { display: grid; min-height: 34px; align-content: center; border-left: 3px solid #6e5b7f; border-radius: 6px; padding: 4px 6px; color: #44344f; background: #f5f0f8; font-size: .65rem; overflow-wrap: anywhere; }
+.calendar-availability-compact { width: 100%; display: grid; min-height: 34px; align-content: center; border: 0; border-left: 3px solid #6e5b7f; border-radius: 6px; padding: 4px 6px; color: #44344f; background: #f5f0f8; font: inherit; font-size: .65rem; text-align: left; overflow-wrap: anywhere; }
+.calendar-availability-compact:is(button) { cursor: pointer; }
+.calendar-availability-compact:is(button):hover, .calendar-availability-compact:is(button):focus-visible { outline: 2px solid var(--purple); outline-offset: 1px; }
+.calendar-availability-compact.availability-available { border-left-color: #23845a; background: #effaf5; }
 .calendar-availability-compact.availability-vacation { border-left-color: #2f7785; background: #eef9fa; }
 .calendar-availability-compact.availability-outside_booking { border-left-color: #b66a19; background: #fff7e9; }
+.calendar-availability-compact.availability-reminder { border-left-color: #3b69a8; background: #f1f6fd; }
+.calendar-availability-compact.availability-note { border-left-color: #8a55a2; background: #faf3fd; }
 .team-agenda-list, .assignment-admin-list, .team-admin-list { display: grid; gap: 10px; }
 .team-availability-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; border: 1px solid #e5dced; border-left: 5px solid #6e5b7f; border-radius: 12px; padding: 13px 14px; background: #faf7fc; }
 .team-availability-card.availability-outside_booking { border-left-color: #b66a19; background: #fffaf1; }
 .team-availability-card.availability-vacation { border-left-color: #2f7785; background: #f2fbfc; }
+.team-availability-card.availability-available { border-left-color: #23845a; background: #f2fbf7; }
+.team-availability-card.availability-reminder { border-left-color: #3b69a8; background: #f3f7fd; }
+.team-availability-card.availability-note { border-left-color: #8a55a2; background: #fbf5fd; }
 .team-availability-card h3, .team-availability-card p { margin: 2px 0 0; }
 .team-availability-card p { color: var(--muted); font-size: .82rem; }
 .schedule-type-label { color: var(--muted); font-size: .66rem; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
 .availability-card-status { display: flex; align-items: start; gap: 6px; color: var(--muted); font-size: .72rem; text-transform: capitalize; }
-.calendar-inline-editor { grid-column: 1 / -1; border-top: 1px solid #e7dfee; padding-top: 8px; }
-.calendar-inline-editor summary { display: flex; align-items: center; color: var(--purple); font-weight: 800; }
-.calendar-inline-editor .calendar-form-grid { padding: 12px 0; }
+.calendar-entry-open { grid-column: 1 / -1; justify-self: start; }
 .danger-button { min-height: 44px; border: 1px solid #d3a093; border-radius: 10px; padding: 9px 13px; color: #7d2f1c; background: white; font-weight: 800; }
 .calendar-owner-panel > .calendar-form-grid { padding-inline: 0; }
 .assignment-admin-list form { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #ece6f1; padding-top: 10px; }
@@ -1883,7 +1896,9 @@ a { color: inherit; text-decoration: none; }
   .calendar-filter-bar select { width: 100%; }
   .team-availability-card { grid-template-columns: 1fr; }
   .availability-card-status { justify-content: flex-start; }
-  .calendar-inline-editor { grid-column: auto; }
+  .calendar-entry-panel-heading, .calendar-entry-editor > header { align-items: stretch; flex-direction: column; }
+  .calendar-entry-panel-heading button, .calendar-entry-editor > header button, .calendar-entry-open { width: 100%; }
+  .calendar-availability-compact { min-height: 44px; }
   .assignment-admin-list form { align-items: stretch; flex-direction: column; }
   .assignment-admin-list button { width: 100%; }
 }
