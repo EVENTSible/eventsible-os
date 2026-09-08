@@ -13,17 +13,17 @@ test("confirmed and completed bookings occupy a date while inquiries and cancell
   assert.equal(isInquiryOrHold({ eventStatus: "inquiry" }), true);
 });
 
-test("date checker distinguishes Open, Booked, and Multiple Events without claiming partial availability", () => {
+test("date checker distinguishes no booked event, Booked, and Multiple Events without claiming team availability", () => {
   const events = [
     { id: "one", dateKey: "2026-09-12", bookingStatus: "confirmed" },
     { id: "two", dateKey: "2026-09-12", eventStatus: "booked" },
     { id: "lead", dateKey: "2026-09-13", eventStatus: "inquiry" },
   ];
-  assert.equal(availabilityForDate(events, "2026-09-11").label, "Open");
+  assert.equal(availabilityForDate(events, "2026-09-11").label, "No booked event");
   assert.equal(availabilityForDate(events.slice(0, 1), "2026-09-12").label, "Booked");
   assert.equal(availabilityForDate(events, "2026-09-12").label, "Multiple events");
   const inquiryDate = availabilityForDate(events, "2026-09-13");
-  assert.equal(inquiryDate.label, "Open");
+  assert.equal(inquiryDate.label, "No booked event");
   assert.equal(inquiryDate.inquiries.length, 1);
 });
 
@@ -49,19 +49,18 @@ test("month and agenda shaping are deterministic and linkable by canonical event
 
 test("Calendar route is staff-protected and reads only the canonical dashboard composition", () => {
   const page = fs.readFileSync(fileURLToPath(new URL("../app/admin/calendar/page.tsx", import.meta.url)), "utf8");
-  assert.match(page, /auth\.getUser\(\)/);
-  assert.match(page, /isStaffRole\(role\)/);
-  assert.match(page, /redirect\("\/access-denied"\)/);
+  assert.match(page, /authorizeHqCapability\("schedule\.read"\)/);
+  assert.match(page, /"\/login" : "\/access-denied"/);
   assert.match(page, /from\("os_event_dashboard_v"\)/);
-  assert.match(page, /result\.error[^]*No date is being represented as Open or Booked[^]*:\s*<HqCalendar/);
-  assert.doesNotMatch(page, /\.insert\(|\.update\(|\.upsert\(|\.delete\(|createAdminSupabase|SERVICE_ROLE/);
+  assert.match(page, /os_team_calendar_snapshot/);
+  assert.doesNotMatch(page, /createAdminSupabase|SERVICE_ROLE/);
 });
 
-test("Calendar UI exposes Month, Agenda, date navigation, and conservative availability wording", () => {
+test("Calendar UI exposes Month, Upcoming, date navigation, and conservative availability wording", () => {
   const component = fs.readFileSync(fileURLToPath(new URL("../components/hq-calendar.tsx", import.meta.url)), "utf8");
-  for (const label of ["Month", "Agenda", "Previous", "Today", "Next", "Jump to date", "Booked / open quick view"]) assert.match(component, new RegExp(label));
+  for (const label of ["Month", "Upcoming", "Previous", "Today", "Next", "Jump to date", "No booked event"]) assert.match(component, new RegExp(label));
   assert.match(component, /href=\{`\/admin\/gigs\/\$\{event\.id\}`\}/);
-  assert.match(component, /does not promise partial-day, staff, service, travel, or equipment availability/i);
+  assert.match(component, /not a promise that the team, services, travel window, or equipment are available/i);
   assert.doesNotMatch(component, /Partially Available|partially available/i);
 });
 

@@ -19,6 +19,10 @@ export const HQ_CAPABILITIES = [
   "data.delete",
   "staff.manage",
   "system.manage",
+  "schedule.read",
+  "schedule.self.manage",
+  "schedule.team.manage",
+  "schedule.assignments.manage",
 ] as const;
 
 export type HqCapability = (typeof HQ_CAPABILITIES)[number];
@@ -29,6 +33,8 @@ const OPERATIONAL_CAPABILITIES: readonly HqCapability[] = [
   "event.operations.write",
   "event.notes.write",
   "task.write",
+  "schedule.read",
+  "schedule.self.manage",
 ];
 
 const ROLE_CAPABILITIES: Record<StaffRole, ReadonlySet<HqCapability>> = {
