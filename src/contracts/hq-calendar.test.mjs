@@ -64,8 +64,27 @@ test("Calendar UI exposes Month, Upcoming, date navigation, and conservative ava
   assert.doesNotMatch(component, /Partially Available|partially available/i);
 });
 
-test("mobile Month day controls preserve a practical 44px touch target", () => {
+test("Calendar-first layout keeps the month and selected day ahead of entry and owner controls", () => {
+  const component = fs.readFileSync(fileURLToPath(new URL("../components/hq-calendar.tsx", import.meta.url)), "utf8");
+  assert.ok(component.indexOf('className="calendar-toolbar"') < component.indexOf('className="calendar-primary-layout"'));
+  assert.ok(component.indexOf('className="calendar-primary-layout"') < component.indexOf('id="add-availability"'));
+  assert.ok(component.indexOf('id="selected-day-agenda"') < component.indexOf('id="add-availability"'));
+  assert.ok(component.indexOf('id="add-availability"') < component.indexOf('className="calendar-owner-tools"'));
+  assert.match(component, /<details className="calendar-owner-tools">/);
+  assert.match(component, /aria-controls="calendar-filters"/);
+});
+
+test("occupied dates select the day, empty dates prefill a new entry, and overflow stays in month context", () => {
+  const component = fs.readFileSync(fileURLToPath(new URL("../components/hq-calendar.tsx", import.meta.url)), "utf8");
+  assert.match(component, /onClick=\{\(\) => totalItems \? selectDay\(day\.key\) : startEntry\(day\.key\)\}/);
+  assert.match(component, /className="calendar-more"[^>]*onClick=\{\(\) => selectDay\(day\.key\)\}/);
+  assert.doesNotMatch(component, /setView\("agenda"\).*more/);
+});
+
+test("mobile Month remains a seven-column grid with practical 44px date targets", () => {
   const styles = fs.readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day[^}]*grid-template-columns:\s*44px minmax\(0,1fr\)/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-grid\s*\{[^}]*grid-template-columns:\s*repeat\(7,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-weekdays\s*\{[^}]*display:\s*grid/);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day\.outside\s*\{[^}]*display:\s*block/);
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*\.calendar-day-number\s*\{[^}]*width:\s*44px;\s*height:\s*44px;/);
 });

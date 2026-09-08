@@ -51,8 +51,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   return (
     <div className="admin-main calendar-main">
       <header className="admin-header calendar-header">
-        <div><span className="eyebrow">Shared Master Calendar</span><h1>One scheduling picture for the EVENTSible team.</h1><p>Canonical gigs, tentative dates, staff assignments, availability, busy time, reminders, and notes—without turning personal commitments into customer records.</p></div>
-        <div className="header-actions"><a className="secondary-button" href="/admin">Mission Control</a><a className="primary-button" href="#add-availability">Add calendar entry</a></div>
+        <div><span className="eyebrow">EVENTSible HQ</span><h1>Team Calendar</h1><p>Events, assignments, and team availability in one scheduling view.</p></div>
+        <div className="header-actions"><a className="secondary-button" href="/admin">Mission Control</a></div>
       </header>
       {params.notice ? <div className="alert success" role="status">{params.notice}</div> : null}
       {params.error ? <div className="alert warning" role="alert">{params.error}</div> : null}
