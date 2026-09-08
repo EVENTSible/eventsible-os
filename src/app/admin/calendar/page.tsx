@@ -50,10 +50,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
 
   return (
     <div className="admin-main calendar-main">
-      <header className="admin-header calendar-header">
-        <div><span className="eyebrow">EVENTSible HQ</span><h1>Team Calendar</h1><p>Events, assignments, and team availability in one scheduling view.</p></div>
-        <div className="header-actions"><a className="secondary-button" href="/admin">Mission Control</a></div>
-      </header>
+      <h1 className="sr-only">Team Calendar</h1>
       {params.notice ? <div className="alert success" role="status">{params.notice}</div> : null}
       {params.error ? <div className="alert warning" role="alert">{params.error}</div> : null}
       {loadError ? <div className="alert warning"><b>Some canonical event timing details could not be loaded.</b><p>Unknown timing is not treated as proof of availability.</p></div> : null}
