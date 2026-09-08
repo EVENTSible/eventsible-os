@@ -106,6 +106,30 @@ test("database migration uses app_metadata, restrictive boundaries, and fixed RP
   assert.doesNotMatch(migration, /insert into auth\.|update auth\.|delete from auth\./i);
 });
 
+test("CI-local schema provides every pre-migration authorization policy target without data", async () => {
+  const foundation = await read("supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql");
+  const stubBlock = foundation.match(
+    /-- BEGIN HQ AUTHORIZATION CI TABLE STUBS([\s\S]*?)-- END HQ AUTHORIZATION CI TABLE STUBS/,
+  )?.[1] ?? "";
+  const expectedStubs = [
+    "os_booking_services", "os_builder_intake_requests", "os_contact_users",
+    "os_event_facts", "os_event_members", "os_event_notes",
+    "os_event_page_messages", "os_event_page_modules", "os_event_pages",
+    "os_files", "os_import_batches", "os_message_threads", "os_messages",
+    "os_owner_bootstrap_state", "os_planning_answers", "os_planning_assignments",
+    "os_planning_questions", "os_planning_sections", "os_planning_templates",
+    "os_profiles", "os_rsvps", "os_service_catalog", "os_tasks",
+  ];
+
+  assert.ok(stubBlock, "marked CI-only authorization fixture block is required");
+  for (const table of expectedStubs) assert.match(stubBlock, new RegExp(`'${table}'`), table);
+  assert.match(stubBlock, /create table if not exists public\.%I \(id uuid primary key default gen_random_uuid\(\)\)/);
+  assert.match(stubBlock, /alter table public\.%I enable row level security/);
+  assert.match(stubBlock, /revoke all on public\.%I from anon, authenticated/);
+  assert.match(stubBlock, /grant all on public\.%I to service_role/);
+  assert.doesNotMatch(stubBlock, /\b(?:insert|update|delete)\b[\s\S]*\b(?:into|from|public\.)\b/i);
+});
+
 test("the administrative Supabase client is explicitly server-only", async () => {
   const [adminClient, config] = await Promise.all([
     read("src/lib/supabase/admin.ts"),
