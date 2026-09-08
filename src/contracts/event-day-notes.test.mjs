@@ -99,7 +99,7 @@ test("Server Action validates and uses only the authenticated fixed RPC", async 
   const action = source.slice(source.indexOf("export async function upsertEventDayNoteAction"), source.indexOf("export async function activateWeddingCompanionAction"));
   assert.match(action, /EVENT_DAY_NOTE_BODY_LIMIT/);
   assert.match(action, /eventDayNoteRpcArgs/);
-  assert.match(action, /requireStaffSupabase\(\)/);
+  assert.match(action, /requireActionCapability\("event\.notes\.write"\)/);
   assert.match(action, /supabase\.rpc\("os_upsert_event_day_note", rpcArgs\)/);
   assert.match(action, /eventDayNoteRpcError/);
   assert.match(action, /revalidatePath\(`\/admin\/gigs\/\$\{eventId\}`\)/);

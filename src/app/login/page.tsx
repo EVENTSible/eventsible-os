@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
 import { Wordmark } from "@/components/wordmark";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { isStaffRole } from "@/lib/hq-authorization";
 
 export const metadata = {
   title: "Sign in | EVENTSible OS",
@@ -11,7 +12,7 @@ export default async function LoginPage() {
   const supabase = await createServerSupabase();
   const { data } = await supabase.auth.getUser();
 
-  if (data.user) redirect("/admin");
+  if (data.user) redirect(isStaffRole(data.user.app_metadata?.role) ? "/admin" : "/access-denied");
 
   return (
     <main className="auth-shell">

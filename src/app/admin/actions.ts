@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { authorizeHqCapability } from "@/lib/hq-auth";
+import type { HqCapability } from "@/lib/hq-authorization";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { isStaffRole } from "@/lib/types";
 import { WEDDING_COMPANION_VERSION } from "@/lib/wedding-companion.mjs";
 import {
   bookingServicesFromQuoteItems,
@@ -41,16 +42,14 @@ function adminRedirect(message: string, type: "notice" | "error" = "notice"): ne
   redirect(`/admin?${type}=${encodeURIComponent(message)}`);
 }
 
-async function requireStaffSupabase() {
-  const supabase = await createServerSupabase();
-  const { data: authData } = await supabase.auth.getUser();
-  const user = authData.user;
-
-  if (!user || !isStaffRole(user.app_metadata?.role)) {
-    adminRedirect("Sign in with an approved staff account.", "error");
+async function requireActionCapability(capability: HqCapability) {
+  const authorization = await authorizeHqCapability(capability);
+  if (!authorization.ok) {
+    adminRedirect(authorization.reason === "unauthenticated"
+      ? "Sign in with an approved staff account."
+      : "Owner approval required for this action.", "error");
   }
-
-  return { supabase, user };
+  return authorization;
 }
 
 async function clientPortalOrigin() {
@@ -88,7 +87,7 @@ export async function updateLeadStatusAction(formData: FormData) {
 
   if (!leadId || !status) adminRedirect("Lead status update was missing required data.", "error");
 
-  const { supabase, user } = await requireStaffSupabase();
+  const { supabase, user } = await requireActionCapability("lead.lifecycle.manage");
   const { error } = await supabase.from("os_leads").update({ status }).eq("id", leadId);
 
   if (error) adminRedirect("Lead status could not be updated.", "error");
@@ -108,7 +107,7 @@ export async function approveQuoteAction(formData: FormData) {
 
   if (!quoteVersionId || !eventId) adminRedirect("Quote approval was missing required data.", "error");
 
-  const { supabase, user } = await requireStaffSupabase();
+  const { supabase, user } = await requireActionCapability("quote.approve");
   const { error: quoteError } = await supabase.from("os_quote_versions").update({ status: QUOTE_APPROVAL_STATUS }).eq("id", quoteVersionId);
   if (quoteError) adminRedirect("Quote could not be approved.", "error");
 
@@ -134,7 +133,7 @@ export async function convertToGigAction(formData: FormData) {
 
   if (!quoteVersionId || !leadId || !eventId) adminRedirect("Convert to Gig was missing required data.", "error");
 
-  const { supabase, user } = await requireStaffSupabase();
+  const { supabase, user } = await requireActionCapability("gig.convert");
 
   const [quoteResult, eventResult, bookingResult, itemResult] = await Promise.all([
     supabase
@@ -224,7 +223,7 @@ export async function updateOperationalTimingAction(
     breakdown_start: value(formData, "breakdown_start"),
     must_be_out: value(formData, "must_be_out"),
   };
-  const { supabase, user } = await requireStaffSupabase();
+  const { supabase, user } = await requireActionCapability("event.operations.write");
   const [eventResult, bookingResult, factResult] = await Promise.all([
     supabase.from("os_events").select("id,settings").eq("id", eventId).maybeSingle(),
     supabase.from("os_bookings").select("metadata").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -261,7 +260,7 @@ export async function updateEventDayLogisticsAction(
     room_area: value(formData, "room_area"),
     load_in_details: value(formData, "load_in_details"),
   };
-  const { supabase } = await requireStaffSupabase();
+  const { supabase } = await requireActionCapability("event.operations.write");
   const eventResult = await supabase.from("os_events").select("id,settings").eq("id", eventId).maybeSingle();
 
   if (eventResult.error || !eventResult.data) {
@@ -304,7 +303,7 @@ export async function updateDayOfContactAction(
     return { status: "error", message: "Select an existing contact. Nothing was changed.", errors: { day_of_contact_id: "Choose a valid existing contact." } };
   }
 
-  const { supabase } = await requireStaffSupabase();
+  const { supabase } = await requireActionCapability("event.operations.write");
   const rpcResult = await supabase.rpc("os_update_event_day_of_contact", rpcArgs);
   if (rpcResult.error) return { status: "error", message: dayOfContactRpcError(rpcResult.error) };
   if (rpcResult.data?.status === "noop") return { status: "success", message: "That contact is already assigned for the event day." };
@@ -338,7 +337,7 @@ export async function upsertEventDayNoteAction(
     return { status: "error", message: "Check the event-day note. Nothing was saved.", errors: { body: "Enter a valid staff event-day note." } };
   }
 
-  const { supabase } = await requireStaffSupabase();
+  const { supabase } = await requireActionCapability("event.notes.write");
   const rpcResult = await supabase.rpc("os_upsert_event_day_note", rpcArgs);
   if (rpcResult.error) return { status: "error", message: eventDayNoteRpcError(rpcResult.error) };
   if (rpcResult.data?.status === "noop") return { status: "success", message: "No event-day note changes were needed." };
@@ -354,7 +353,7 @@ export async function activateWeddingCompanionAction(formData: FormData) {
   const eventId = value(formData, "event_id");
   if (!eventId) adminRedirect("Wedding Hero activation was missing the event.", "error");
 
-  const { supabase, user } = await requireStaffSupabase();
+  const { supabase, user } = await requireActionCapability("client.activate");
   const eventResult = await supabase
     .from("os_events")
     .select("id,title,event_type,primary_contact_id")

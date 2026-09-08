@@ -122,7 +122,7 @@ test("operational facts refresh the existing readiness check without changing it
 test("server action preserves staff authorization and canonical event targeting", async () => {
   const source = await readFile(new URL("../app/admin/actions.ts", import.meta.url), "utf8");
   const action = source.slice(source.indexOf("export async function updateOperationalTimingAction"), source.indexOf("export async function activateWeddingCompanionAction"));
-  assert.match(action, /requireStaffSupabase\(\)/);
+  assert.match(action, /requireActionCapability\("event\.operations\.write"\)/);
   assert.match(action, /from\("os_events"\).*eq\("id", eventId\)/s);
   assert.match(action, /supabase\.rpc\("os_update_event_operational_timing", operationalTimingRpcArgs\(eventId, mutation\.rows\)\)/);
   assert.match(action, /operationalTimingRpcError\(rpcResult\.error\)/);

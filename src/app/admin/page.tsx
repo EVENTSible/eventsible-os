@@ -3,6 +3,7 @@ import { activateWeddingCompanionAction, approveQuoteAction, convertToGigAction,
 import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, MISSION_CONTROL_SELECTS, nextLeadAction, QUOTE_APPROVAL_STATUS } from "@/lib/mission-control.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { EventDashboardRow, isStaffRole } from "@/lib/types";
+import { hasHqCapability } from "@/lib/hq-authorization";
 
 export const metadata = {
   title: "Mission Control | EVENTSible OS",
@@ -147,7 +148,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   if (!user) redirect("/login");
 
   const role = user.app_metadata?.role;
-  if (!isStaffRole(role)) redirect("/login?error=access");
+  if (!isStaffRole(role)) redirect("/access-denied");
+  const canManageLeads = hasHqCapability(role, "lead.lifecycle.manage");
+  const canApproveQuotes = hasHqCapability(role, "quote.approve") && hasHqCapability(role, "gig.convert");
+  const canActivateClients = hasHqCapability(role, "client.activate");
 
   const dashboardResult = await supabase
     .from("os_event_dashboard_v")
@@ -239,13 +243,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <div>
             <span className="eyebrow">Mission Control</span>
             <h1>Lead-to-Gig command center.</h1>
-            <p>Review Builder leads, approve the draft quote, and start the booked Gig workspace from the same OS records.</p>
+            <p>{canApproveQuotes ? "Review Builder leads, approve the draft quote, and start the booked Gig workspace from the same OS records." : "Review leads, quotes, booked gigs, and operational readiness from the same OS records."}</p>
           </div>
           <div className="header-actions">
             <a className="secondary-button" href="/admin/calendar">Open calendar</a>
-            <a className="secondary-button" href="/admin/imports">Add existing gig</a>
+            <a className="secondary-button" href="/admin/imports">{canApproveQuotes ? "Add existing gig" : "Review imports"}</a>
             <a className="secondary-button" href="#lead-review">Review leads</a>
-            <a className="primary-button" href="#quote-review">Approve quotes</a>
+            <a className="primary-button" href="#quote-review">{canApproveQuotes ? "Approve quotes" : "Review quotes"}</a>
           </div>
         </header>
 
@@ -298,11 +302,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         <div><dt>Planning notes</dt><dd>{String(summary.notes ?? summary.priorities ?? "No planning notes provided")}</dd></div>
                       </dl>
                       <div className="next-action"><span>Next required action</span><b>{nextAction}</b></div>
-                      <LeadStatusForm lead={lead} eventId={eventId} />
+                      {canManageLeads ? <LeadStatusForm lead={lead} eventId={eventId} /> : <p className="owner-approval-note">Owner approval required to change lead status.</p>}
                     </div>
                     <div className="mission-card-side">
                       <QuoteSummary quote={quote} items={quoteItems} />
-                      <QuoteActionForms lead={lead} event={event} quote={quote} />
+                      {canApproveQuotes ? <QuoteActionForms lead={lead} event={event} quote={quote} /> : <p className="owner-approval-note">Owner approval required to approve quotes or convert a lead to a gig.</p>}
                     </div>
                   </article>
                 );
@@ -390,12 +394,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     {event.event_id ? <a className="primary-button compact-button" href={`/admin/gigs/${event.event_id}`}>Open Gig Workspace</a> : null}
                     {hasWeddingCompanion ? (
                       <a className="secondary-button compact-button" href={`/admin/wedding/${event.event_id}`}>Review Wedding Hero</a>
-                    ) : isWedding && event.event_id ? (
+                    ) : isWedding && event.event_id && canActivateClients ? (
                       <form action={activateWeddingCompanionAction}>
                         <input type="hidden" name="event_id" value={event.event_id} />
                         <button type="submit" className="primary-button compact-button">Activate & invite client</button>
                       </form>
-                    ) : null}
+                    ) : isWedding && event.event_id ? <span className="owner-approval-note">Owner approval required to activate and invite a client.</span> : null}
                   </div>
                 </article>
               );

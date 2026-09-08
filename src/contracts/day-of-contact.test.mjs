@@ -89,7 +89,7 @@ test("RPC errors map to controlled messages", () => {
 test("Server Action uses the authenticated client and fixed RPC without metadata or service-role writes", async () => {
   const source = await readFile(new URL("../app/admin/actions.ts", import.meta.url), "utf8");
   const action = source.slice(source.indexOf("export async function updateDayOfContactAction"), source.indexOf("export async function activateWeddingCompanionAction"));
-  assert.match(action, /requireStaffSupabase\(\)/);
+  assert.match(action, /requireActionCapability\("event\.operations\.write"\)/);
   assert.match(action, /dayOfContactRpcArgs\(eventId, contactId\)/);
   assert.match(action, /supabase\.rpc\("os_update_event_day_of_contact", rpcArgs\)/);
   assert.match(action, /dayOfContactRpcError\(rpcResult\.error\)/);

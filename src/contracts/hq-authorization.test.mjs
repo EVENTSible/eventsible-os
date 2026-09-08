@@ -1,0 +1,122 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { HQ_CAPABILITIES, capabilitiesForRole, hasHqCapability, isStaffRole, staffRole } from "../lib/hq-authorization.ts";
+
+const root = fileURLToPath(new URL("../..", import.meta.url));
+const read = (path) => readFile(`${root}/${path}`, "utf8");
+
+test("role matrix keeps Owner broad and Manager, Staff, and Host equally bounded", () => {
+  for (const capability of HQ_CAPABILITIES) assert.equal(hasHqCapability("owner", capability), true, capability);
+
+  for (const role of ["manager", "staff", "host"]) {
+    assert.deepEqual(capabilitiesForRole(role).sort(), [
+      "event.notes.write",
+      "event.operations.write",
+      "hq.read",
+      "import.review",
+      "task.write",
+    ]);
+    for (const capability of [
+      "lead.lifecycle.manage", "quote.approve", "gig.convert", "client.activate",
+      "import.candidate.create", "import.finalize", "catalog.manage",
+      "planning.structure.manage", "data.delete", "staff.manage", "system.manage",
+    ]) assert.equal(hasHqCapability(role, capability), false, `${role}:${capability}`);
+  }
+});
+
+test("unknown and user-controlled metadata never become HQ roles", () => {
+  assert.equal(staffRole("MANAGER"), "manager");
+  assert.equal(staffRole("customer"), null);
+  assert.equal(staffRole({ role: "owner" }), null);
+  assert.equal(isStaffRole(undefined), false);
+});
+
+test("server actions guard every approved mutation with a named capability", async () => {
+  const actions = await read("src/app/admin/actions.ts");
+  const imports = await read("src/app/admin/imports/actions.ts");
+  const actionMatrix = [
+    ["updateLeadStatusAction", "lead.lifecycle.manage"],
+    ["approveQuoteAction", "quote.approve"],
+    ["convertToGigAction", "gig.convert"],
+    ["updateOperationalTimingAction", "event.operations.write"],
+    ["updateEventDayLogisticsAction", "event.operations.write"],
+    ["updateDayOfContactAction", "event.operations.write"],
+    ["upsertEventDayNoteAction", "event.notes.write"],
+    ["activateWeddingCompanionAction", "client.activate"],
+  ];
+  for (const [name, capability] of actionMatrix) {
+    const start = actions.indexOf(`export async function ${name}`);
+    const next = actions.indexOf("export async function ", start + 1);
+    const block = actions.slice(start, next < 0 ? undefined : next);
+    assert.match(block, new RegExp(`requireActionCapability\\(\\"${capability.replaceAll(".", "\\.")}\\"\\)`), name);
+  }
+  const importMatrix = [
+    ["syncGigSaladCandidatesAction", "import.candidate.create"],
+    ["createManualImportCandidateAction", "import.candidate.create"],
+    ["reviewImportCandidateAction", "import.review"],
+    ["importExistingGigAction", "import.finalize"],
+  ];
+  for (const [name, capability] of importMatrix) {
+    const start = imports.indexOf(`export async function ${name}`);
+    const next = imports.indexOf("export async function ", start + 1);
+    const block = imports.slice(start, next < 0 ? undefined : next);
+    assert.match(block, new RegExp(`requireCapability\\(\\"${capability.replaceAll(".", "\\.")}\\"\\)`), name);
+  }
+  assert.match(imports, /os_review_event_import_candidate/);
+  assert.match(imports, /os_finalize_existing_gig_import/);
+});
+
+test("unauthorized authenticated users get a stable access-denied route and logout", async () => {
+  const [login, layout, denied, form] = await Promise.all([
+    read("src/app/login/page.tsx"),
+    read("src/app/admin/layout.tsx"),
+    read("src/app/access-denied/page.tsx"),
+    read("src/components/login-form.tsx"),
+  ]);
+  assert.match(login, /isStaffRole\(data\.user\.app_metadata\?\.role\) \? "\/admin" : "\/access-denied"/);
+  assert.match(layout, /redirect\("\/access-denied"\)/);
+  assert.match(denied, /HQ access has not been assigned/);
+  assert.match(denied, /<LogoutButton \/>/);
+  assert.doesNotMatch(denied, /user_metadata/);
+  assert.match(form, /If this address is approved/);
+  assert.doesNotMatch(form, /error instanceof Error|error\.message/);
+});
+
+test("database migration uses app_metadata, restrictive boundaries, and fixed RPCs", async () => {
+  const migration = await read("supabase/migrations/20260907215620_hq_manager_authorization_boundary.sql");
+  assert.match(migration, /auth\.jwt\(\) -> 'app_metadata' ->> 'role'/);
+  assert.doesNotMatch(migration, /user_metadata/);
+  assert.match(migration, /as restrictive for delete/);
+  assert.match(migration, /public\.os_has_hq_capability\(''data\.delete''\)/);
+  assert.match(migration, /public\.os_has_hq_capability\('task\.write'\)/);
+  assert.match(migration, /os_owner_bootstrap_owner_read_boundary/);
+  assert.match(migration, /create or replace function public\.os_review_event_import_candidate\(/);
+  assert.match(migration, /create or replace function public\.os_finalize_existing_gig_import\(/);
+  assert.match(migration, /security definer[\s\S]*set search_path = ''/i);
+  assert.match(migration, /revoke all on function public\.os_import_existing_gig\(uuid\) from authenticated/);
+  assert.doesNotMatch(migration, /grant execute on function public\.os_(?:staff_role|has_hq_capability|is_owner)[^;]*to anon/);
+  assert.doesNotMatch(migration, /insert into auth\.|update auth\.|delete from auth\./i);
+});
+
+test("the administrative Supabase client is explicitly server-only", async () => {
+  const adminClient = await read("src/lib/supabase/admin.ts");
+  assert.match(adminClient, /^import "server-only";/);
+  assert.match(adminClient, /process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
+  assert.doesNotMatch(adminClient, /NEXT_PUBLIC_|VITE_/);
+});
+
+test("non-owner UI omits commercial and provisioning controls", async () => {
+  const [page, imports] = await Promise.all([
+    read("src/app/admin/page.tsx"),
+    read("src/components/existing-gig-import-review.tsx"),
+  ]);
+  assert.match(page, /canManageLeads \? <LeadStatusForm/);
+  assert.match(page, /canApproveQuotes \? <QuoteActionForms/);
+  assert.match(page, /canActivateClients/);
+  assert.match(page, /Owner approval required/);
+  assert.match(imports, /canCreateCandidates/);
+  assert.match(imports, /canFinalizeImports/);
+});

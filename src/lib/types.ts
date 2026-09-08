@@ -1,4 +1,5 @@
-export type StaffRole = "owner" | "manager" | "staff" | "host";
+export type { StaffRole } from "@/lib/hq-authorization";
+export { isStaffRole } from "@/lib/hq-authorization";
 
 export type EventDashboardRow = {
   event_id: string | null;
@@ -26,7 +27,3 @@ export type EventDashboardRow = {
   last_activity_at: string | null;
   booked_services: unknown;
 };
-
-export function isStaffRole(value: unknown): value is StaffRole {
-  return ["owner", "manager", "staff", "host"].includes(String(value));
-}

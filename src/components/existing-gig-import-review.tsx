@@ -24,6 +24,8 @@ type Candidate = {
 };
 
 type Props = {
+  canCreateCandidates: boolean;
+  canFinalizeImports: boolean;
   candidates: Candidate[];
   contacts: ContactOption[];
   services: ServiceOption[];
@@ -152,7 +154,7 @@ function ManualCandidateForm({ contacts, services, todayKey, createAction }: Pic
   </form>;
 }
 
-function CandidateCard({ candidate, services, events, reviewAction, importAction }: { candidate: Candidate } & Pick<Props, "services" | "events" | "reviewAction" | "importAction">) {
+function CandidateCard({ candidate, services, events, reviewAction, importAction, canFinalizeImports }: { candidate: Candidate } & Pick<Props, "services" | "events" | "reviewAction" | "importAction" | "canFinalizeImports">) {
   const router = useRouter();
   const proposal = plainObject(candidate.proposed_data);
   const event = plainObject(proposal.event);
@@ -187,7 +189,7 @@ function CandidateCard({ candidate, services, events, reviewAction, importAction
     <details className="intake-source-details"><summary>Source details</summary><dl><div><dt>Contract</dt><dd>{candidate.contract_version}</dd></div><div><dt>External reference</dt><dd>{candidate.external_reference}</dd></div><div><dt>Created</dt><dd>{dateTime(candidate.created_at)}</dd></div></dl></details>
     {canonicalLink ? <p className="intake-canonical-link"><Link className="primary-button" href={`/admin/gigs/${canonicalLink}`}>{candidate.imported_event_id ? "Open imported Gig Workspace" : "Open matched Gig Workspace"}</Link></p> : null}
     {candidate.review_status !== "imported" ? <div className="intake-review-controls">
-      {candidate.review_status === "pending" ? <form action={importFormAction}><input name="candidate_id" type="hidden" value={candidate.id} /><button className="primary-button" disabled={importPending} type="submit">{importPending ? "Importing atomically…" : "Import as New Gig"}</button></form> : null}
+      {candidate.review_status === "pending" && canFinalizeImports ? <form action={importFormAction}><input name="candidate_id" type="hidden" value={candidate.id} /><button className="primary-button" disabled={importPending} type="submit">{importPending ? "Importing atomically…" : "Import as New Gig"}</button></form> : candidate.review_status === "pending" ? <p className="owner-approval-note">Owner approval required to import a canonical gig.</p> : null}
       {candidate.review_status === "pending" ? <form action={reviewFormAction}><input name="candidate_id" type="hidden" value={candidate.id} /><input name="decision" type="hidden" value="review_later" /><button className="secondary-button" disabled={reviewPending} type="submit">Review Later</button></form> : <form action={reviewFormAction}><input name="candidate_id" type="hidden" value={candidate.id} /><input name="decision" type="hidden" value="pending" /><button className="secondary-button" disabled={reviewPending} type="submit">Return to Pending</button></form>}
       {candidate.review_status !== "ignored" ? <form action={reviewFormAction}><input name="candidate_id" type="hidden" value={candidate.id} /><input name="decision" type="hidden" value="ignored" /><button className="secondary-button" disabled={reviewPending} type="submit">Ignore / Skip</button></form> : null}
       {candidate.review_status === "pending" || candidate.review_status === "review_later" ? <form action={reviewFormAction} className="intake-match-form"><input name="candidate_id" type="hidden" value={candidate.id} /><input name="decision" type="hidden" value="matched" /><label><span>Match existing gig</span><select defaultValue="" name="matched_event_id" required><option disabled value="">Choose canonical event</option>{events.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><button className="secondary-button" disabled={reviewPending} type="submit">Match Existing</button></form> : null}
@@ -199,15 +201,15 @@ function CandidateCard({ candidate, services, events, reviewAction, importAction
 export function ExistingGigImportReview(props: Props) {
   const [adding, setAdding] = useState(false);
   return <div className="intake-foundation">
-    <GigSaladSourcePanel configured={props.gigsaladConfigured} syncAction={props.syncGigSaladAction} />
-    <section className="panel intake-add-panel">
+    {props.canCreateCandidates ? <GigSaladSourcePanel configured={props.gigsaladConfigured} syncAction={props.syncGigSaladAction} /> : <section className="panel intake-source-panel"><span className="eyebrow">External source</span><h2>GigSalad iCal</h2><p className="owner-approval-note">Owner approval required to sync import candidates.</p></section>}
+    {props.canCreateCandidates ? <section className="panel intake-add-panel">
       <header className="panel-heading"><div><span className="eyebrow">Manual Add Existing Gig</span><h2>Create a reviewed proposal first</h2></div><button className="secondary-button" onClick={() => setAdding((current) => !current)} type="button" aria-expanded={adding}>{adding ? "Close form" : "Add Existing Gig"}</button></header>
       <p className="panel-note">This step creates a staff-private candidate only. A canonical gig is created only after a separate Import as New Gig decision.</p>
       {adding ? <ManualCandidateForm contacts={props.contacts} createAction={props.createAction} services={props.services} todayKey={props.todayKey} /> : null}
-    </section>
+    </section> : <section className="panel intake-add-panel"><span className="eyebrow">Manual Add Existing Gig</span><h2>Candidate creation</h2><p className="owner-approval-note">Owner approval required to create import candidates.</p></section>}
     <section className="intake-review-list" aria-labelledby="import-review-heading">
       <div className="intake-review-heading"><div><span className="eyebrow">Import Review</span><h2 id="import-review-heading">Human-reviewed candidates</h2></div><span className="status-dot">{props.candidates.length} candidate{props.candidates.length === 1 ? "" : "s"}</span></div>
-      {props.candidates.length ? props.candidates.map((candidate) => <CandidateCard candidate={candidate} events={props.events} importAction={props.importAction} key={candidate.id} reviewAction={props.reviewAction} services={props.services} />) : <div className="empty-state compact"><div className="empty-icon">＋</div><h3>No import candidates yet.</h3><p>Add an already-booked gig as a proposal. Nothing imports automatically.</p></div>}
+      {props.candidates.length ? props.candidates.map((candidate) => <CandidateCard canFinalizeImports={props.canFinalizeImports} candidate={candidate} events={props.events} importAction={props.importAction} key={candidate.id} reviewAction={props.reviewAction} services={props.services} />) : <div className="empty-state compact"><div className="empty-icon">＋</div><h3>No import candidates yet.</h3><p>Add an already-booked gig as a proposal. Nothing imports automatically.</p></div>}
     </section>
   </div>;
 }

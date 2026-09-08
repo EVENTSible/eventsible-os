@@ -55,7 +55,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   const supabase = await createServerSupabase();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect("/login");
-  if (!isStaffRole(authData.user.app_metadata?.role)) redirect("/login?error=access");
+  if (!isStaffRole(authData.user.app_metadata?.role)) redirect("/access-denied");
 
   const [eventResult, bookingResult, activityResult, quoteResult, tasksResult, filesResult, factsResult, planningResult, notesResult] = await Promise.all([
     supabase.from("os_events").select("id,primary_contact_id,day_of_contact_id,title,event_type,status,starts_at,ends_at,timezone,guest_count,venue_name,venue_address_1,venue_address_2,venue_city,venue_state,venue_postal_code,venue_country,settings,created_at,updated_at").eq("id", eventId).maybeSingle(),

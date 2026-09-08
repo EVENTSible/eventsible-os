@@ -8,8 +8,8 @@ import {
   EXISTING_GIG_CANDIDATE_VERSION,
 } from "@/lib/existing-gig-intake.mjs";
 import { executeGigSaladCandidateSync, GigSaladSyncError } from "@/lib/gigsalad-ical-sync.mjs";
-import { createServerSupabase } from "@/lib/supabase/server";
-import { isStaffRole } from "@/lib/types";
+import { authorizeHqCapability } from "@/lib/hq-auth";
+import type { HqCapability } from "@/lib/hq-authorization";
 
 export type ImportActionState = {
   status: "idle" | "success" | "error";
@@ -39,11 +39,9 @@ function value(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
-async function requireStaff() {
-  const supabase = await createServerSupabase();
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
-  return user && isStaffRole(user.app_metadata?.role) ? { supabase, user } : null;
+async function requireCapability(capability: HqCapability) {
+  const authorization = await authorizeHqCapability(capability);
+  return authorization.ok ? authorization : null;
 }
 
 function refreshIntake(eventId?: string) {
@@ -73,8 +71,8 @@ export async function syncGigSaladCandidatesAction(
 ): Promise<GigSaladSyncActionState> {
   void _previousState;
   void _formData;
-  const staff = await requireStaff();
-  if (!staff) return { status: "error", message: "Sign in with an approved staff account." };
+  const staff = await requireCapability("import.candidate.create");
+  if (!staff) return { status: "error", message: "Owner approval required to sync import candidates." };
 
   try {
     const synced = await executeGigSaladCandidateSync({
@@ -127,8 +125,8 @@ export async function createManualImportCandidateAction(
   _previousState: ImportActionState,
   formData: FormData,
 ): Promise<ImportActionState> {
-  const staff = await requireStaff();
-  if (!staff) return { status: "error", message: "Sign in with an approved staff account." };
+  const staff = await requireCapability("import.candidate.create");
+  if (!staff) return { status: "error", message: "Owner approval required to create import candidates." };
 
   const eventQuery = await staff.supabase
     .from("os_event_dashboard_v")
@@ -191,28 +189,16 @@ export async function reviewImportCandidateAction(
   }
   if (decision === "matched" && !matchedEventId) return { status: "error", message: "Choose an existing event to match." };
 
-  const staff = await requireStaff();
-  if (!staff) return { status: "error", message: "Sign in with an approved staff account." };
+  const staff = await requireCapability("import.review");
+  if (!staff) return { status: "error", message: "An approved HQ role is required to review candidates." };
 
-  if (decision === "matched") {
-    const target = await staff.supabase.from("os_events").select("id").eq("id", matchedEventId).maybeSingle();
-    if (target.error || !target.data) return { status: "error", message: "The selected canonical event could not be verified." };
-  }
+  const update = await staff.supabase.rpc("os_review_event_import_candidate", {
+    p_candidate_id: candidateId,
+    p_decision: decision,
+    p_matched_event_id: decision === "matched" ? matchedEventId : null,
+  });
 
-  const update = await staff.supabase
-    .from("os_event_import_candidates")
-    .update({
-      review_status: decision,
-      reviewed_by_user_id: decision === "pending" ? null : staff.user.id,
-      reviewed_at: decision === "pending" ? null : new Date().toISOString(),
-      matched_event_id: decision === "matched" ? matchedEventId : null,
-    })
-    .eq("id", candidateId)
-    .neq("review_status", "imported")
-    .select("id,review_status,matched_event_id")
-    .maybeSingle();
-
-  if (update.error || !update.data) return { status: "error", message: "The candidate review state could not be changed." };
+  if (update.error || !update.data || update.data.status !== "updated") return { status: "error", message: "The candidate review state could not be changed." };
   refreshIntake(update.data.matched_event_id ?? undefined);
   const labels: Record<string, string> = { pending: "Pending review", review_later: "Review later", ignored: "Ignored", matched: "Matched to an existing gig" };
   return { status: "success", message: `${labels[decision]} saved. No new gig was created.` };
@@ -224,10 +210,10 @@ export async function importExistingGigAction(
 ): Promise<ImportActionState> {
   const candidateId = value(formData, "candidate_id");
   if (!candidateId) return { status: "error", message: "The import candidate was missing." };
-  const staff = await requireStaff();
-  if (!staff) return { status: "error", message: "Sign in with an approved staff account." };
+  const staff = await requireCapability("import.finalize");
+  if (!staff) return { status: "error", message: "Owner approval required to import a canonical gig." };
 
-  const result = await staff.supabase.rpc("os_import_existing_gig", { p_candidate_id: candidateId });
+  const result = await staff.supabase.rpc("os_finalize_existing_gig_import", { p_candidate_id: candidateId });
   if (result.error) return { status: "error", message: existingGigImportRpcError(result.error) };
   if (!result.data || !["imported", "replayed"].includes(String(result.data.status ?? "")) || !result.data.event_id) {
     return { status: "error", message: "The canonical import result could not be verified. No success state is shown." };

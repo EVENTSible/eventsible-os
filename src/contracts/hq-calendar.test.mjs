@@ -51,7 +51,7 @@ test("Calendar route is staff-protected and reads only the canonical dashboard c
   const page = fs.readFileSync(fileURLToPath(new URL("../app/admin/calendar/page.tsx", import.meta.url)), "utf8");
   assert.match(page, /auth\.getUser\(\)/);
   assert.match(page, /isStaffRole\(role\)/);
-  assert.match(page, /redirect\("\/login\?error=access"\)/);
+  assert.match(page, /redirect\("\/access-denied"\)/);
   assert.match(page, /from\("os_event_dashboard_v"\)/);
   assert.match(page, /result\.error[^]*No date is being represented as Open or Booked[^]*:\s*<HqCalendar/);
   assert.doesNotMatch(page, /\.insert\(|\.update\(|\.upsert\(|\.delete\(|createAdminSupabase|SERVICE_ROLE/);

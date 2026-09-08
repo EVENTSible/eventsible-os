@@ -113,7 +113,8 @@ test("direct staff review cannot claim an imported result", () => {
   assert.match(migration, /grant update \([^]*review_status[^]*matched_event_id[^]*updated_at[^]*\) on table public\.os_event_import_candidates to authenticated/i);
   assert.doesNotMatch(authenticatedUpdateGrant, /imported_event_id|imported_contact_id|imported_booking_id/i);
   assert.match(migration, /review_status in \('pending', 'review_later', 'ignored', 'matched'\)/i);
-  assert.match(actions, /\.neq\("review_status", "imported"\)/);
+  assert.match(actions, /rpc\("os_review_event_import_candidate"/);
+  assert.match(actions, /rpc\("os_finalize_existing_gig_import"/);
 });
 
 test("import RPC is fixed, authenticated, staff-only, and internally derives the actor", () => {
@@ -155,7 +156,7 @@ test("replay returns stable canonical IDs without duplicate inserts", () => {
 
 test("protected Import Review UI exposes decisions without raw JSON or direct gig writes", () => {
   assert.match(page, /if \(!user\) redirect\("\/login"\)/);
-  assert.match(page, /if \(!isStaffRole\(role\)\) redirect\("\/login\?error=access"\)/);
+  assert.match(page, /if \(!isStaffRole\(role\)\) redirect\("\/access-denied"\)/);
   assert.match(component, /Import as New Gig/);
   assert.match(component, /Match Existing/);
   assert.match(component, /Review Later/);
