@@ -64,7 +64,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into before_counts;
 
@@ -152,14 +152,18 @@ begin
     (quote_version_id_value, event_id_value, 'live-singer', 'live_performer', 'Live Performer / Singer', 'Live Performer / Singer', 1, 'custom', 0, 0, true, '{"builder_item":{"custom_quote":true}}'::jsonb),
     (quote_version_id_value, event_id_value, 'event-asst', 'event-asst', 'event-asst', 'event-asst', 3, 'hour', 3500, 10500, false, '{"builder_item":{"lovable_service_id":"event-asst","service_code":"event-asst","custom_quote":false}}'::jsonb);
 
-  insert into public.os_builder_activity(contact_id, builder_submission_id, lead_id, event_id, activity_type, facts)
+  insert into public.os_activity_events(contact_id, event_id, event_type, payload, idempotency_key)
   values (
     contact_id_value,
-    submission_id_value,
-    lead_id_value,
     event_id_value,
     'builder.submission_received',
-    jsonb_build_object('source','production_quote_shape','quote_id',quote_version_id_value::text)
+    jsonb_build_object(
+      'source', 'production_quote_shape',
+      'submission_id', submission_id_value,
+      'lead_id', lead_id_value,
+      'quote_id', quote_version_id_value::text
+    ),
+    'builder:production-quote-shape-001:received'
   )
   returning id into activity_id_value;
 
@@ -213,9 +217,15 @@ begin
     raise exception 'Outbox initial processing fields are incorrect.';
   end if;
 
-  insert into public.os_builder_activity(contact_id, builder_submission_id, lead_id, event_id, activity_type, facts)
-  values (contact_id_value, submission_id_value, lead_id_value, event_id_value, 'builder.submission_received', '{"replay":true}'::jsonb)
-  on conflict (builder_submission_id, activity_type) do nothing;
+  insert into public.os_activity_events(contact_id, event_id, event_type, payload, idempotency_key)
+  values (
+    contact_id_value,
+    event_id_value,
+    'builder.submission_received',
+    jsonb_build_object('submission_id', submission_id_value, 'lead_id', lead_id_value, 'replay', true),
+    'builder:production-quote-shape-001:received'
+  )
+  on conflict (idempotency_key) where idempotency_key is not null do nothing;
 
   if (select count(*) from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || submission_id_value::text) <> 1 then
     raise exception 'Activity replay created duplicate outbox event.';
@@ -241,7 +251,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into after_counts;
 
@@ -277,8 +287,14 @@ begin
     values (contact_id_value, event_id_value, submission_id_value, 'new', 'eventsible_event_builder', '{}'::jsonb)
     returning id into lead_id_value;
 
-    insert into public.os_builder_activity(contact_id, builder_submission_id, lead_id, event_id, activity_type, facts)
-    values (contact_id_value, submission_id_value, lead_id_value, event_id_value, 'builder.submission_received', '{"missing_quote":true}'::jsonb);
+    insert into public.os_activity_events(contact_id, event_id, event_type, payload, idempotency_key)
+    values (
+      contact_id_value,
+      event_id_value,
+      'builder.submission_received',
+      jsonb_build_object('submission_id', submission_id_value, 'lead_id', lead_id_value, 'missing_quote', true),
+      'builder:missing-quote-001:received'
+    );
 
     raise exception 'Missing quote record false success.';
   exception when others then
@@ -294,7 +310,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into rollback_after;
 

@@ -194,7 +194,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into counts_after_first;
 
@@ -227,7 +227,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into counts_after_replay;
 
@@ -244,7 +244,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into counts_after_second;
 
@@ -260,11 +260,13 @@ begin
   perform public.ecosystem_ci_assert((select (payload->'service_codes') ? 'dj_mc' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) is true, 'Outbox payload did not include known service codes.');
   perform public.ecosystem_ci_assert((select (payload->'custom_quote_service_codes') ? 'live_performer' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) is true, 'Outbox payload did not preserve Custom Quote service flags.');
 
-  insert into public.os_builder_activity(contact_id, builder_submission_id, lead_id, event_id, activity_type, facts)
-  select contact_id, id, (first_result->>'lead_id')::uuid, event_id, 'builder.submission_received', jsonb_build_object('replay', true)
+  insert into public.os_activity_events(contact_id, event_id, event_type, payload, idempotency_key)
+  select contact_id, event_id, 'builder.submission_received',
+         jsonb_build_object('submission_id', id, 'lead_id', (first_result->>'lead_id')::uuid, 'replay', true),
+         'builder:' || source_session_id || ':received'
     from public.os_builder_submissions
    where id = (first_result->>'submission_id')::uuid
-  on conflict (builder_submission_id, activity_type) do nothing;
+  on conflict (idempotency_key) where idempotency_key is not null do nothing;
   perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) = 1, 'Activity replay created duplicate outbox event.');
 
   public_catalog := public.os_public_catalog_from_builder(jsonb_build_object(
@@ -351,7 +353,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into after_failure;
 
