@@ -123,20 +123,26 @@ seed_summary as (
   select jsonb_object_agg(label, jsonb_build_object('count', count_value, 'content_hash', content_hash)) value
   from (
     select 'os_service_catalog' label, count(*) count_value,
-      md5(coalesce(string_agg((to_jsonb(t) - 'created_at' - 'updated_at')::text, '' order by id::text), '')) content_hash
+      md5(coalesce(string_agg((to_jsonb(t) - 'id' - 'created_at' - 'updated_at')::text, '' order by code), '')) content_hash
       from public.os_service_catalog t
     union all
     select 'os_planning_templates', count(*),
-      md5(coalesce(string_agg((to_jsonb(t) - 'created_at' - 'updated_at')::text, '' order by id::text), ''))
+      md5(coalesce(string_agg((to_jsonb(t) - 'id' - 'created_by' - 'created_at' - 'updated_at')::text, '' order by slug), ''))
       from public.os_planning_templates t
     union all
     select 'os_planning_sections', count(*),
-      md5(coalesce(string_agg((to_jsonb(t) - 'created_at' - 'updated_at')::text, '' order by id::text), ''))
-      from public.os_planning_sections t
+      md5(coalesce(string_agg((to_jsonb(s) - 'id' - 'template_id' - 'created_at' - 'updated_at'
+        || jsonb_build_object('template_slug', t.slug))::text, '' order by t.slug, s.section_key), ''))
+      from public.os_planning_sections s
+      join public.os_planning_templates t on t.id = s.template_id
     union all
     select 'os_planning_questions', count(*),
-      md5(coalesce(string_agg((to_jsonb(t) - 'created_at' - 'updated_at')::text, '' order by id::text), ''))
-      from public.os_planning_questions t
+      md5(coalesce(string_agg((to_jsonb(q) - 'id' - 'section_id' - 'created_at' - 'updated_at'
+        || jsonb_build_object('template_slug', t.slug, 'section_key', s.section_key))::text,
+        '' order by t.slug, s.section_key, q.question_key), ''))
+      from public.os_planning_questions q
+      join public.os_planning_sections s on s.id = q.section_id
+      join public.os_planning_templates t on t.id = s.template_id
   ) seeds
 )
 select jsonb_build_object(

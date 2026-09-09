@@ -261,7 +261,7 @@ begin
   perform public.ecosystem_ci_assert((select (payload->'custom_quote_service_codes') ? 'live_performer' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) is true, 'Outbox payload did not preserve Custom Quote service flags.');
 
   insert into public.os_activity_events(contact_id, event_id, event_type, payload, idempotency_key)
-  select contact_id, event_id, 'builder.submission_received',
+  select contact_id, (first_result->>'event_id')::uuid, 'builder.submission_received',
          jsonb_build_object('submission_id', id, 'lead_id', (first_result->>'lead_id')::uuid, 'replay', true),
          'builder:' || source_session_id || ':received'
     from public.os_builder_submissions
