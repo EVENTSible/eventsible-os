@@ -107,6 +107,7 @@ try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const deniedPage = await context.newPage();
     await signIn(deniedPage, user.email);
+    await deniedPage.waitForURL(/\/access-denied$/);
     if (!deniedPage.url().endsWith("/access-denied")) throw new Error(`${user.role} reached the Owner-only Data Readiness route.`);
     await context.close();
   }
