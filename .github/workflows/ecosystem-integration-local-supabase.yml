@@ -70,9 +70,7 @@ jobs:
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          sudo apt-get install --yes postgresql-client-17
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          sudo apt-get install --yes postgresql-client
           psql --version
 
       - name: Confirm Supabase CLI
@@ -124,9 +122,10 @@ jobs:
         run: node scripts/export-application-schema-catalog.mjs reconstructed-schema-catalog.json
 
       - name: Export isolated reconstructed test database
-        run: >-
-          pg_dump "$SUPABASE_LOCAL_DB_URL" --no-password --format=custom
-          --schema=public --schema=private --file=reconstructed-test-database.dump
+        run: |
+          docker exec supabase_db_eventsible-os-local-ci \
+            pg_dump --username=postgres --dbname=postgres --format=custom --schema=public --schema=private \
+            > reconstructed-test-database.dump
 
       - name: Preserve sanitized reconstruction evidence
         uses: actions/upload-artifact@v4
