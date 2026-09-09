@@ -185,7 +185,7 @@ begin
 
   first_event_id := (first_result->>'event_id')::uuid;
   first_quote_id := (first_result->>'quote_id')::uuid;
-  first_quote_version_id := (first_result->>'quote_version_id')::uuid;
+  first_quote_version_id := coalesce((first_result->>'quote_version_id')::uuid, first_quote_id);
 
   select jsonb_build_object(
     'contacts', (select count(*) from public.os_contacts),
