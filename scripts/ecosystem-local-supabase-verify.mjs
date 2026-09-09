@@ -212,9 +212,9 @@ begin
   perform public.ecosystem_ci_assert((select (snapshot #>> '{pricing,package_savings}')::numeric from public.os_quote_versions limit 1) = 63, 'Package savings were not preserved in the canonical quote snapshot.');
   perform public.ecosystem_ci_assert((select (snapshot #>> '{pricing,travel_fee}')::numeric from public.os_quote_versions limit 1) = 0, 'Travel total was not preserved in the canonical quote snapshot.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where service_code in ('dj_mc', 'selfie_booth_prints', 'live_performer', 'event_staff')) = 4, 'Known services did not map to expected service codes.');
-  perform public.ecosystem_ci_assert((select service_name from public.os_quote_items where service_code = 'selfie_booth_prints') = 'Selfie Booth with Prints', 'Known service label was not human-readable.');
+  perform public.ecosystem_ci_assert((select service_name from public.os_quote_items where service_code = 'selfie_booth_prints') = 'Selfie Booth + Prints', 'Known service label did not match the canonical catalog.');
   perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where service_code = 'live_performer') is true, 'Live Singer was not preserved as Custom Quote.');
-  perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where service_code = 'unknown-synthetic-service') is true, 'Unknown service was not preserved as Custom Quote.');
+  perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where metadata #>> '{builder_item,id}' = 'unknown-synthetic-service') is true, 'Unknown service was not preserved as Custom Quote.');
   perform public.ecosystem_ci_assert((select sum(line_total) from public.os_quote_items where coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false)) = 0, 'Custom Quote items inflated numeric total.');
 
   select public.os_ingest_builder_submission(public.ecosystem_ci_payload('ecosystem-ci-submission-001', '0101', future_tuesday))
