@@ -25,6 +25,7 @@ on:
       - fix/builder-event-staff-quote-label
       - fix/builder-event-staff-code-parity
       - feat/builder-submission-email-notifications
+      - codex/migration-history-reconciliation
     paths:
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
@@ -47,8 +48,6 @@ jobs:
     env:
       EVENTSIBLE_PRODUCTION_SUPABASE_REF: cplpbzudjprzbnzocirc
       SUPABASE_LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-      LOCAL_VERIFICATION_SCHEMA: supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql
-      STAGED_LOCAL_MIGRATION: supabase/migrations/20260731000000_ecosystem_integration_local_foundation.sql
 
     steps:
       - name: Checkout
@@ -75,24 +74,18 @@ jobs:
           psql --version
 
       - name: Confirm Supabase CLI
-        run: npx supabase@2.111.0 --version
+        run: npx supabase@2.117.0 --version
 
       - name: Guard local-only Supabase commands
         run: npm run guard:local-supabase-ci
 
-      - name: Stage CI-local verification schema
-        run: |
-          test -f "$LOCAL_VERIFICATION_SCHEMA"
-          cp "$LOCAL_VERIFICATION_SCHEMA" "$STAGED_LOCAL_MIGRATION"
-          if grep -q "$EVENTSIBLE_PRODUCTION_SUPABASE_REF" "$STAGED_LOCAL_MIGRATION"; then
-            echo "Production Supabase ref appeared in staged local migration."
-            exit 1
-          fi
+      - name: Verify canonical migration history
+        run: node scripts/verify-migration-history.mjs --canonical-only
 
       - name: Start local Supabase
         run: |
           set +e
-          npx supabase@2.111.0 start > supabase-start.log 2>&1
+          npx supabase@2.117.0 start > supabase-start.log 2>&1
           start_status=$?
           set -e
           if [ "$start_status" -ne 0 ]; then
@@ -112,7 +105,37 @@ jobs:
           psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --command "select current_database(), inet_server_addr(), inet_server_port();" | sed -E 's/[[:space:]]+/ /g'
 
       - name: Reset and apply local migrations
-        run: npx supabase@2.111.0 db reset --local
+        run: npx supabase@2.117.0 db reset --local
+
+      - name: Verify reconstructed migration ledger
+        run: |
+          expected_versions="$(node -e "const m=require('./supabase/migration-history.json'); process.stdout.write(m.migrations.map((x)=>x.version).join('\n'))")"
+          actual_versions="$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select version from supabase_migrations.schema_migrations order by version")"
+          test "$actual_versions" = "$expected_versions"
+
+      - name: Lint reconstructed database
+        run: npx supabase@2.117.0 db lint --local --schema public,private --level warning --fail-on error
+
+      - name: Export sanitized reconstructed schema catalog
+        env:
+          SCHEMA_CATALOG_DB_URL: ${{ env.SUPABASE_LOCAL_DB_URL }}
+        run: node scripts/export-application-schema-catalog.mjs reconstructed-schema-catalog.json
+
+      - name: Export isolated reconstructed test database
+        run: |
+          docker exec supabase_db_eventsible-os-local-ci \
+            pg_dump --username=postgres --dbname=postgres --format=custom --schema=public --schema=private \
+            > reconstructed-test-database.dump
+
+      - name: Preserve sanitized reconstruction evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconstructed-schema-evidence
+          path: |
+            reconstructed-schema-catalog.json
+            reconstructed-test-database.dump
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Run ecosystem integration verification
         run: npm run test:ecosystem:local-supabase
@@ -147,4 +170,4 @@ jobs:
 
       - name: Stop local Supabase
         if: always()
-        run: npx supabase@2.111.0 stop --no-backup
+        run: npx supabase@2.117.0 stop --no-backup

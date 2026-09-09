@@ -1,0 +1,226 @@
+{
+  "format": "eventsible_supabase_migration_history_v1",
+  "canonicalThrough": "20260908133323",
+  "migrations": [
+    {
+      "version": "20260717212229",
+      "name": "eventsible_os_core_records",
+      "sha256": "11158809508236ee923ba1353262d1de6647af82ceb8b31a57090096586118f9"
+    },
+    {
+      "version": "20260717212248",
+      "name": "eventsible_os_sales_booking",
+      "sha256": "92bfbcb75671c1d74ef1a7c7fe0305984d7a5094c92546e688499d5a7168e2f4"
+    },
+    {
+      "version": "20260717212318",
+      "name": "eventsible_os_planning_communication",
+      "sha256": "469f25212fd1d5f5f7693a94af57626a393f0212005b624af65463f9bdb30c57"
+    },
+    {
+      "version": "20260717212346",
+      "name": "eventsible_os_workflow_functions",
+      "sha256": "314baea47015697bd3e65a341316073d2a89d7cd1fcd744b7f6f6677157436bc"
+    },
+    {
+      "version": "20260717212428",
+      "name": "eventsible_os_rls_policies",
+      "sha256": "28b4a5cb0b6840c44c8112cc7a500e57c6600b20c663247aa20b07e9cd569ad6"
+    },
+    {
+      "version": "20260717212442",
+      "name": "eventsible_os_service_catalog_seed",
+      "sha256": "e19a52a0ac5879af9c4dfd613625a360daa8f25ab3dfb0659d2e703c69d9edd5"
+    },
+    {
+      "version": "20260717212457",
+      "name": "eventsible_os_hero_templates_seed",
+      "sha256": "6e0fbd0fd89fef899b66558d931597ddf1c45b5f9524eb0ad8d8f84d78bc9721"
+    },
+    {
+      "version": "20260717212514",
+      "name": "eventsible_os_wedding_hero_questions_seed",
+      "sha256": "9933ed40d9d9c1113f44ea635afa7be9ed559157e8dc03450546c5afa66d5a2f"
+    },
+    {
+      "version": "20260717212529",
+      "name": "eventsible_os_event_hero_questions_seed",
+      "sha256": "e8e9e0fe0659151949a1c714da6d778b6a0b6baded7638d3aa242285fac5a982"
+    },
+    {
+      "version": "20260717212547",
+      "name": "eventsible_os_foreign_key_indexes",
+      "sha256": "23b796404b2f719a2bb3eb64cf5d8d97622f9eab28895db06532311718b9506d"
+    },
+    {
+      "version": "20260717212618",
+      "name": "eventsible_os_confirmed_booking_bootstrap",
+      "sha256": "3c9be0b1be625581eae6290f694f1c6468ece8a9edaa858a565f4dcc0bd07965"
+    },
+    {
+      "version": "20260717212638",
+      "name": "eventsible_os_quote_to_booking_lifecycle",
+      "sha256": "1eb63b80980eb7415fd44129c5f5b354f508c40b67710b50f8952cc8617710a1"
+    },
+    {
+      "version": "20260717212659",
+      "name": "eventsible_os_builder_fact_sync",
+      "sha256": "0c653156ef7a833c90ce694d9be1118bc19ece40f7d023fab79e6aee7b77c591"
+    },
+    {
+      "version": "20260717212722",
+      "name": "eventsible_os_shared_application_views",
+      "sha256": "548f5feff2d933c36575816d151ac4bfefd8701a4381b56d3d3cb9c4adde0b49"
+    },
+    {
+      "version": "20260717212932",
+      "name": "eventsible_os_outbox_staff_visibility",
+      "sha256": "cb54bd2cca37ee0ba977ed0c6d88bfc623be4309ac2a72101f8104025c749f8c"
+    },
+    {
+      "version": "20260717213439",
+      "name": "eventsible_os_identity_sync",
+      "sha256": "ed166f7b2cb549c913802d70af259491b84adb3319938894f7118a0bc14d45ec"
+    },
+    {
+      "version": "20260717213549",
+      "name": "eventsible_os_enable_pg_net",
+      "sha256": "720ec83cb404dd730aac48a345a1c23e26773a93a221da0f686c24bb208f46a9"
+    },
+    {
+      "version": "20260717215640",
+      "name": "eventsible_os_file_storage",
+      "sha256": "6d27649cd73dad221487fd4e5eb75f109b14955085d4cefee57a09cb760328f9"
+    },
+    {
+      "version": "20260717215741",
+      "name": "eventsible_os_event_page_foundation",
+      "sha256": "16c4b314d1075f1d49efa5bef4862db562ec40fa36789392eff98f76b7674dfe"
+    },
+    {
+      "version": "20260717215759",
+      "name": "eventsible_os_rsvp_and_guest_access",
+      "sha256": "74bf4215e6c3ed8365b5b7880c7c1450448e458bf965475f8e603fb503fc56f7"
+    },
+    {
+      "version": "20260717215834",
+      "name": "eventsible_os_public_bucket_listing_fix",
+      "sha256": "29da8d0da1027dbe5bd97b65e9263010c395e84d319dcd9b36ac83d63fd159a0"
+    },
+    {
+      "version": "20260718050004",
+      "name": "eventsible_os_gig_import_audit",
+      "sha256": "9ed8602548a27a7cee76ee1bcbd29d26cf93ba305f8bad89d61ea7050f14ec00"
+    },
+    {
+      "version": "20260718060632",
+      "name": "eventsible_os_calendar_followup_tasks",
+      "sha256": "7e1d3a0d6390e249f7a5b82530db8e3c4eae834ba4d8272452ad6784a142c902"
+    },
+    {
+      "version": "20260718191454",
+      "name": "eventsible_os_event_workspace_notes",
+      "sha256": "8cbf1bcd4b4f50d5b01969dcffde493a1e1a7c33a1097eca91997acde9ce2109"
+    },
+    {
+      "version": "20260719050947",
+      "name": "eventsible_os_secure_files_client_portal",
+      "sha256": "f79b645dc66129b9036ca170a823f07020500313cb8ca47cc01b0ffbb33a39e7"
+    },
+    {
+      "version": "20260719053551",
+      "name": "event_builder_secure_intake",
+      "sha256": "734a8d2c474f65b45876bc22e75b0c3ccf9ef419674b7192f886a010a35a2e50"
+    },
+    {
+      "version": "20260719053712",
+      "name": "fix_event_builder_contact_merge",
+      "sha256": "47fdfc1d7e321b2567c5bc889d707025239fb3269f2e4d8b90077906771e2dc7"
+    },
+    {
+      "version": "20260719054033",
+      "name": "event_builder_public_staging",
+      "sha256": "b8a19a935e681067384df433e44dfb1c368bb2eb93c9056842b88dd1248c5249"
+    },
+    {
+      "version": "20260803173435",
+      "name": "ecosystem_integration_local_foundation",
+      "sha256": "8856a3a7ae773e6d29c70d823a1eb887165e1a76336983a6213cd2762004d3fe"
+    },
+    {
+      "version": "20260803173541",
+      "name": "ecosystem_integration_outbox_helper_grants_fix",
+      "sha256": "484b61b9a102618573aefa1ae3c9313b00daaa6c1f38a792755e824b6ee46c92"
+    },
+    {
+      "version": "20260803235147",
+      "name": "builder_submission_outbox_wiring",
+      "sha256": "cf164c87d407fd109bf23db89b21691b05c220a818c2c5844d44dcb2531f4dc7"
+    },
+    {
+      "version": "20260804010800",
+      "name": "20260804003000_builder_submission_outbox_quote_lookup_fix",
+      "sha256": "d20505366b2c51eaa282b6c1cfb6b463bd6346e36b0901e2f7b1e81bf853fe90"
+    },
+    {
+      "version": "20260804014458",
+      "name": "builder_submission_outbox_payload_parity_fix",
+      "sha256": "33b5fc6c2d27a6890ffb51efab6888d6216ce4a4bcffdb4530515e1e4ad0fbc2"
+    },
+    {
+      "version": "20260804023227",
+      "name": "builder_quote_item_event_staff_label_fix",
+      "sha256": "05328483627e2dcab29a73e058896cbfc26caf7dfd286e9b707742aae0fe02b1"
+    },
+    {
+      "version": "20260804033918",
+      "name": "builder_quote_item_event_staff_code_parity",
+      "sha256": "78e9ac8816278b73220d4c6cd671e45ff1dceddc4e5a0f6159a95c4905970230"
+    },
+    {
+      "version": "20260805171228",
+      "name": "20260805170000_builder_submission_email_notifications",
+      "sha256": "a8a7bbb5b6017f93c0f1cf55a2a17efe57c58580511f3f15175f71a3168d1075"
+    },
+    {
+      "version": "20260901173856",
+      "name": "event_operational_timing_rpc",
+      "sha256": "95e321fb279b6b84146f89615d87294cd080a0d7ce2991089b7afccbb817cb27"
+    },
+    {
+      "version": "20260901184836",
+      "name": "event_day_logistics_rpc",
+      "sha256": "8d8d0d31f53ab825aa364a71c88be58567cd7f95726e6231ed9e723dda4bf531"
+    },
+    {
+      "version": "20260902005304",
+      "name": "day_of_contact_relationship_rpc",
+      "sha256": "c041a78ac911cb6a30d1e98409dff51122796861e9aec9beeecf5c1e3f7f41e5"
+    },
+    {
+      "version": "20260902051415",
+      "name": "event_day_notes_rpc",
+      "sha256": "ddb379628032414f8be71e19f0a931a5a4ce037c0b1e603694e43305383ed840"
+    },
+    {
+      "version": "20260902173917",
+      "name": "existing_gig_intake_foundation",
+      "sha256": "0a2608e4defaef5ede81877b933691795ac3942a98beac54d1321df2e1bab7ab"
+    },
+    {
+      "version": "20260907215620",
+      "name": "hq_manager_authorization_boundary",
+      "sha256": "d1a7c52c46604a441dd908a4013a88a096ce24d0a25d2fa2a20e88929ccb2bc0"
+    },
+    {
+      "version": "20260908124113",
+      "name": "team_availability_calendar_phase_1",
+      "sha256": "812ecc36918eda89bd948f13d5d1567fe3e8993f3c6cd82bbed6124e786b6e43"
+    },
+    {
+      "version": "20260908133323",
+      "name": "team_calendar_entry_controls",
+      "sha256": "0f4e91cf01e8b41a93efb42a2382c447d05e990cd1fe775414f062aa0bb90071"
+    }
+  ]
+}

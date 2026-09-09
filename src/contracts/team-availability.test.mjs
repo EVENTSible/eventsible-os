@@ -68,7 +68,7 @@ test("local time conversion and operational windows preserve canonical timezones
 });
 
 test("migration keeps private schedule tables off direct browser access and exposes bounded RPCs", async () => {
-  const sql = await read("supabase/migrations/20260908045800_team_availability_calendar_phase_1.sql");
+  const sql = await read("supabase/migrations/20260908124113_team_availability_calendar_phase_1.sql");
   const correction = await read("supabase/migrations/20260908133323_team_calendar_entry_controls.sql");
   for (const table of ["os_team_members", "os_team_availability", "os_staff_assignments"]) {
     assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`));

@@ -156,3 +156,4 @@ revoke all on function public.os_upsert_event_day_note(uuid, uuid, text, boolean
   from public, anon, authenticated;
 grant execute on function public.os_upsert_event_day_note(uuid, uuid, text, boolean)
   to authenticated;
+

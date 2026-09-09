@@ -10,7 +10,7 @@ import {
 
 const EVENT_ID = "00000000-0000-4000-8000-000000000401";
 const NOTE_ID = "00000000-0000-4000-8000-000000000402";
-const MIGRATION = new URL("../../supabase/migrations/20260902050555_event_day_notes_rpc.sql", import.meta.url);
+const MIGRATION = new URL("../../supabase/migrations/20260902051415_event_day_notes_rpc.sql", import.meta.url);
 
 test("event-day note input is trimmed and bounded", () => {
   assert.equal(EVENT_DAY_NOTE_BODY_LIMIT, 1500);

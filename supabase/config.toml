@@ -27,7 +27,8 @@ api_url = "http://127.0.0.1:54321"
 enabled = false
 
 [storage]
-enabled = false
+enabled = true
+port = 54324
 
 [auth]
 enabled = true

@@ -482,3 +482,4 @@ grant execute on function public.os_team_calendar_snapshot(date, date) to authen
 -- os_team_availability, and os_team_members; then restore the prior
 -- os_has_hq_capability(text) definition. No canonical event/contact/booking
 -- records are created, copied, changed, or deleted by this migration.
+

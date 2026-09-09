@@ -82,7 +82,7 @@ begin
     'builder_lead_internal_email',
     event_id_value,
     submission_id_value,
-    'firstfamdjs@gmail.com',
+    'owner-notification@example.invalid',
     'resend-dry-run',
     'dry-run-ci',
     'dry_run',
@@ -114,7 +114,7 @@ begin
 
   raise notice 'EVENTSIBLE_BUILDER_LEAD_NOTIFICATION_SUMMARY %', jsonb_build_object(
     'notification_key', 'builder-lead-email:' || submission_id_value::text,
-    'recipient', 'firstfamdjs@gmail.com',
+    'recipient', 'owner-notification@example.invalid',
     'provider', 'resend-dry-run',
     'status', 'dry_run',
     'outbox_unchanged', true,

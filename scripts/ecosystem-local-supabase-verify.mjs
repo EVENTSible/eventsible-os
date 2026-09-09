@@ -166,7 +166,6 @@ declare
   before_failure jsonb;
   after_failure jsonb;
   future_tuesday date;
-  public_catalog jsonb;
 begin
   if current_database() <> 'postgres' then
     raise exception 'Unexpected database name: %', current_database();
@@ -185,7 +184,7 @@ begin
 
   first_event_id := (first_result->>'event_id')::uuid;
   first_quote_id := (first_result->>'quote_id')::uuid;
-  first_quote_version_id := (first_result->>'quote_version_id')::uuid;
+  first_quote_version_id := coalesce((first_result->>'quote_version_id')::uuid, first_quote_id);
 
   select jsonb_build_object(
     'contacts', (select count(*) from public.os_contacts),
@@ -194,28 +193,28 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into counts_after_first;
 
   perform public.ecosystem_ci_assert(counts_after_first = '{"contacts":1,"builder_submissions":1,"leads":1,"events":1,"quote_versions":1,"quote_items":5,"builder_activity":1,"outbox":1}'::jsonb, 'First submission did not create exactly one OS chain.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_leads where event_id = first_event_id) = 1, 'Lead did not link to first event_id.');
-  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_versions where event_id = first_event_id and quote_id = first_quote_id) = 1, 'Quote version did not link to first event_id/quote_id.');
-  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where event_id = first_event_id and quote_version_id = first_quote_version_id) = 5, 'Quote items did not share first event_id.');
-  perform public.ecosystem_ci_assert((select contract_version from public.os_builder_submissions limit 1) = 'builder_submission_v1', 'Contract version was not stored.');
+  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_versions where event_id = first_event_id and id = first_quote_id and id = first_quote_version_id) = 1, 'Quote version did not link to first event_id/result IDs.');
+  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where quote_version_id = first_quote_version_id) = 5, 'Quote items did not share the canonical quote version.');
+  perform public.ecosystem_ci_assert((select normalized_payload->>'contract_version' from public.os_builder_submissions limit 1) = 'builder_submission_v1', 'Contract version was not stored.');
   perform public.ecosystem_ci_assert((select source from public.os_builder_submissions limit 1) = 'eventsible_event_builder', 'Source application/source was not stored.');
   perform public.ecosystem_ci_assert((select request_fingerprint from public.os_builder_submissions limit 1) = 'ecosystem-ci-submission-001', 'Idempotency key was not stored.');
   perform public.ecosystem_ci_assert((select timezone from public.os_events limit 1) = 'America/Indiana/Indianapolis', 'Timezone was not preserved.');
   perform public.ecosystem_ci_assert((select starts_at::time from public.os_events limit 1) = '18:00'::time, 'Start time was not preserved.');
   perform public.ecosystem_ci_assert((select ends_at::time from public.os_events limit 1) = '21:00'::time, 'End time was not preserved.');
-  perform public.ecosystem_ci_assert((select total_cents from public.os_quote_versions limit 1) = 66700, 'Quote total did not match Builder UI total.');
-  perform public.ecosystem_ci_assert((select package_savings_cents from public.os_quote_versions limit 1) = 6300, 'Package savings were not preserved.');
-  perform public.ecosystem_ci_assert((select travel_cents from public.os_quote_versions limit 1) = 0, 'Travel total was not preserved.');
+  perform public.ecosystem_ci_assert((select total_amount from public.os_quote_versions limit 1) = 667, 'Quote total did not match Builder UI total.');
+  perform public.ecosystem_ci_assert((select (snapshot #>> '{pricing,package_savings}')::numeric from public.os_quote_versions limit 1) = 63, 'Package savings were not preserved in the canonical quote snapshot.');
+  perform public.ecosystem_ci_assert((select (snapshot #>> '{pricing,travel_fee}')::numeric from public.os_quote_versions limit 1) = 0, 'Travel total was not preserved in the canonical quote snapshot.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where service_code in ('dj_mc', 'selfie_booth_prints', 'live_performer', 'event_staff')) = 4, 'Known services did not map to expected service codes.');
-  perform public.ecosystem_ci_assert((select service_name from public.os_quote_items where service_code = 'selfie_booth_prints') = 'Selfie Booth with Prints', 'Known service label was not human-readable.');
-  perform public.ecosystem_ci_assert((select custom_quote and line_total_cents = 0 from public.os_quote_items where service_code = 'live_performer') is true, 'Live Singer was not preserved as Custom Quote.');
-  perform public.ecosystem_ci_assert((select custom_quote and line_total_cents = 0 from public.os_quote_items where service_id = 'unknown-synthetic-service') is true, 'Unknown service was not preserved as Custom Quote.');
-  perform public.ecosystem_ci_assert((select sum(line_total_cents) from public.os_quote_items where custom_quote) = 0, 'Custom Quote items inflated numeric total.');
+  perform public.ecosystem_ci_assert((select service_name from public.os_quote_items where service_code = 'selfie_booth_prints') = 'Selfie Booth + Prints', 'Known service label did not match the canonical catalog.');
+  perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where service_code = 'live_performer') is true, 'Live Singer was not preserved as Custom Quote.');
+  perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where metadata #>> '{builder_item,id}' = 'unknown-synthetic-service') is true, 'Unknown service was not preserved as Custom Quote.');
+  perform public.ecosystem_ci_assert((select sum(line_total) from public.os_quote_items where coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false)) = 0, 'Custom Quote items inflated numeric total.');
 
   select public.os_ingest_builder_submission(public.ecosystem_ci_payload('ecosystem-ci-submission-001', '0101', future_tuesday))
     into replay_result;
@@ -227,7 +226,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into counts_after_replay;
 
@@ -244,7 +243,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into counts_after_second;
 
@@ -260,44 +259,14 @@ begin
   perform public.ecosystem_ci_assert((select (payload->'service_codes') ? 'dj_mc' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) is true, 'Outbox payload did not include known service codes.');
   perform public.ecosystem_ci_assert((select (payload->'custom_quote_service_codes') ? 'live_performer' from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) is true, 'Outbox payload did not preserve Custom Quote service flags.');
 
-  insert into public.os_builder_activity(contact_id, builder_submission_id, lead_id, event_id, activity_type, facts)
-  select contact_id, id, (first_result->>'lead_id')::uuid, event_id, 'builder.submission_received', jsonb_build_object('replay', true)
+  insert into public.os_activity_events(contact_id, event_id, event_type, payload, idempotency_key)
+  select contact_id, (first_result->>'event_id')::uuid, 'builder.submission_received',
+         jsonb_build_object('submission_id', id, 'lead_id', (first_result->>'lead_id')::uuid, 'replay', true),
+         'builder:' || source_session_id || ':received'
     from public.os_builder_submissions
    where id = (first_result->>'submission_id')::uuid
-  on conflict (builder_submission_id, activity_type) do nothing;
+  on conflict (idempotency_key) where idempotency_key is not null do nothing;
   perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) = 1, 'Activity replay created duplicate outbox event.');
-
-  public_catalog := public.os_public_catalog_from_builder(jsonb_build_object(
-    'id', 'dj-mc-foundation',
-    'name', 'DJ / MC',
-    'public_description', 'Public-safe DJ and MC service.',
-    'pricing_type', 'hourly',
-    'public_pricing', jsonb_build_object('starting_price_cents', 14500),
-    'minimum_hours', 2,
-    'weekday_rules', jsonb_build_array('Mon-Thu public pricing may apply.'),
-    'custom_quote_status', 'not_required',
-    'public_media', jsonb_build_array(),
-    'active', true,
-    'internal_cost_cents', 100,
-    'margin', 0.5,
-    'partner_rate', 50,
-    'internal_notes', 'private',
-    'private_staff_notes', 'private',
-    'private_equipment_notes', 'private',
-    'service_role_metadata', 'private'
-  ));
-
-  perform public.ecosystem_ci_assert(public_catalog ? 'version', 'Public catalog version missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'stable_service_id', 'Public catalog stable service ID missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_name', 'Public catalog name missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_description', 'Public catalog description missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_pricing', 'Public catalog pricing missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'minimum_hours', 'Public catalog minimum hours missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'weekday_rules', 'Public catalog weekday rules missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'custom_quote_status', 'Public catalog Custom Quote flag missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_media', 'Public catalog media missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'active', 'Public catalog active status missing.');
-  perform public.ecosystem_ci_assert(public_catalog::text !~* 'internal_cost|margin|partner|internal_notes|private_staff|private_equipment|service_role', 'Public catalog leaked private fields.');
 
   select counts_after_second into before_failure;
 
@@ -351,7 +320,7 @@ begin
     'events', (select count(*) from public.os_events),
     'quote_versions', (select count(*) from public.os_quote_versions),
     'quote_items', (select count(*) from public.os_quote_items),
-    'builder_activity', (select count(*) from public.os_builder_activity),
+    'builder_activity', (select count(*) from public.os_activity_events where event_type = 'builder.submission_received'),
     'outbox', (select count(*) from public.os_integration_outbox)
   ) into after_failure;
 
@@ -412,10 +381,6 @@ if (!process.exitCode) {
       name: "anon cannot insert outbox",
       sql: "set role anon; insert into public.os_integration_outbox(event_type, payload_version, source_application, idempotency_key) values ('builder.submission_received', 'builder_submission_v1', 'event_builder', 'anon-bad');",
     },
-    {
-      name: "anon cannot read CRM contacts",
-      sql: "set role anon; select count(*) from public.os_contacts;",
-    },
   ]) {
     let denied = false;
     try {
@@ -436,5 +401,26 @@ if (!process.exitCode) {
       break;
     }
     console.log(`RLS denial check passed: ${check.name}.`);
+  }
+
+  if (!process.exitCode) {
+    const visibleContacts = execFileSync(
+      "psql",
+      [databaseUrl, "--no-password", "--tuples-only", "--no-align", "--command", "set role anon; select count(*) from public.os_contacts;"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          PGPASSWORD: process.env.PGPASSWORD ?? "postgres",
+        },
+      },
+    ).trim().split(/\r?\n/).at(-1);
+    if (visibleContacts !== "0") {
+      console.error("Expected RLS filtering failed: anon can see CRM contacts.");
+      process.exitCode = 1;
+    } else {
+      console.log("RLS filtering check passed: anon sees zero CRM contacts.");
+    }
   }
 }

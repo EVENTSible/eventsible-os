@@ -8,7 +8,7 @@ import {
   EXISTING_GIG_CANDIDATE_VERSION,
 } from "../lib/existing-gig-intake.mjs";
 
-const migration = readFileSync(new URL("../../supabase/migrations/20260902172423_existing_gig_intake_foundation.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../../supabase/migrations/20260902173917_existing_gig_intake_foundation.sql", import.meta.url), "utf8");
 const actions = readFileSync(new URL("../app/admin/imports/actions.ts", import.meta.url), "utf8");
 const page = readFileSync(new URL("../app/admin/imports/page.tsx", import.meta.url), "utf8");
 const component = readFileSync(new URL("../components/existing-gig-import-review.tsx", import.meta.url), "utf8");

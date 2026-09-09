@@ -236,3 +236,4 @@ grant execute on function public.os_finalize_existing_gig_import(uuid) to authen
 -- grant authenticated execute on os_import_existing_gig(uuid); then drop
 -- os_is_owner(), os_has_hq_capability(text), and os_staff_role(). No row data
 -- is created, updated, backfilled, or deleted by this migration.
+

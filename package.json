@@ -16,6 +16,7 @@
     "test:builder-event-staff-label": "node scripts/verify-builder-event-staff-label.mjs",
     "test:builder-lead-notifications": "node scripts/verify-builder-lead-notifications.mjs",
     "test:wedding-companion:routes": "node scripts/verify-wedding-companion-routes.mjs",
+    "test:migration-history": "node scripts/verify-migration-history.mjs",
     "guard:local-supabase-ci": "node scripts/guard-local-supabase-ci.mjs"
   },
   "dependencies": {
