@@ -46,6 +46,12 @@ alter table public.os_import_batches
 create unique index if not exists os_import_batches_manifest_hash_idx
   on public.os_import_batches(manifest_hash)
   where manifest_hash is not null;
+create index if not exists os_import_batches_approved_by_idx
+  on public.os_import_batches(approved_by)
+  where approved_by is not null;
+create index if not exists os_import_batches_rollback_by_idx
+  on public.os_import_batches(rollback_by)
+  where rollback_by is not null;
 
 create table if not exists public.os_import_batch_items (
   id uuid primary key default gen_random_uuid(),
@@ -81,6 +87,12 @@ create index if not exists os_import_batch_items_batch_status_idx
   on public.os_import_batch_items(batch_id, status, created_at);
 create index if not exists os_import_batch_items_source_hash_idx
   on public.os_import_batch_items(source_hash);
+create index if not exists os_import_batch_items_approved_by_idx
+  on public.os_import_batch_items(approved_by)
+  where approved_by is not null;
+create index if not exists os_import_batch_items_applied_by_idx
+  on public.os_import_batch_items(applied_by)
+  where applied_by is not null;
 
 alter table public.os_import_batch_items enable row level security;
 revoke all on table public.os_import_batch_items from public, anon, authenticated;
