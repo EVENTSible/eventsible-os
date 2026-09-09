@@ -42,6 +42,7 @@ test("Data Readiness route and actions remain Owner-only and server mediated", a
   assert.match(page, /hasHqCapability\(role,"data\.readiness\.manage"\)/);
   assert.match(page, /redirect\("\/access-denied"\)/);
   assert.match(page, /os_data_readiness_snapshot/);
+  assert.doesNotMatch(page, /\.from\(/);
   assert.match(page, /every write control is disabled/);
   assert.match(actions, /authorizeHqCapability\("data\.readiness\.manage"\)/);
   assert.doesNotMatch(actions + component, /createAdminSupabase|SERVICE_ROLE|SUPABASE_SECRET|\.from\([^)]*\)\.insert/);
