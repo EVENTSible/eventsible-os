@@ -528,3 +528,4 @@ revoke all on function public.os_import_existing_gig(uuid)
   from public, anon, authenticated;
 grant execute on function public.os_import_existing_gig(uuid)
   to authenticated;
+

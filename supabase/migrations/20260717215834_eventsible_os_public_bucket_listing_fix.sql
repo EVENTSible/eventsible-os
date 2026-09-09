@@ -1,0 +1,1 @@
+drop policy if exists os_public_objects_read on storage.objects;

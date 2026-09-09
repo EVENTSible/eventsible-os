@@ -1,4 +1,4 @@
--- Transactionally update the four fixed Gig Workspace event-day logistics settings
+-- Atomically update the four fixed Gig Workspace event-day logistics settings
 -- and record one canonical staff activity event. The function does not accept
 -- arbitrary settings, actor, activity, or visibility input.
 

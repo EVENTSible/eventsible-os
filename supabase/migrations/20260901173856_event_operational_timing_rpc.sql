@@ -171,3 +171,4 @@ $$;
 
 revoke all on function public.os_update_event_operational_timing(uuid, text, jsonb, text, text, text) from public, anon, authenticated;
 grant execute on function public.os_update_event_operational_timing(uuid, text, jsonb, text, text, text) to authenticated;
+

@@ -14,7 +14,7 @@ import { buildGigReadiness, READINESS_STATES } from "../lib/gig-readiness.mjs";
 const EVENT_ID = "00000000-0000-4000-8000-000000000301";
 const PRIMARY_ID = "00000000-0000-4000-8000-000000000302";
 const DAY_OF_ID = "00000000-0000-4000-8000-000000000303";
-const MIGRATION = new URL("../../supabase/migrations/20260902004322_day_of_contact_relationship_rpc.sql", import.meta.url);
+const MIGRATION = new URL("../../supabase/migrations/20260902005304_day_of_contact_relationship_rpc.sql", import.meta.url);
 
 test("canonical contact name and phone take precedence over legacy metadata", () => {
   const result = resolveDayOfContact({

@@ -217,3 +217,4 @@ grant execute on function public.os_team_calendar_snapshot(date, date) to authen
 -- original three blocking types. Existing rows using the additive types must
 -- be preserved/exported before constraint rollback; no canonical business row
 -- is created, changed, backfilled, or deleted by this migration.
+
