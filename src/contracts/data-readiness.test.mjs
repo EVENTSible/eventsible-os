@@ -49,6 +49,7 @@ test("Data Readiness route and actions remain Owner-only and server mediated", a
   assert.match(authorization, /"data\.readiness\.manage"/);
   assert.match(component, /ARCHIVE BATCH/);
   assert.match(component, /<option key=\{v\} value=\{v\}>\{v\.replace\("_"," "\)\}<\/option>/);
+  assert.match(component, /rollbackState\.status!=="idle"\?rollbackState:applyState\.status!=="idle"\?applyState:approveState/);
   assert.doesNotMatch(component, /hard delete|Delete permanently/i);
 });
 
