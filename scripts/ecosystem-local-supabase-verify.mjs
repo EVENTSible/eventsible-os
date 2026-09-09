@@ -202,7 +202,7 @@ begin
   perform public.ecosystem_ci_assert((select count(*) from public.os_leads where event_id = first_event_id) = 1, 'Lead did not link to first event_id.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_versions where event_id = first_event_id and id = first_quote_id and id = first_quote_version_id) = 1, 'Quote version did not link to first event_id/result IDs.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where quote_version_id = first_quote_version_id) = 5, 'Quote items did not share the canonical quote version.');
-  perform public.ecosystem_ci_assert((select contract_version from public.os_builder_submissions limit 1) = 'builder_submission_v1', 'Contract version was not stored.');
+  perform public.ecosystem_ci_assert((select normalized_payload->>'contract_version' from public.os_builder_submissions limit 1) = 'builder_submission_v1', 'Contract version was not stored.');
   perform public.ecosystem_ci_assert((select source from public.os_builder_submissions limit 1) = 'eventsible_event_builder', 'Source application/source was not stored.');
   perform public.ecosystem_ci_assert((select request_fingerprint from public.os_builder_submissions limit 1) = 'ecosystem-ci-submission-001', 'Idempotency key was not stored.');
   perform public.ecosystem_ci_assert((select timezone from public.os_events limit 1) = 'America/Indiana/Indianapolis', 'Timezone was not preserved.');
