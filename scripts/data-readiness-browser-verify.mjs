@@ -78,7 +78,7 @@ try {
   await page.getByText(/Event update recorded with provenance/).waitFor();
 
   const lead = page.locator(".data-lead").first();
-  await lead.getByLabel("Status").selectOption("follow_up");
+  await lead.getByLabel("Status").selectOption({ label: "follow up" });
   await lead.getByLabel("Next follow-up").fill("2026-10-21");
   await lead.getByRole("button", { name: "Save" }).click();
   await page.getByText(/Lead update recorded with provenance/).waitFor();
