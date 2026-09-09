@@ -34,6 +34,8 @@ Former local version | Canonical Production version
 
 The fixture remains outside `supabase/migrations` for historical evidence and specialized-test review. It must never be copied into the active migration directory, applied to a linked project, or treated as a Production baseline.
 
+The local Supabase configuration keeps the managed Storage service enabled because the canonical history creates bucket records and Storage RLS policies. This is isolated local infrastructure, not a Production configuration change.
+
 ## Future workflow
 
 1. Create a new migration with `supabase migration new <name>`.
