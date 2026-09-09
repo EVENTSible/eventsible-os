@@ -51,7 +51,7 @@ try {
   for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
     await page.waitForTimeout(100);
-    const geometry = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth, minimumActionHeight: Math.min(...Array.from(document.querySelectorAll("main button, main input, main select, main summary")).filter((element) => { const style = getComputedStyle(element); return style.display !== "none" && style.visibility !== "hidden"; }).map((element) => element.getBoundingClientRect().height)) }));
+    const geometry = await page.evaluate(() => { const heights = Array.from(document.querySelectorAll("main button, main input, main select, main summary")).map((element) => element.getBoundingClientRect().height).filter((height) => height > 0); return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, minimumActionHeight: heights.length ? Math.min(...heights) : 0 }; });
     if (geometry.scrollWidth > geometry.width || geometry.minimumActionHeight < 43.5) throw new Error(`Responsive interaction contract failed at ${viewport.width}px: ${JSON.stringify(geometry)}`);
     await page.screenshot({ path: `artifacts/data-readiness/owner-${viewport.width}x${viewport.height}.png`, fullPage: false });
   }
