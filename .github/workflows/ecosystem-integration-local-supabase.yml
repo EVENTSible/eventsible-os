@@ -81,7 +81,7 @@ jobs:
         run: npm run guard:local-supabase-ci
 
       - name: Verify canonical migration history
-        run: node scripts/verify-migration-history.mjs --canonical-only
+        run: npm run test:migration-history
 
       - name: Start local Supabase
         run: |
@@ -110,7 +110,7 @@ jobs:
 
       - name: Verify reconstructed migration ledger
         run: |
-          expected_versions="$(node -e "const m=require('./supabase/migration-history.json'); process.stdout.write(m.migrations.map((x)=>x.version).join('\n'))")"
+          expected_versions="$(node -e "const m=require('./supabase/migration-history.json'); process.stdout.write([...m.migrations,...(m.pendingMigrations ?? [])].map((x)=>x.version).join('\n'))")"
           actual_versions="$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select version from supabase_migrations.schema_migrations order by version")"
           test "$actual_versions" = "$expected_versions"
 
@@ -150,8 +150,8 @@ jobs:
       - name: Capture local Supabase advisors
         run: |
           mkdir -p artifacts/data-readiness
-          npx supabase@2.111.0 db advisors --local --type security --level info --fail-on error --output-format json > artifacts/data-readiness/security-advisors.json
-          npx supabase@2.111.0 db advisors --local --type performance --level info --fail-on error --output-format json > artifacts/data-readiness/performance-advisors.json
+          npx supabase@2.117.0 db advisors --local --type security --level info --fail-on error --output-format json > artifacts/data-readiness/security-advisors.json
+          npx supabase@2.117.0 db advisors --local --type performance --level info --fail-on error --output-format json > artifacts/data-readiness/performance-advisors.json
 
       - name: Verify Production-shaped Builder quote lookup
         run: npm run test:builder-outbox:production-quote-shape
@@ -174,7 +174,7 @@ jobs:
       - name: Configure isolated application environment
         shell: bash
         run: |
-          npx supabase@2.111.0 status -o env > /tmp/eventsible-supabase.env
+          npx supabase@2.117.0 status -o env > /tmp/eventsible-supabase.env
           source /tmp/eventsible-supabase.env
           rm /tmp/eventsible-supabase.env
           test -n "$API_URL"

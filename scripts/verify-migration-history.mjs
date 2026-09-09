@@ -18,8 +18,21 @@ if (manifest.migrations.length !== 44) {
   throw new Error(`Expected 44 canonical migrations, found ${manifest.migrations.length}.`);
 }
 
+const pendingMigrations = manifest.pendingMigrations ?? [];
+if (!Array.isArray(pendingMigrations)) {
+  throw new Error("Migration-history pendingMigrations must be an array when present.");
+}
+
+if (canonicalOnly && pendingMigrations.length > 0) {
+  throw new Error(
+    `Canonical-only verification found tracked pending migrations: ${pendingMigrations
+      .map((migration) => migration.version)
+      .join(", ")}`,
+  );
+}
+
 const expected = new Map(
-  manifest.migrations.map((migration) => [
+  [...manifest.migrations, ...pendingMigrations].map((migration) => [
     `${migration.version}_${migration.name}.sql`,
     migration.sha256,
   ]),
@@ -53,13 +66,13 @@ if (activeSuperseded.length > 0) {
 
 for (const [file, expectedHash] of expected) {
   if (!migrationFiles.includes(file)) {
-    throw new Error(`Canonical migration is missing: ${file}`);
+    throw new Error(`Tracked migration is missing: ${file}`);
   }
   const actualHash = createHash("sha256")
     .update(readFileSync(join(migrationRoot, file)))
     .digest("hex");
   if (actualHash !== expectedHash) {
-    throw new Error(`Canonical migration changed: ${file}; expected ${expectedHash}, received ${actualHash}.`);
+    throw new Error(`Tracked migration changed: ${file}; expected ${expectedHash}, received ${actualHash}.`);
   }
 }
 
@@ -72,13 +85,13 @@ if (unexpectedHistorical.length > 0) {
   throw new Error(`Unexpected migration inside canonical history: ${unexpectedHistorical.join(", ")}`);
 }
 
-const futureMigrations = migrationFiles.filter((file) => !expected.has(file));
-if (canonicalOnly && futureMigrations.length > 0) {
-  throw new Error(`Canonical-only verification found future migrations: ${futureMigrations.join(", ")}`);
+const untrackedMigrations = migrationFiles.filter((file) => !expected.has(file));
+if (untrackedMigrations.length > 0) {
+  throw new Error(`Untracked migrations: ${untrackedMigrations.join(", ")}`);
 }
 
 console.log(
   `Migration history verified: 44 immutable canonical migrations${
-    futureMigrations.length > 0 ? ` and ${futureMigrations.length} later migration(s)` : ""
+    pendingMigrations.length > 0 ? ` and ${pendingMigrations.length} tracked pending migration(s)` : ""
   }; no duplicate or superseded timestamps.`,
 );

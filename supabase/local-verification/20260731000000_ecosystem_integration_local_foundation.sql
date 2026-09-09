@@ -228,7 +228,7 @@ declare
 begin
   foreach v_table in array array[
     'os_booking_services', 'os_builder_intake_requests', 'os_contact_users',
-    'os_activity_events', 'os_event_facts', 'os_event_members', 'os_event_notes',
+    'os_event_facts', 'os_event_members', 'os_event_notes',
     'os_event_page_messages', 'os_event_page_modules', 'os_event_pages',
     'os_files', 'os_import_batches', 'os_message_threads', 'os_messages',
     'os_owner_bootstrap_state', 'os_planning_answers',
@@ -247,83 +247,6 @@ begin
 end;
 $$;
 -- END HQ AUTHORIZATION CI TABLE STUBS
-
--- BEGIN DATA READINESS CI COLUMN FIXTURES
--- Local/CI only: add the minimum data-less shape used by later bounded RPCs.
--- Production owns the canonical definitions; this block is staged only inside
--- isolated CI and is never part of a Production migration or deployment.
--- It contains no user, customer, or event fixture rows.
-alter table public.os_contacts
-  add column if not exists organization_name text,
-  add column if not exists status text not null default 'active',
-  add column if not exists created_by uuid;
-
-alter table public.os_events
-  add column if not exists venue_address_2 text,
-  add column if not exists created_by uuid;
-
-alter table public.os_leads
-  add column if not exists next_follow_up_at timestamptz;
-
-alter table public.os_bookings
-  add column if not exists event_id uuid references public.os_events(id),
-  add column if not exists payment_status text not null default 'unpaid',
-  add column if not exists total_amount numeric(12,2),
-  add column if not exists deposit_amount numeric(12,2),
-  add column if not exists balance_due numeric(12,2),
-  add column if not exists created_at timestamptz not null default now(),
-  add column if not exists updated_at timestamptz not null default now();
-
-alter table public.os_booking_services
-  add column if not exists booking_id uuid references public.os_bookings(id),
-  add column if not exists service_id uuid,
-  add column if not exists service_code text,
-  add column if not exists service_name text,
-  add column if not exists status text not null default 'booked',
-  add column if not exists updated_at timestamptz not null default now();
-
-alter table public.os_service_catalog
-  add column if not exists code text,
-  add column if not exists name text,
-  add column if not exists status text not null default 'active';
-
-alter table public.os_import_batches
-  add column if not exists import_type text not null default 'manual_backfill',
-  add column if not exists file_name text,
-  add column if not exists status text not null default 'previewed',
-  add column if not exists row_count integer not null default 0,
-  add column if not exists created_count integer not null default 0,
-  add column if not exists skipped_count integer not null default 0,
-  add column if not exists error_count integer not null default 0,
-  add column if not exists summary jsonb not null default '{}'::jsonb,
-  add column if not exists created_by uuid,
-  add column if not exists created_at timestamptz not null default now(),
-  add column if not exists updated_at timestamptz not null default now();
-
-alter table public.os_event_notes
-  add column if not exists event_id uuid references public.os_events(id),
-  add column if not exists author_user_id uuid,
-  add column if not exists note_type text not null default 'general',
-  add column if not exists body text,
-  add column if not exists visibility text not null default 'staff',
-  add column if not exists status text not null default 'active',
-  add column if not exists updated_at timestamptz not null default now();
-
-alter table public.os_activity_events
-  add column if not exists event_id uuid references public.os_events(id),
-  add column if not exists contact_id uuid references public.os_contacts(id),
-  add column if not exists actor_user_id uuid,
-  add column if not exists event_type text,
-  add column if not exists visibility text not null default 'staff',
-  add column if not exists payload jsonb not null default '{}'::jsonb,
-  add column if not exists idempotency_key text,
-  add column if not exists occurred_at timestamptz not null default now(),
-  add column if not exists created_at timestamptz not null default now();
-
-create unique index if not exists os_activity_events_idempotency_key_local_idx
-  on public.os_activity_events(idempotency_key)
-  where idempotency_key is not null;
--- END DATA READINESS CI COLUMN FIXTURES
 
 alter table public.os_contacts enable row level security;
 alter table public.os_events enable row level security;
