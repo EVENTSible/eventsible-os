@@ -121,11 +121,18 @@ jobs:
           SCHEMA_CATALOG_DB_URL: ${{ env.SUPABASE_LOCAL_DB_URL }}
         run: node scripts/export-application-schema-catalog.mjs reconstructed-schema-catalog.json
 
-      - name: Preserve sanitized schema evidence
+      - name: Export isolated reconstructed test database
+        run: >-
+          pg_dump "$SUPABASE_LOCAL_DB_URL" --no-password --format=custom
+          --schema=public --schema=private --file=reconstructed-test-database.dump
+
+      - name: Preserve sanitized reconstruction evidence
         uses: actions/upload-artifact@v4
         with:
-          name: reconstructed-schema-catalog
-          path: reconstructed-schema-catalog.json
+          name: reconstructed-schema-evidence
+          path: |
+            reconstructed-schema-catalog.json
+            reconstructed-test-database.dump
           if-no-files-found: error
           retention-days: 7
 

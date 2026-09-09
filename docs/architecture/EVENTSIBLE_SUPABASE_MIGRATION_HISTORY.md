@@ -36,6 +36,8 @@ The fixture remains outside `supabase/migrations` for historical evidence and sp
 
 The local Supabase configuration keeps the managed Storage service enabled because the canonical history creates bucket records and Storage RLS policies. This is isolated local infrastructure, not a Production configuration change.
 
+The isolated CI job retains a short-lived reconstruction artifact containing the sanitized schema catalog and a local-only `public`/`private` database dump. The dump contains no Auth identities or Production business records; it exists so canonical integration checks can be reproduced without a Production connection.
+
 ## Future workflow
 
 1. Create a new migration with `supabase migration new <name>`.
