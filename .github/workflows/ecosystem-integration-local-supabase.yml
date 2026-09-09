@@ -143,6 +143,9 @@ jobs:
       - name: Run Team Availability authorization verification
         run: npm run test:team-calendar:local-supabase
 
+      - name: Run Data Readiness authorization and intake verification
+        run: npm run test:data-readiness:local-supabase
+
       - name: Verify Production-shaped Builder quote lookup
         run: npm run test:builder-outbox:production-quote-shape
 

@@ -25,6 +25,7 @@ test("role matrix keeps Owner broad and Manager, Staff, and Host equally bounded
       "lead.lifecycle.manage", "quote.approve", "gig.convert", "client.activate",
       "import.candidate.create", "import.finalize", "catalog.manage",
       "planning.structure.manage", "data.delete", "staff.manage", "system.manage",
+      "data.readiness.manage",
     ]) assert.equal(hasHqCapability(role, capability), false, `${role}:${capability}`);
   }
 });
@@ -76,6 +77,15 @@ test("server actions guard every approved mutation with a named capability", asy
   assert.match(calendarActions, /authorized\("schedule\.team\.manage"\)/);
   assert.match(calendarActions, /os_upsert_team_availability/);
   assert.match(calendarActions, /os_manage_staff_assignment/);
+
+  const dataReadinessActions = await read("src/app/admin/data-readiness/actions.ts");
+  for (const actionName of ["manageContactAction", "manageEventAction", "manageLeadAction", "stageManifestAction", "approveBatchAction", "applyBatchAction", "compensateBatchAction"]) {
+    const start = dataReadinessActions.indexOf(`export async function ${actionName}`);
+    const next = dataReadinessActions.indexOf("export async function ", start + 1);
+    const block = dataReadinessActions.slice(start, next < 0 ? undefined : next);
+    assert.match(block, /owner\(\)/, actionName);
+  }
+  assert.match(dataReadinessActions, /authorizeHqCapability\("data\.readiness\.manage"\)/);
 });
 
 test("unauthorized authenticated users get a stable access-denied route and logout", async () => {

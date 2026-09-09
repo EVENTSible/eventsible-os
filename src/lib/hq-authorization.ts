@@ -19,6 +19,7 @@ export const HQ_CAPABILITIES = [
   "data.delete",
   "staff.manage",
   "system.manage",
+  "data.readiness.manage",
   "schedule.read",
   "schedule.self.manage",
   "schedule.team.manage",

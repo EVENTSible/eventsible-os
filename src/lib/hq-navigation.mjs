@@ -4,6 +4,7 @@ export const HQ_NAVIGATION = Object.freeze([
   Object.freeze({ id: "gigs", label: "Gigs", href: "/admin#gig-workspace", icon: "gigs", group: "primary" }),
   Object.freeze({ id: "leads", label: "Leads", href: "/admin#lead-review", icon: "leads", group: "primary" }),
   Object.freeze({ id: "imports", label: "Imports", href: "/admin/imports", icon: "imports", group: "review" }),
+  Object.freeze({ id: "data-readiness", label: "Data readiness", href: "/admin/data-readiness", icon: "imports", group: "review", ownerOnly: true }),
 ]);
 
 const GIG_PATH_PREFIXES = ["/admin/gigs/", "/admin/wedding/", "/admin/event/"];
@@ -21,6 +22,7 @@ export function activeHqNavigationId(pathname = "/admin", hash = "") {
 
   if (path === "/admin/calendar" || path.startsWith("/admin/calendar/")) return "calendar";
   if (path === "/admin/imports" || path.startsWith("/admin/imports/")) return "imports";
+  if (path === "/admin/data-readiness" || path.startsWith("/admin/data-readiness/")) return "data-readiness";
   if (GIG_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) return "gigs";
   if (path === "/admin" && GIG_HASHES.has(normalizedHash)) return "gigs";
   if (path === "/admin" && LEAD_HASHES.has(normalizedHash)) return "leads";
