@@ -17,6 +17,7 @@ on:
       - "package-lock.json"
   push:
     branches:
+      - codex/hq-data-readiness
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
