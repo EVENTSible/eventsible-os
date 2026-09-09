@@ -68,6 +68,7 @@ test("migration uses RLS, exact approval, internal identity, bounded grants, and
   assert.match(migration, /status='failed'/);
   assert.match(migration, /status='rolled_back'/);
   assert.match(migration, /status='archived'/);
+  assert.match(migration, /case candidate_type when 'contact' then 1 when 'event' then 2 when 'inquiry' then 3 else 4 end/);
   assert.doesNotMatch(migration, /delete\s+from|truncate|drop\s+table/i);
   assert.doesNotMatch(migration, /user_metadata|insert into auth\.|update auth\./i);
 });

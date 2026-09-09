@@ -291,7 +291,15 @@ begin
   if v_actor is null or not public.os_has_hq_capability('data.readiness.manage') then raise exception 'Owner authorization required' using errcode='42501'; end if;
   perform 1 from public.os_import_batches where id=p_batch_id and manifest_hash=p_manifest_hash and approved_manifest_hash=p_manifest_hash and contract_version='intake_manifest_v1' and status='importing' for update;
   if not found then raise exception 'Approved batch/hash mismatch' using errcode='P0002'; end if;
-  for v_item in select * from public.os_import_batch_items where batch_id=p_batch_id and status='approved' order by created_at,id loop
+  for v_item in
+    select *
+    from public.os_import_batch_items
+    where batch_id=p_batch_id and status='approved'
+    order by
+      case candidate_type when 'contact' then 1 when 'event' then 2 when 'inquiry' then 3 else 4 end,
+      created_at,
+      id
+  loop
     begin
       v_id:=null; v_event:=null; v_contact:=null; v_before:=null;
       update public.os_import_batch_items set status='applying',updated_at=now() where id=v_item.id;
