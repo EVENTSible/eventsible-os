@@ -209,8 +209,8 @@ begin
   perform public.ecosystem_ci_assert((select starts_at::time from public.os_events limit 1) = '18:00'::time, 'Start time was not preserved.');
   perform public.ecosystem_ci_assert((select ends_at::time from public.os_events limit 1) = '21:00'::time, 'End time was not preserved.');
   perform public.ecosystem_ci_assert((select total_amount from public.os_quote_versions limit 1) = 667, 'Quote total did not match Builder UI total.');
-  perform public.ecosystem_ci_assert((select discount_amount from public.os_quote_versions limit 1) = 63, 'Package savings were not preserved.');
-  perform public.ecosystem_ci_assert((select travel_amount from public.os_quote_versions limit 1) = 0, 'Travel total was not preserved.');
+  perform public.ecosystem_ci_assert((select (snapshot #>> '{pricing,package_savings}')::numeric from public.os_quote_versions limit 1) = 63, 'Package savings were not preserved in the canonical quote snapshot.');
+  perform public.ecosystem_ci_assert((select (snapshot #>> '{pricing,travel_fee}')::numeric from public.os_quote_versions limit 1) = 0, 'Travel total was not preserved in the canonical quote snapshot.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where service_code in ('dj_mc', 'selfie_booth_prints', 'live_performer', 'event_staff')) = 4, 'Known services did not map to expected service codes.');
   perform public.ecosystem_ci_assert((select service_name from public.os_quote_items where service_code = 'selfie_booth_prints') = 'Selfie Booth with Prints', 'Known service label was not human-readable.');
   perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where service_code = 'live_performer') is true, 'Live Singer was not preserved as Custom Quote.');
