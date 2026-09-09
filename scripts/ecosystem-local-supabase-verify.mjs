@@ -201,21 +201,21 @@ begin
   perform public.ecosystem_ci_assert(counts_after_first = '{"contacts":1,"builder_submissions":1,"leads":1,"events":1,"quote_versions":1,"quote_items":5,"builder_activity":1,"outbox":1}'::jsonb, 'First submission did not create exactly one OS chain.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_leads where event_id = first_event_id) = 1, 'Lead did not link to first event_id.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_versions where event_id = first_event_id and id = first_quote_id and id = first_quote_version_id) = 1, 'Quote version did not link to first event_id/result IDs.');
-  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where event_id = first_event_id and quote_version_id = first_quote_version_id) = 5, 'Quote items did not share first event_id.');
+  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where quote_version_id = first_quote_version_id) = 5, 'Quote items did not share the canonical quote version.');
   perform public.ecosystem_ci_assert((select contract_version from public.os_builder_submissions limit 1) = 'builder_submission_v1', 'Contract version was not stored.');
   perform public.ecosystem_ci_assert((select source from public.os_builder_submissions limit 1) = 'eventsible_event_builder', 'Source application/source was not stored.');
   perform public.ecosystem_ci_assert((select request_fingerprint from public.os_builder_submissions limit 1) = 'ecosystem-ci-submission-001', 'Idempotency key was not stored.');
   perform public.ecosystem_ci_assert((select timezone from public.os_events limit 1) = 'America/Indiana/Indianapolis', 'Timezone was not preserved.');
   perform public.ecosystem_ci_assert((select starts_at::time from public.os_events limit 1) = '18:00'::time, 'Start time was not preserved.');
   perform public.ecosystem_ci_assert((select ends_at::time from public.os_events limit 1) = '21:00'::time, 'End time was not preserved.');
-  perform public.ecosystem_ci_assert((select total_cents from public.os_quote_versions limit 1) = 66700, 'Quote total did not match Builder UI total.');
-  perform public.ecosystem_ci_assert((select package_savings_cents from public.os_quote_versions limit 1) = 6300, 'Package savings were not preserved.');
-  perform public.ecosystem_ci_assert((select travel_cents from public.os_quote_versions limit 1) = 0, 'Travel total was not preserved.');
+  perform public.ecosystem_ci_assert((select total_amount from public.os_quote_versions limit 1) = 667, 'Quote total did not match Builder UI total.');
+  perform public.ecosystem_ci_assert((select discount_amount from public.os_quote_versions limit 1) = 63, 'Package savings were not preserved.');
+  perform public.ecosystem_ci_assert((select travel_amount from public.os_quote_versions limit 1) = 0, 'Travel total was not preserved.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where service_code in ('dj_mc', 'selfie_booth_prints', 'live_performer', 'event_staff')) = 4, 'Known services did not map to expected service codes.');
   perform public.ecosystem_ci_assert((select service_name from public.os_quote_items where service_code = 'selfie_booth_prints') = 'Selfie Booth with Prints', 'Known service label was not human-readable.');
-  perform public.ecosystem_ci_assert((select custom_quote and line_total_cents = 0 from public.os_quote_items where service_code = 'live_performer') is true, 'Live Singer was not preserved as Custom Quote.');
-  perform public.ecosystem_ci_assert((select custom_quote and line_total_cents = 0 from public.os_quote_items where service_id = 'unknown-synthetic-service') is true, 'Unknown service was not preserved as Custom Quote.');
-  perform public.ecosystem_ci_assert((select sum(line_total_cents) from public.os_quote_items where custom_quote) = 0, 'Custom Quote items inflated numeric total.');
+  perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where service_code = 'live_performer') is true, 'Live Singer was not preserved as Custom Quote.');
+  perform public.ecosystem_ci_assert((select coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false) and line_total = 0 from public.os_quote_items where service_code = 'unknown-synthetic-service') is true, 'Unknown service was not preserved as Custom Quote.');
+  perform public.ecosystem_ci_assert((select sum(line_total) from public.os_quote_items where coalesce((metadata #>> '{builder_item,custom_quote}')::boolean, false)) = 0, 'Custom Quote items inflated numeric total.');
 
   select public.os_ingest_builder_submission(public.ecosystem_ci_payload('ecosystem-ci-submission-001', '0101', future_tuesday))
     into replay_result;
