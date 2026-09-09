@@ -48,6 +48,7 @@ test("Data Readiness route and actions remain Owner-only and server mediated", a
   assert.doesNotMatch(actions + component, /createAdminSupabase|SERVICE_ROLE|SUPABASE_SECRET|\.from\([^)]*\)\.insert/);
   assert.match(authorization, /"data\.readiness\.manage"/);
   assert.match(component, /ARCHIVE BATCH/);
+  assert.match(component, /<option key=\{v\} value=\{v\}>\{v\.replace\("_"," "\)\}<\/option>/);
   assert.doesNotMatch(component, /hard delete|Delete permanently/i);
 });
 
