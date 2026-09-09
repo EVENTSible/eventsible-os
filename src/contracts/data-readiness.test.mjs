@@ -72,26 +72,29 @@ test("migration uses RLS, exact approval, internal identity, bounded grants, and
   assert.match(migration, /status='rolled_back'/);
   assert.match(migration, /status='archived'/);
   assert.match(migration, /case candidate_type when 'contact' then 1 when 'event' then 2 when 'inquiry' then 3 else 4 end/);
+  assert.match(migration, /'active'::text as status from public\.os_service_catalog where is_active is true/);
+  assert.doesNotMatch(migration, /public\.os_service_catalog where status='active'/);
   assert.doesNotMatch(migration, /delete\s+from|truncate|drop\s+table/i);
   assert.doesNotMatch(migration, /user_metadata|insert into auth\.|update auth\./i);
 });
 
-test("local fixture and verifiers are synthetic, isolated, and excluded from Production migrations", async () => {
-  const [fixture, verifier, browserVerifier, workflow, guard] = await Promise.all([
-    read("supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql"),
+test("verifiers use the canonical migration chain and remain synthetic and isolated", async () => {
+  const [history, verifier, browserVerifier, workflow, guard] = await Promise.all([
+    read("supabase/migration-history.json"),
     read("scripts/data-readiness-local-supabase-verify.mjs"),
     read("scripts/data-readiness-browser-verify.mjs"),
     read(".github/workflows/ecosystem-integration-local-supabase.yml"),
     read("scripts/guard-local-supabase-ci.mjs"),
   ]);
-  assert.match(fixture, /BEGIN DATA READINESS CI COLUMN FIXTURES/);
-  assert.match(fixture, /never part of a Production migration or deployment/);
-  assert.match(fixture, /contains no user, customer, or event fixture rows/);
+  assert.match(history, /"canonicalThrough": "20260908133323"/);
+  assert.match(history, /"version": "20260909042244"/);
   assert.match(verifier, /Refusing to run Data Readiness verification against a remote or Production database/);
   assert.match(verifier, /example\.invalid/);
   assert.match(browserVerifier, /Isolated local Supabase browser-test environment is incomplete/);
   assert.match(browserVerifier, /example\.invalid/);
-  assert.match(workflow, /LOCAL_VERIFICATION_SCHEMA: supabase\/local-verification\//);
+  assert.match(workflow, /db reset --local/);
+  assert.match(workflow, /test:migration-history/);
+  assert.doesNotMatch(workflow, /supabase\/local-verification|LOCAL_VERIFICATION_SCHEMA/);
   assert.match(workflow, /test:data-readiness:local-supabase/);
   assert.match(workflow, /db advisors --local --type security/);
   assert.match(workflow, /test:data-readiness:browser/);

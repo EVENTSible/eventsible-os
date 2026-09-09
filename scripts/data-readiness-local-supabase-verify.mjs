@@ -76,7 +76,12 @@ for (const [userId, role] of [[ids.manager, "manager"], [ids.staff, "staff"], [i
   denied(userId, role, `select public.os_manage_contact('archive','${ids.existingContact}','{}'::jsonb)`);
 }
 execute("set role anon; select public.os_stage_intake_manifest('{}'::jsonb)", { expectFailure: true });
-asUser(ids.owner, "owner", "select public.os_data_readiness_snapshot()");
+if (execute("select data_type||':'||is_nullable||':'||column_default from information_schema.columns where table_schema='public' and table_name='os_service_catalog' and column_name='is_active'") !== "boolean:NO:true") throw new Error("Canonical service-catalog activity column contract changed.");
+const ownerSnapshot = JSON.parse(asUser(ids.owner, "owner", "select public.os_data_readiness_snapshot()"));
+const activeServiceCode = execute("select code from public.os_service_catalog where is_active is true order by sort_order,id limit 1");
+if (!activeServiceCode || !ownerSnapshot.services.some((service) => service.code === activeServiceCode && service.status === "active")) throw new Error("Owner snapshot did not represent an active service with the reviewed response shape.");
+if (ownerSnapshot.services.some((service) => Object.keys(service).sort().join(",") !== "code,id,name,status")) throw new Error("Service snapshot exposed fields beyond the reviewed response shape.");
+if (execute(`begin; update public.os_service_catalog set is_active=false where code='${activeServiceCode.replaceAll("'", "''")}'; set local role authenticated; select set_config('request.jwt.claims', '${claims(ids.owner, "owner")}', true); select not exists(select 1 from jsonb_array_elements(public.os_data_readiness_snapshot()->'services') service where service->>'code'='${activeServiceCode.replaceAll("'", "''")}'); rollback;`) !== "t") throw new Error("Inactive service remained visible in the Owner readiness snapshot.");
 denied(ids.owner, "owner", "select count(*) from public.os_import_batch_items");
 execute("set role anon; select count(*) from public.os_import_batch_items", { expectFailure: true });
 
