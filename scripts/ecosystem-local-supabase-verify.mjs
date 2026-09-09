@@ -200,7 +200,7 @@ begin
 
   perform public.ecosystem_ci_assert(counts_after_first = '{"contacts":1,"builder_submissions":1,"leads":1,"events":1,"quote_versions":1,"quote_items":5,"builder_activity":1,"outbox":1}'::jsonb, 'First submission did not create exactly one OS chain.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_leads where event_id = first_event_id) = 1, 'Lead did not link to first event_id.');
-  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_versions where event_id = first_event_id and quote_id = first_quote_id) = 1, 'Quote version did not link to first event_id/quote_id.');
+  perform public.ecosystem_ci_assert((select count(*) from public.os_quote_versions where event_id = first_event_id and id = first_quote_id and id = first_quote_version_id) = 1, 'Quote version did not link to first event_id/result IDs.');
   perform public.ecosystem_ci_assert((select count(*) from public.os_quote_items where event_id = first_event_id and quote_version_id = first_quote_version_id) = 5, 'Quote items did not share first event_id.');
   perform public.ecosystem_ci_assert((select contract_version from public.os_builder_submissions limit 1) = 'builder_submission_v1', 'Contract version was not stored.');
   perform public.ecosystem_ci_assert((select source from public.os_builder_submissions limit 1) = 'eventsible_event_builder', 'Source application/source was not stored.');
