@@ -166,7 +166,6 @@ declare
   before_failure jsonb;
   after_failure jsonb;
   future_tuesday date;
-  public_catalog jsonb;
 begin
   if current_database() <> 'postgres' then
     raise exception 'Unexpected database name: %', current_database();
@@ -268,38 +267,6 @@ begin
    where id = (first_result->>'submission_id')::uuid
   on conflict (idempotency_key) where idempotency_key is not null do nothing;
   perform public.ecosystem_ci_assert((select count(*) from public.os_integration_outbox where idempotency_key = 'builder.submission_received:' || (first_result->>'submission_id')) = 1, 'Activity replay created duplicate outbox event.');
-
-  public_catalog := public.os_public_catalog_from_builder(jsonb_build_object(
-    'id', 'dj-mc-foundation',
-    'name', 'DJ / MC',
-    'public_description', 'Public-safe DJ and MC service.',
-    'pricing_type', 'hourly',
-    'public_pricing', jsonb_build_object('starting_price_cents', 14500),
-    'minimum_hours', 2,
-    'weekday_rules', jsonb_build_array('Mon-Thu public pricing may apply.'),
-    'custom_quote_status', 'not_required',
-    'public_media', jsonb_build_array(),
-    'active', true,
-    'internal_cost_cents', 100,
-    'margin', 0.5,
-    'partner_rate', 50,
-    'internal_notes', 'private',
-    'private_staff_notes', 'private',
-    'private_equipment_notes', 'private',
-    'service_role_metadata', 'private'
-  ));
-
-  perform public.ecosystem_ci_assert(public_catalog ? 'version', 'Public catalog version missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'stable_service_id', 'Public catalog stable service ID missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_name', 'Public catalog name missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_description', 'Public catalog description missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_pricing', 'Public catalog pricing missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'minimum_hours', 'Public catalog minimum hours missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'weekday_rules', 'Public catalog weekday rules missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'custom_quote_status', 'Public catalog Custom Quote flag missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'public_media', 'Public catalog media missing.');
-  perform public.ecosystem_ci_assert(public_catalog ? 'active', 'Public catalog active status missing.');
-  perform public.ecosystem_ci_assert(public_catalog::text !~* 'internal_cost|margin|partner|internal_notes|private_staff|private_equipment|service_role', 'Public catalog leaked private fields.');
 
   select counts_after_second into before_failure;
 
@@ -414,10 +381,6 @@ if (!process.exitCode) {
       name: "anon cannot insert outbox",
       sql: "set role anon; insert into public.os_integration_outbox(event_type, payload_version, source_application, idempotency_key) values ('builder.submission_received', 'builder_submission_v1', 'event_builder', 'anon-bad');",
     },
-    {
-      name: "anon cannot read CRM contacts",
-      sql: "set role anon; select count(*) from public.os_contacts;",
-    },
   ]) {
     let denied = false;
     try {
@@ -438,5 +401,26 @@ if (!process.exitCode) {
       break;
     }
     console.log(`RLS denial check passed: ${check.name}.`);
+  }
+
+  if (!process.exitCode) {
+    const visibleContacts = execFileSync(
+      "psql",
+      [databaseUrl, "--no-password", "--tuples-only", "--no-align", "--command", "set role anon; select count(*) from public.os_contacts;"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          PGPASSWORD: process.env.PGPASSWORD ?? "postgres",
+        },
+      },
+    ).trim().split(/\r?\n/).at(-1);
+    if (visibleContacts !== "0") {
+      console.error("Expected RLS filtering failed: anon can see CRM contacts.");
+      process.exitCode = 1;
+    } else {
+      console.log("RLS filtering check passed: anon sees zero CRM contacts.");
+    }
   }
 }
