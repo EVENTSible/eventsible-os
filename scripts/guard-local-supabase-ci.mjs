@@ -1,10 +1,18 @@
+import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 const productionRef = "cplpbzudjprzbnzocirc";
 const roots = [".github", "scripts", "supabase", "src/contracts", "src/lib", "src/app/api", "docs/integrations"];
 const commandRoots = [".github", "scripts"];
 const productionMigrationRoot = "supabase/migrations";
+const migrationHistory = JSON.parse(readFileSync("supabase/migration-history.json", "utf8"));
+const canonicalMigrationHashes = new Map(
+  migrationHistory.migrations.map((migration) => [
+    `${migration.version}_${migration.name}.sql`,
+    migration.sha256,
+  ]),
+);
 const historicalBuilderWiringMigration = "20260803235147_builder_submission_outbox_wiring.sql";
 const historicalBuilderQuoteLookupMigration = "20260804010800_20260804003000_builder_submission_outbox_quote_lookup_fix.sql";
 const outboxHelperGrantPattern = /grant\s+execute\s+on\s+function\s+public\.os_enqueue_integration_event\s*\(\s*text\s*,\s*text\s*,\s*text\s*,\s*jsonb\s*,\s*jsonb\s*,\s*text\s*\)\s+to\s+(public|anon|authenticated)\b/i;
@@ -71,7 +79,8 @@ const files = roots.flatMap((root) => {
 
 for (const file of files) {
   if (!/\.(ya?ml|mjs|js|ts|tsx|sql|md|toml)$/.test(file)) continue;
-  const content = readFileSync(file, "utf8");
+  const bytes = readFileSync(file);
+  const content = bytes.toString("utf8");
   const mayMentionProductionRef = isApprovedProductionRefMention(file);
   if (content.includes(productionRef) && !mayMentionProductionRef) {
     throw new Error(`Production Supabase ref appears outside approved guard/report files: ${file}`);
@@ -80,6 +89,14 @@ for (const file of files) {
     throw new Error(`Resend API keys must remain server-only; forbidden browser-prefixed Resend key appears in ${file}.`);
   }
   if (isProductionMigration(file)) {
+    const canonicalHash = canonicalMigrationHashes.get(basename(file));
+    if (canonicalHash) {
+      const actualHash = createHash("sha256").update(bytes).digest("hex");
+      if (actualHash !== canonicalHash) {
+        throw new Error(`Canonical migration does not match its immutable recorded hash: ${file}`);
+      }
+      continue;
+    }
     for (const forbidden of forbiddenProductionMigrationPatterns) {
       if (forbidden.test(content)) {
         throw new Error(`Forbidden production migration pattern appears in ${file}: ${forbidden}`);
