@@ -1,36 +1,39 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { safeStaffNext } from "@/lib/staff-auth.mjs";
 
-export function LoginForm() {
-  const [email, setEmail] = useState("thepartys@eventsible.info");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [message, setMessage] = useState("");
+type Props = { next?: string; initialNotice?: string };
+
+export function LoginForm({ next = "/admin", initialNotice = "" }: Props) {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState<"idle" | "signing-in" | "error" | "notice">(initialNotice ? "notice" : "idle");
+  const [message, setMessage] = useState(initialNotice);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus("sending");
+    setStatus("signing-in");
     setMessage("");
 
     try {
       const supabase = getBrowserSupabase();
-      const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
-      await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: redirectTo,
-        },
+        password,
       });
+      if (error) throw error;
 
-      setStatus("sent");
-      setMessage("If this address is approved, check its inbox for a secure one-time sign-in link.");
+      router.replace(safeStaffNext(next));
+      router.refresh();
     } catch {
-      // Keep the response indistinguishable so this form cannot reveal whether
-      // another person's email address has an account.
-      setStatus("sent");
-      setMessage("If this address is approved, check its inbox for a secure one-time sign-in link.");
+      setStatus("error");
+      setMessage("Email or password was not accepted. Check your details and try again.");
     }
   }
 
@@ -47,12 +50,36 @@ export function LoginForm() {
         onChange={(event) => setEmail(event.target.value)}
         placeholder="you@eventsible.info"
       />
-      <button type="submit" disabled={status === "sending"}>
-        {status === "sending" ? "Sending secure link…" : "Email my sign-in link"}
+      <label htmlFor="password">Password</label>
+      <div className="password-field">
+        <input
+          id="password"
+          name="password"
+          type={showPassword ? "text" : "password"}
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+        <button
+          type="button"
+          className="password-visibility"
+          aria-label={showPassword ? "Hide password" : "Show password"}
+          aria-pressed={showPassword}
+          onClick={() => setShowPassword((visible) => !visible)}
+        >
+          {showPassword ? "Hide" : "Show"}
+        </button>
+      </div>
+      <button type="submit" disabled={status === "signing-in"}>
+        {status === "signing-in" ? "Signing in…" : "Sign in"}
       </button>
-      {message ? <p className={`form-message ${status}`}>{message}</p> : null}
+      <Link className="password-recovery-link" href="/login/recover">
+        Forgot or need to set your password?
+      </Link>
+      {message ? <p className={`form-message ${status === "error" ? "error" : "sent"}`} role={status === "error" ? "alert" : "status"}>{message}</p> : null}
       <p className="login-help">
-        Access is limited to approved EVENTSible owners, staff, hosts, and booked clients.
+        No public signup is available. Access is limited to approved EVENTSible owners, managers, staff, and hosts.
       </p>
     </form>
   );

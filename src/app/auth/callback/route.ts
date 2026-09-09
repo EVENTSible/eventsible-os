@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { safeAuthCallbackNext } from "@/lib/staff-auth.mjs";
 
 function safeClientNext(requestedNext: string | null) {
   if (!requestedNext) return null;
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
   const queryNext = searchParams.get("next");
   const cookieNext = request.cookies.get("eventsible_client_next")?.value ?? null;
   const requestedNext = safeClientNext(queryNext) ?? safeClientNext(cookieNext) ?? "/client";
-  const next = queryNext?.startsWith("/admin") && !queryNext.startsWith("//") ? queryNext : requestedNext;
+  const next = safeAuthCallbackNext(queryNext) ?? requestedNext;
 
   if (code) {
     const supabase = await createServerSupabase();
@@ -32,7 +33,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const failurePath = next.startsWith("/client") ? "/client/login?error=auth" : "/login?error=auth";
+  const failurePath = next === "/login/update-password"
+    ? "/login/recover?error=recovery"
+    : next.startsWith("/client") ? "/client/login?error=auth" : "/login?error=auth";
   const response = NextResponse.redirect(`${origin}${failurePath}`);
   response.cookies.delete("eventsible_client_next");
   return response;

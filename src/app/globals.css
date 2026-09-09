@@ -47,12 +47,20 @@ a { color: inherit; text-decoration: none; }
 .login-form input:focus { border-color: var(--purple); box-shadow: 0 0 0 4px rgba(109, 40, 217, .12); }
 .login-form button, .primary-button { border: 0; border-radius: 14px; padding: 14px 18px; background: linear-gradient(135deg, var(--purple-dark), var(--purple)); color: white; font-weight: 800; box-shadow: 0 12px 24px rgba(83, 34, 145, .18); }
 .login-form button:disabled { opacity: .65; cursor: wait; }
+.password-field { position: relative; }
+.password-field input { padding-right: 78px; }
+.login-form .password-visibility { position: absolute; top: 4px; right: 5px; min-width: 62px; min-height: 44px; padding: 8px 12px; color: var(--purple-dark); background: transparent; box-shadow: none; }
+.login-form .password-visibility:hover { background: var(--purple-soft); }
+.password-recovery-link { width: fit-content; border-radius: 6px; color: var(--purple); font-size: .88rem; font-weight: 760; text-decoration: underline; text-underline-offset: 3px; }
+.password-recovery-link:focus-visible, .login-form .password-visibility:focus-visible { outline: 3px solid rgba(109, 40, 217, .35); outline-offset: 3px; }
+.password-guidance { margin: -2px 0 2px; color: var(--muted); font-size: .8rem; line-height: 1.45; }
 .form-message { margin: 4px 0 0; border-radius: 12px; padding: 12px 14px; font-size: .9rem; }
 .form-message.sent { color: var(--green); background: #eaf8f0; }
 .form-message.error { color: var(--red); background: #fff0ef; }
 .login-help { color: var(--muted); font-size: .82rem; line-height: 1.5; }
 .auth-story { position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: clamp(40px, 6vw, 90px); color: white; background: radial-gradient(circle at 75% 20%, rgba(212, 160, 23, .26), transparent 28%), linear-gradient(145deg, #25103f, #5b1ea5 58%, #7c3aed); }
 .auth-story::after { content: ""; position: absolute; right: -120px; bottom: -120px; width: 420px; height: 420px; border: 1px solid rgba(255,255,255,.22); border-radius: 50%; box-shadow: 0 0 0 55px rgba(255,255,255,.04), 0 0 0 110px rgba(255,255,255,.03); }
+.auth-story-note { position: relative; z-index: 1; max-width: 560px; color: #ede9fe; font-size: 1rem; line-height: 1.6; }
 .auth-story h2 { position: relative; z-index: 1; max-width: 720px; margin: 18px 0; font-size: clamp(2.2rem, 4vw, 4.5rem); line-height: 1.02; letter-spacing: -.05em; }
 .story-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .story-grid article { display: grid; gap: 8px; min-height: 138px; padding: 22px; border: 1px solid rgba(255,255,255,.2); border-radius: 18px; background: rgba(255,255,255,.09); backdrop-filter: blur(12px); }
