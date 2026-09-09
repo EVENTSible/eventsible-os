@@ -73,10 +73,11 @@ test("migration uses RLS, exact approval, internal identity, bounded grants, and
   assert.doesNotMatch(migration, /user_metadata|insert into auth\.|update auth\./i);
 });
 
-test("local fixture and verifier are synthetic, isolated, and excluded from Production migrations", async () => {
-  const [fixture, verifier, workflow, guard] = await Promise.all([
+test("local fixture and verifiers are synthetic, isolated, and excluded from Production migrations", async () => {
+  const [fixture, verifier, browserVerifier, workflow, guard] = await Promise.all([
     read("supabase/local-verification/20260731000000_ecosystem_integration_local_foundation.sql"),
     read("scripts/data-readiness-local-supabase-verify.mjs"),
+    read("scripts/data-readiness-browser-verify.mjs"),
     read(".github/workflows/ecosystem-integration-local-supabase.yml"),
     read("scripts/guard-local-supabase-ci.mjs"),
   ]);
@@ -85,8 +86,12 @@ test("local fixture and verifier are synthetic, isolated, and excluded from Prod
   assert.match(fixture, /contains no user, customer, or event fixture rows/);
   assert.match(verifier, /Refusing to run Data Readiness verification against a remote or Production database/);
   assert.match(verifier, /example\.invalid/);
+  assert.match(browserVerifier, /Isolated local Supabase browser-test environment is incomplete/);
+  assert.match(browserVerifier, /example\.invalid/);
   assert.match(workflow, /LOCAL_VERIFICATION_SCHEMA: supabase\/local-verification\//);
   assert.match(workflow, /test:data-readiness:local-supabase/);
+  assert.match(workflow, /db advisors --local --type security/);
+  assert.match(workflow, /test:data-readiness:browser/);
   assert.match(guard, /productionMigrationRoot = "supabase\/migrations"/);
-  assert.doesNotMatch(verifier, /gmail\.com|yahoo\.com|hotmail\.com/i);
+  assert.doesNotMatch(verifier + browserVerifier, /gmail\.com|yahoo\.com|hotmail\.com/i);
 });

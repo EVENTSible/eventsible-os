@@ -147,6 +147,12 @@ jobs:
       - name: Run Data Readiness authorization and intake verification
         run: npm run test:data-readiness:local-supabase
 
+      - name: Capture local Supabase advisors
+        run: |
+          mkdir -p artifacts/data-readiness
+          npx supabase@2.111.0 db advisors --local --type security --level info --fail-on error --output-format json > artifacts/data-readiness/security-advisors.json
+          npx supabase@2.111.0 db advisors --local --type performance --level info --fail-on error --output-format json > artifacts/data-readiness/performance-advisors.json
+
       - name: Verify Production-shaped Builder quote lookup
         run: npm run test:builder-outbox:production-quote-shape
 
@@ -165,12 +171,67 @@ jobs:
       - name: Run lint with documented inherited exception
         run: npm run lint:ci
 
+      - name: Configure isolated application environment
+        shell: bash
+        run: |
+          npx supabase@2.111.0 status -o env > /tmp/eventsible-supabase.env
+          source /tmp/eventsible-supabase.env
+          rm /tmp/eventsible-supabase.env
+          test -n "$API_URL"
+          test -n "$ANON_KEY"
+          test -n "$SERVICE_ROLE_KEY"
+          printf '::add-mask::%s\n' "$ANON_KEY"
+          printf '::add-mask::%s\n' "$SERVICE_ROLE_KEY"
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$API_URL" >> "$GITHUB_ENV"
+          printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$ANON_KEY" >> "$GITHUB_ENV"
+          printf 'LOCAL_SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          test_password="$(openssl rand -base64 30 | tr -d '\n')"
+          printf '::add-mask::%s\n' "$test_password"
+          printf 'DATA_READINESS_TEST_PASSWORD=%s\n' "$test_password" >> "$GITHUB_ENV"
+          printf 'DATA_READINESS_APP_URL=http://127.0.0.1:3100\n' >> "$GITHUB_ENV"
+
       - name: Build
         run: npm run build
 
+      - name: Install isolated browser runtime
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start isolated application
+        shell: bash
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3100 > /tmp/eventsible-data-readiness-next.log 2>&1 &
+          echo "$!" > /tmp/eventsible-data-readiness-next.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3100/login > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo "Isolated application did not become ready."
+          exit 1
+
+      - name: Run authenticated Data Readiness browser verification
+        run: npm run test:data-readiness:browser
+
+      - name: Upload sanitized Data Readiness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-readiness-isolated-evidence
+          path: artifacts/data-readiness
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Audit
-        run: npm audit
-        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Stop isolated application
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/eventsible-data-readiness-next.pid ]; then
+            kill "$(cat /tmp/eventsible-data-readiness-next.pid)" 2>/dev/null || true
+          fi
 
       - name: Stop local Supabase
         if: always()
