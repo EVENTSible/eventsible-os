@@ -57,30 +57,26 @@ begin
   loop
     insert into public.os_quote_items(
       quote_version_id,
-      event_id,
       service_id,
       service_code,
       service_name,
-      label,
+      category,
       quantity,
       unit,
-      unit_price_cents,
-      line_total_cents,
-      custom_quote,
+      unit_price,
+      line_total,
       metadata
     )
     values (
       quote_version_id_value,
-      event_id_value,
-      'event-staff-label-fixture-' || replace(variant.service_code, '_', '-') || '-' || gen_random_uuid()::text,
+      null,
       variant.service_code,
       variant.service_code,
-      variant.service_code,
+      'staffing',
       1,
       'hour',
-      3500,
-      3500,
-      false,
+      35,
+      35,
       jsonb_build_object('synthetic', true, 'fixture', 'event_staff_label', 'service_code', variant.service_code)
     )
     returning id, service_name into item_id_value, normalized_name;

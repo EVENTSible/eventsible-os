@@ -76,15 +76,13 @@ begin
   values (contact_id_value, 'EVENTSible Production Quote Shape QA - Private Party', 'Private Party', 'inquiry', current_date + time '18:00', current_date + time '21:00', 'America/Indiana/Indianapolis', 80, 'Synthetic South Bend Venue', 'South Bend', 'Indiana', 'eventsible_event_builder', jsonb_build_object('planning_stage','Ready for a quote','date_confidence','confirmed'))
   returning id into event_id_value;
 
-  insert into public.os_builder_submissions(contact_id, event_id, source, source_session_id, request_fingerprint, intake_version, contract_version, raw_payload, normalized_payload, submitted_from)
+  insert into public.os_builder_submissions(contact_id, source, source_session_id, request_fingerprint, intake_version, raw_payload, normalized_payload, submitted_from)
   values (
     contact_id_value,
-    event_id_value,
     'eventsible_event_builder',
     'production-quote-shape-001',
     'production-quote-shape-001',
     2,
-    'builder_submission_v1',
     '{"fixture":"production_quote_shape"}'::jsonb,
     jsonb_build_object(
       'contract_version', 'builder_submission_v1',
@@ -114,23 +112,23 @@ begin
   values (contact_id_value, event_id_value, submission_id_value, 'new', 'eventsible_event_builder', 'Synthetic Production quote-shape verification', 727, '{"synthetic":true}'::jsonb)
   returning id into lead_id_value;
 
-  insert into public.os_quote_versions(lead_id, event_id, builder_submission_id, version_number, status, currency, subtotal_cents, package_savings_cents, travel_cents, total_cents, deposit_cents, metadata)
-  values (lead_id_value, event_id_value, submission_id_value, 1, 'draft', 'USD', 100, 0, 0, 100, 25, '{"older":true}'::jsonb)
+  insert into public.os_quote_versions(lead_id, event_id, version_number, status, currency, subtotal, discount_amount, travel_amount, tax_amount, total_amount, deposit_amount, snapshot)
+  values (lead_id_value, event_id_value, 1, 'draft', 'USD', 1, 0, 0, 0, 1, 0.25, '{"older":true}'::jsonb)
   returning id into old_quote_version_id;
 
-  insert into public.os_quote_versions(lead_id, event_id, builder_submission_id, version_number, status, currency, subtotal_cents, package_savings_cents, travel_cents, total_cents, deposit_cents, metadata)
+  insert into public.os_quote_versions(lead_id, event_id, version_number, status, currency, subtotal, discount_amount, travel_amount, tax_amount, total_amount, deposit_amount, snapshot)
   values (
     lead_id_value,
     event_id_value,
-    submission_id_value,
     2,
     'draft',
     'USD',
-    72700,
+    790,
+    63,
     0,
     0,
-    72700,
-    18175,
+    727,
+    181.75,
     jsonb_build_object(
       'newest', true,
       'pricing', jsonb_build_object(
@@ -144,13 +142,13 @@ begin
   )
   returning id into quote_version_id_value;
 
-  insert into public.os_quote_items(quote_version_id, event_id, service_id, service_code, service_name, label, quantity, unit, unit_price_cents, line_total_cents, custom_quote, metadata)
+  insert into public.os_quote_items(quote_version_id, service_id, service_code, service_name, category, quantity, unit, unit_price, line_total, metadata)
   values
-    (quote_version_id_value, event_id_value, 'dj-mc-foundation', 'dj_mc', 'DJ / MC', 'DJ / MC', 1, 'event', 28500, 28500, false, '{"synthetic":true}'::jsonb),
-    (quote_version_id_value, event_id_value, 'selfie-booth-prints', 'selfie_booth_digital', 'Selfie Booth - Digital', 'Selfie Booth - Digital', 1, 'event', 30000, 30000, false, '{"builder_item":{"lovable_service_id":"selfie-booth-prints","service_code":"selfie_booth_digital","custom_quote":false}}'::jsonb),
-    (quote_version_id_value, event_id_value, 'dance-lighting', 'dance-lighting', 'dance-lighting', 'dance-lighting', 1, 'event', 10000, 10000, false, '{"synthetic":true}'::jsonb),
-    (quote_version_id_value, event_id_value, 'live-singer', 'live_performer', 'Live Performer / Singer', 'Live Performer / Singer', 1, 'custom', 0, 0, true, '{"builder_item":{"custom_quote":true}}'::jsonb),
-    (quote_version_id_value, event_id_value, 'event-asst', 'event-asst', 'event-asst', 'event-asst', 3, 'hour', 3500, 10500, false, '{"builder_item":{"lovable_service_id":"event-asst","service_code":"event-asst","custom_quote":false}}'::jsonb);
+    (quote_version_id_value, (select id from public.os_service_catalog where code = 'dj_mc'), 'dj_mc', 'DJ / MC', 'entertainment', 1, 'event', 285, 285, '{"builder_item":{"id":"dj-mc-foundation","custom_quote":false}}'::jsonb),
+    (quote_version_id_value, (select id from public.os_service_catalog where code = 'selfie_booth_prints'), 'selfie_booth_digital', 'Selfie Booth - Digital', 'photo_booth', 1, 'event', 300, 300, '{"builder_item":{"id":"selfie-booth-prints","service_code":"selfie_booth_digital","custom_quote":false}}'::jsonb),
+    (quote_version_id_value, null, 'dance-lighting', 'dance-lighting', 'enhancement', 1, 'event', 100, 100, '{"builder_item":{"id":"dance-lighting","custom_quote":false}}'::jsonb),
+    (quote_version_id_value, (select id from public.os_service_catalog where code = 'live_performer'), 'live_performer', 'Live Performer / Singer', 'entertainment', 1, 'custom', 0, 0, '{"builder_item":{"id":"live-singer","custom_quote":true}}'::jsonb),
+    (quote_version_id_value, null, 'event-asst', 'event-asst', 'staffing', 3, 'hour', 35, 105, '{"builder_item":{"id":"event-asst","service_code":"event-asst","custom_quote":false}}'::jsonb);
 
   insert into public.os_activity_events(contact_id, event_id, event_type, payload, idempotency_key)
   values (
@@ -279,8 +277,8 @@ begin
     values (contact_id_value, 'Missing Quote QA', 'Private Party', 'inquiry', 'America/Indiana/Indianapolis', 'eventsible_event_builder')
     returning id into event_id_value;
 
-    insert into public.os_builder_submissions(contact_id, event_id, source, source_session_id, request_fingerprint, intake_version, contract_version, raw_payload, normalized_payload, submitted_from)
-    values (contact_id_value, event_id_value, 'eventsible_event_builder', 'missing-quote-001', 'missing-quote-001', 2, 'builder_submission_v1', '{}'::jsonb, '{"contract_version":"builder_submission_v1"}'::jsonb, 'eventsible-event-builder')
+    insert into public.os_builder_submissions(contact_id, source, source_session_id, request_fingerprint, intake_version, raw_payload, normalized_payload, submitted_from)
+    values (contact_id_value, 'eventsible_event_builder', 'missing-quote-001', 'missing-quote-001', 2, '{}'::jsonb, '{"contract_version":"builder_submission_v1"}'::jsonb, 'eventsible-event-builder')
     returning id into submission_id_value;
 
     insert into public.os_leads(contact_id, event_id, builder_submission_id, status, source, metadata)
