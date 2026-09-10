@@ -112,6 +112,7 @@ export async function requestWeddingHeroCallbackAction(input: WeddingHeroContact
       .from("os_events")
       .select("id,title,starts_at,primary_contact_id")
       .eq("id", request.eventId)
+      .neq("status", "archived")
       .maybeSingle();
     let primaryContact: { display_name?: string | null; primary_email?: string | null; primary_phone?: string | null } | null = null;
     const contactId = eventResult.data?.primary_contact_id;
@@ -120,6 +121,7 @@ export async function requestWeddingHeroCallbackAction(input: WeddingHeroContact
         .from("os_contacts")
         .select("display_name,primary_email,primary_phone")
         .eq("id", contactId)
+        .neq("status", "archived")
         .maybeSingle();
       primaryContact = contactResult.data;
     }

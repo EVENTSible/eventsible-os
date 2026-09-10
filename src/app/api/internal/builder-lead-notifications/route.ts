@@ -53,15 +53,15 @@ async function loadChain(supabase: ReturnType<typeof createAdminSupabase>, relat
       "Builder submission",
     ),
     single(
-      supabase.from("os_contacts").select("id,display_name,primary_email,primary_phone,preferred_channel").eq("id", contactId).maybeSingle(),
+      supabase.from("os_contacts").select("id,display_name,primary_email,primary_phone,preferred_channel").eq("id", contactId).neq("status", "archived").maybeSingle(),
       "Contact",
     ),
     single(
-      supabase.from("os_events").select("id,event_type,starts_at,ends_at,venue_city,venue_state,timezone").eq("id", eventId).maybeSingle(),
+      supabase.from("os_events").select("id,event_type,starts_at,ends_at,venue_city,venue_state,timezone").eq("id", eventId).neq("status", "archived").maybeSingle(),
       "Event",
     ),
     single(
-      supabase.from("os_leads").select("id,status,source").eq("id", leadId).maybeSingle(),
+      supabase.from("os_leads").select("id,status,source").eq("id", leadId).neq("status", "archived").maybeSingle(),
       "Lead",
     ),
     single(

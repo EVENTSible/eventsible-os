@@ -86,7 +86,7 @@ test("verifiers use the canonical migration chain and remain synthetic and isola
     read(".github/workflows/ecosystem-integration-local-supabase.yml"),
     read("scripts/guard-local-supabase-ci.mjs"),
   ]);
-  assert.match(history, /"canonicalThrough": "20260908133323"/);
+  assert.match(history, /"canonicalThrough": "20260909042244"/);
   assert.match(history, /"version": "20260909042244"/);
   assert.match(verifier, /Refusing to run Data Readiness verification against a remote or Production database/);
   assert.match(verifier, /example\.invalid/);

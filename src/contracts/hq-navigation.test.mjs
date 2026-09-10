@@ -11,7 +11,7 @@ test("HQ navigation registry has the approved destinations and no future placeho
     { id: "gigs", label: "Gigs", href: "/admin#gig-workspace", group: "primary" },
     { id: "leads", label: "Leads", href: "/admin#lead-review", group: "primary" },
     { id: "imports", label: "Imports", href: "/admin/imports", group: "review" },
-    { id: "data-readiness", label: "Data readiness", href: "/admin/data-readiness", group: "review" },
+    { id: "data-readiness", label: "Records & Intake", href: "/admin/data-readiness", group: "review" },
   ]);
   assert.doesNotMatch(JSON.stringify(HQ_NAVIGATION), /Contacts|Team|Equipment|Money|Content Factory|Custom Creations/);
 });
@@ -34,7 +34,7 @@ test("context labels distinguish nested workspaces without adding top-level dest
   assert.equal(hqContextLabel("/admin/wedding/event-id"), "Wedding Hero review");
   assert.equal(hqContextLabel("/admin/event/event-id"), "Event Hero review");
   assert.equal(hqContextLabel("/admin/imports"), "Imports");
-  assert.equal(hqContextLabel("/admin/data-readiness"), "Data readiness");
+  assert.equal(hqContextLabel("/admin/data-readiness"), "Records & Intake");
 });
 
 test("shared shell owns protected landmarks, mobile navigation, and accessible drawer behavior", () => {

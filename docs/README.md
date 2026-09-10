@@ -59,6 +59,7 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 | HQ Calendar and Existing Gig Intake foundation | [EVENTSIBLE_HQ_CALENDAR_AND_INTAKE_FOUNDATION.md](architecture/EVENTSIBLE_HQ_CALENDAR_AND_INTAKE_FOUNDATION.md) |
 | HQ Team Availability and Shared Master Calendar Phase 1 | [EVENTSIBLE_HQ_TEAM_AVAILABILITY_CALENDAR_PHASE_1.md](architecture/EVENTSIBLE_HQ_TEAM_AVAILABILITY_CALENDAR_PHASE_1.md) |
 | Supabase canonical migration history | [EVENTSIBLE_SUPABASE_MIGRATION_HISTORY.md](architecture/EVENTSIBLE_SUPABASE_MIGRATION_HISTORY.md) |
+| HQ bounded cleanup and Records & Intake | [HQ_BOUNDED_CLEANUP_AND_RECORDS_INTAKE.md](architecture/HQ_BOUNDED_CLEANUP_AND_RECORDS_INTAKE.md) |
 | HQ shared application shell | [EVENTSIBLE_HQ_SHARED_SHELL.md](architecture/EVENTSIBLE_HQ_SHARED_SHELL.md) |
 | Builder to OS integration | [EVENT_BUILDER_TO_OS.md](integrations/EVENT_BUILDER_TO_OS.md) |
 | Wedding Hero resources | [WEDDING_HERO_RESOURCES_2026-08-19.md](integrations/WEDDING_HERO_RESOURCES_2026-08-19.md) |

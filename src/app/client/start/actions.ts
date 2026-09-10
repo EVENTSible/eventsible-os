@@ -63,6 +63,7 @@ export async function startHeroWorkspaceAction(formData: FormData) {
       .from("os_contacts")
       .select("id")
       .ilike("primary_email", email)
+      .neq("status", "archived")
       .limit(1)
       .maybeSingle();
     if (existingContactResult.error) startRedirect(heroKey, "Your client profile could not be matched. Please try again.");

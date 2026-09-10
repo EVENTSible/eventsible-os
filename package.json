@@ -12,6 +12,7 @@
     "test:ecosystem:local-supabase": "node scripts/ecosystem-local-supabase-verify.mjs",
     "test:team-calendar:local-supabase": "node scripts/team-availability-local-supabase-verify.mjs",
     "test:data-readiness:local-supabase": "node scripts/data-readiness-local-supabase-verify.mjs",
+    "test:bounded-cleanup:local-supabase": "node scripts/bounded-cleanup-local-supabase-verify.mjs",
     "test:data-readiness:browser": "node scripts/data-readiness-browser-verify.mjs",
     "test:outbox-helper-grants": "node scripts/verify-outbox-helper-grants.mjs",
     "test:builder-outbox:production-quote-shape": "node scripts/verify-builder-outbox-production-quote-shape.mjs",

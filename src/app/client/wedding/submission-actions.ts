@@ -187,6 +187,7 @@ export async function submitPublicWeddingHeroPlanAction(input: PublicWeddingHero
         .from("os_events")
         .select("id,primary_contact_id,source,settings")
         .eq("id", eventId)
+        .neq("status", "archived")
         .maybeSingle();
       if (eventResult.error || !eventResult.data) {
         return { ok: false, message: "Your wedding record could not be refreshed. Please try again." };
@@ -208,7 +209,7 @@ export async function submitPublicWeddingHeroPlanAction(input: PublicWeddingHero
       }
       contactId = eventResult.data?.primary_contact_id ?? null;
       if (contactId) {
-        const contactResult = await admin.from("os_contacts").select("source").eq("id", contactId).maybeSingle();
+        const contactResult = await admin.from("os_contacts").select("source").eq("id", contactId).neq("status", "archived").maybeSingle();
         if (contactResult.data?.source === "wedding_hero_public_submission") {
           await admin.from("os_contacts").update({
             display_name: request.contactName,

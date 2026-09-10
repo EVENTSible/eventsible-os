@@ -86,3 +86,25 @@ export async function compensateBatchAction(_state: DataReadinessActionState, fo
   const result=await auth.supabase.rpc("os_compensate_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash")});
   if(result.error)return fail(rpcFailure(result.error,"Batch compensation could not be completed.")); refresh(); return {status:"success",message:"Imported records were archived or compensated without erasing history.",result:result.data};
 }
+
+export async function previewCleanupAction(_state: DataReadinessActionState, form: FormData): Promise<DataReadinessActionState> {
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const upload=form.get("cleanup_manifest");
+  if(!(upload instanceof File)||!upload.size||upload.size>524288)return fail("Choose the exact reviewed cleanup manifest (512 KiB maximum).");
+  const encoded=Buffer.from(await upload.arrayBuffer()).toString("base64");
+  const result=await auth.supabase.rpc("os_preview_cleanup_manifest",{p_manifest_base64:encoded});
+  if(result.error)return fail(rpcFailure(result.error,"The reviewed cleanup manifest could not be verified."));
+  refresh(); return {status:"success",message:"Exact Owner-reviewed manifest verified. Customer archival and outbox quarantine remain separate actions.",result:result.data};
+}
+
+async function cleanupAction(form:FormData,rpc:string,success:string):Promise<DataReadinessActionState>{
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const result=await auth.supabase.rpc(rpc,{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash"),p_confirmation:value(form,"confirmation")});
+  if(result.error)return fail(rpcFailure(result.error,"The bounded cleanup action was stopped without a partial change."));
+  refresh(); return {status:"success",message:success,result:result.data};
+}
+
+export async function archiveCleanupCustomersAction(_state:DataReadinessActionState,form:FormData){return cleanupAction(form,"os_execute_cleanup_customer_archive","The exact reviewed customer set was archived. History was preserved.");}
+export async function restoreCleanupCustomersAction(_state:DataReadinessActionState,form:FormData){return cleanupAction(form,"os_restore_cleanup_customer_archive","The exact customer batch was restored to its recorded prior states.");}
+export async function quarantineCleanupOutboxAction(_state:DataReadinessActionState,form:FormData){return cleanupAction(form,"os_execute_cleanup_outbox_quarantine","The exact reviewed synthetic outbox set was quarantined without replay or deletion.");}
+export async function restoreCleanupOutboxAction(_state:DataReadinessActionState,form:FormData){return cleanupAction(form,"os_restore_cleanup_outbox_quarantine","The exact outbox batch was restored to its recorded prior states.");}

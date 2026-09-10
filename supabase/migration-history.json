@@ -1,6 +1,6 @@
 {
   "format": "eventsible_supabase_migration_history_v1",
-  "canonicalThrough": "20260908133323",
+  "canonicalThrough": "20260909042244",
   "migrations": [
     {
       "version": "20260717212229",
@@ -221,13 +221,18 @@
       "version": "20260908133323",
       "name": "team_calendar_entry_controls",
       "sha256": "0f4e91cf01e8b41a93efb42a2382c447d05e990cd1fe775414f062aa0bb90071"
-    }
-  ],
-  "pendingMigrations": [
+    },
     {
       "version": "20260909042244",
       "name": "hq_data_readiness_foundation",
       "sha256": "f6135f7b8d928d38a0d78eec5fc87a7bcd4db7bbfb1b9e6f584acf827b757d6e"
+    }
+  ],
+  "pendingMigrations": [
+    {
+      "version": "20260910185316",
+      "name": "hq_bounded_cleanup_and_records_intake",
+      "sha256": "954536f4bb6670ef210edc721aab6d1bde8ba39990a2ea739e1a07638c7b19af"
     }
   ]
 }
