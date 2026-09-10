@@ -89,7 +89,10 @@ try {
   await editor.getByLabel("Status").selectOption({ label: "follow up" });
   await editor.getByLabel("Next follow-up").fill("2026-10-21");
   await editor.getByRole("button", { name: "Save lead" }).click();
-  await page.getByText(/Lead update recorded with provenance/).waitFor();
+  const leadFeedback = editor.locator(".operational-message");
+  await leadFeedback.waitFor();
+  const leadMessage = await leadFeedback.innerText();
+  if (!/Lead update recorded with provenance/.test(leadMessage)) throw new Error(`Synthetic lead edit failed: ${leadMessage}`);
   await editor.getByRole("button", { name: "Close editor" }).click();
 
   const intakeTab = page.getByRole("button", { name: "Reviewed Intake" });
