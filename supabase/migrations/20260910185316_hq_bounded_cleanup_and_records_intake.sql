@@ -83,6 +83,12 @@ create index os_cleanup_batch_items_batch_group_status_idx
 create index os_cleanup_batch_items_record_idx
   on public.os_cleanup_batch_items(record_type, record_id);
 create index os_cleanup_batches_created_by_idx on public.os_cleanup_batches(created_by);
+create index os_cleanup_batch_items_applied_by_idx on public.os_cleanup_batch_items(applied_by);
+create index os_cleanup_batch_items_restored_by_idx on public.os_cleanup_batch_items(restored_by);
+create index os_cleanup_batches_customer_applied_by_idx on public.os_cleanup_batches(customer_applied_by);
+create index os_cleanup_batches_customer_restored_by_idx on public.os_cleanup_batches(customer_restored_by);
+create index os_cleanup_batches_outbox_applied_by_idx on public.os_cleanup_batches(outbox_applied_by);
+create index os_cleanup_batches_outbox_restored_by_idx on public.os_cleanup_batches(outbox_restored_by);
 
 alter table public.os_cleanup_batches enable row level security;
 alter table public.os_cleanup_batch_items enable row level security;

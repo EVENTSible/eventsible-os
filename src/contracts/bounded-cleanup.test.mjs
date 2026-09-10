@@ -42,6 +42,10 @@ test("cleanup tables and RPCs are default-deny and Owner checked",()=>{
   assert.doesNotMatch(actions,/service.role|createAdminSupabase/i);
 });
 
+test("cleanup audit actor foreign keys have supporting indexes",()=>{
+  for(const name of ["os_cleanup_batch_items_applied_by_idx","os_cleanup_batch_items_restored_by_idx","os_cleanup_batches_customer_applied_by_idx","os_cleanup_batches_customer_restored_by_idx","os_cleanup_batches_outbox_applied_by_idx","os_cleanup_batches_outbox_restored_by_idx"]) assert.match(migration,new RegExp(`create index ${name}`));
+});
+
 test("normal HQ surfaces hide archived records and explicit history remains Owner-only",()=>{
   assert.match(migration,/where e\.status<>'archived' and coalesce\(c\.status,'active'\)<>'archived'/);
   assert.match(migration,/create or replace function public\.os_has_event_access[\s\S]*?e\.status<>'archived'/);
