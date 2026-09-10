@@ -57,6 +57,7 @@ test("Records & Intake is search-first, bounded, responsive, and keeps one edito
   assert.match(workspace,/Records &amp; Intake/);
   assert.match(workspace,/Reviewed Intake/);
   assert.match(workspace,/Search names, titles, source/);
+  assert.match(workspace,/<option key=\{value\} value=\{value\}>\{value\.replaceAll\("_"," "\)\}<\/option>/);
   assert.match(workspace,/slice\(safePage\*10,safePage\*10\+10\)/);
   assert.match(workspace,/record-editor-backdrop/);
   assert.match(workspace,/aria-modal="true"/);
