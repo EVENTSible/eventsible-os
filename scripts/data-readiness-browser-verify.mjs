@@ -60,7 +60,7 @@ try {
   await page.getByRole("button", { name: "Create contact" }).click();
   const editor = page.getByRole("dialog");
   await editor.getByLabel("Display name").fill("Synthetic browser contact");
-  await editor.getByLabel("Email").fill("browser-contact@example.invalid");
+  await editor.getByLabel("Email", { exact: true }).fill("browser-contact@example.invalid");
   await editor.getByRole("button", { name: "Create contact" }).click();
   await page.getByText(/Contact create recorded with provenance/).waitFor();
   await editor.getByRole("button", { name: "Close editor" }).click();
