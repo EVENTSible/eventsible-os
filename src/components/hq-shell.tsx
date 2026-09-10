@@ -41,7 +41,8 @@ export function HqShell({ children, role }: { children: ReactNode; role: string 
   const activeId = activeHqNavigationId(pathname, hash);
   const contextLabel = hqContextLabel(pathname, hash);
   const primaryItems = HQ_NAVIGATION.filter((item) => item.group === "primary");
-  const reviewItems = HQ_NAVIGATION.filter((item) => item.group === "review");
+  const reviewItems = HQ_NAVIGATION.filter((item) => item.group === "review" && (!("ownerOnly" in item) || !item.ownerOnly || role === "owner"));
+  const reviewActive = reviewItems.some((item) => item.id === activeId);
 
   useEffect(() => {
     const updateHash = () => setHash(window.location.hash);
@@ -127,8 +128,8 @@ export function HqShell({ children, role }: { children: ReactNode; role: string 
 
       <nav className="hq-mobile-navigation" aria-label="HQ mobile navigation">
         {primaryItems.map((item) => <NavigationLink key={item.id} item={item} active={activeId === item.id} onNavigate={() => activateNavigation(item)} compact />)}
-        <button type="button" className={`hq-nav-link compact${activeId === "imports" ? " active" : ""}`} aria-expanded={navigationOpen} aria-controls="hq-navigation-dialog" onClick={openNavigation}>
-          <span className="hq-more-icon" aria-hidden="true">•••</span><span>More</span>{activeId === "imports" ? <span className="hq-active-marker" aria-hidden="true">Current</span> : null}
+        <button type="button" className={`hq-nav-link compact${reviewActive ? " active" : ""}`} aria-expanded={navigationOpen} aria-controls="hq-navigation-dialog" onClick={openNavigation}>
+          <span className="hq-more-icon" aria-hidden="true">•••</span><span>More</span>{reviewActive ? <span className="hq-active-marker" aria-hidden="true">Current</span> : null}
         </button>
       </nav>
 

@@ -17,6 +17,7 @@ on:
       - "package-lock.json"
   push:
     branches:
+      - codex/hq-data-readiness
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
@@ -80,7 +81,7 @@ jobs:
         run: npm run guard:local-supabase-ci
 
       - name: Verify canonical migration history
-        run: node scripts/verify-migration-history.mjs --canonical-only
+        run: npm run test:migration-history
 
       - name: Start local Supabase
         run: |
@@ -109,7 +110,7 @@ jobs:
 
       - name: Verify reconstructed migration ledger
         run: |
-          expected_versions="$(node -e "const m=require('./supabase/migration-history.json'); process.stdout.write(m.migrations.map((x)=>x.version).join('\n'))")"
+          expected_versions="$(node -e "const m=require('./supabase/migration-history.json'); process.stdout.write([...m.migrations,...(m.pendingMigrations ?? [])].map((x)=>x.version).join('\n'))")"
           actual_versions="$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select version from supabase_migrations.schema_migrations order by version")"
           test "$actual_versions" = "$expected_versions"
 
@@ -143,6 +144,15 @@ jobs:
       - name: Run Team Availability authorization verification
         run: npm run test:team-calendar:local-supabase
 
+      - name: Run Data Readiness authorization and intake verification
+        run: npm run test:data-readiness:local-supabase
+
+      - name: Capture local Supabase advisors
+        run: |
+          mkdir -p artifacts/data-readiness
+          npx supabase@2.117.0 db advisors --local --type security --level info --fail-on error --output-format json > artifacts/data-readiness/security-advisors.json
+          npx supabase@2.117.0 db advisors --local --type performance --level info --fail-on error --output-format json > artifacts/data-readiness/performance-advisors.json
+
       - name: Verify Production-shaped Builder quote lookup
         run: npm run test:builder-outbox:production-quote-shape
 
@@ -161,12 +171,67 @@ jobs:
       - name: Run lint with documented inherited exception
         run: npm run lint:ci
 
+      - name: Configure isolated application environment
+        shell: bash
+        run: |
+          npx supabase@2.117.0 status -o env > /tmp/eventsible-supabase.env
+          source /tmp/eventsible-supabase.env
+          rm /tmp/eventsible-supabase.env
+          test -n "$API_URL"
+          test -n "$ANON_KEY"
+          test -n "$SERVICE_ROLE_KEY"
+          printf '::add-mask::%s\n' "$ANON_KEY"
+          printf '::add-mask::%s\n' "$SERVICE_ROLE_KEY"
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$API_URL" >> "$GITHUB_ENV"
+          printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$ANON_KEY" >> "$GITHUB_ENV"
+          printf 'LOCAL_SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          test_password="$(openssl rand -base64 30 | tr -d '\n')"
+          printf '::add-mask::%s\n' "$test_password"
+          printf 'DATA_READINESS_TEST_PASSWORD=%s\n' "$test_password" >> "$GITHUB_ENV"
+          printf 'DATA_READINESS_APP_URL=http://127.0.0.1:3100\n' >> "$GITHUB_ENV"
+
       - name: Build
         run: npm run build
 
+      - name: Install isolated browser runtime
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start isolated application
+        shell: bash
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3100 > /tmp/eventsible-data-readiness-next.log 2>&1 &
+          echo "$!" > /tmp/eventsible-data-readiness-next.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3100/login > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo "Isolated application did not become ready."
+          exit 1
+
+      - name: Run authenticated Data Readiness browser verification
+        run: npm run test:data-readiness:browser
+
+      - name: Upload sanitized Data Readiness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-readiness-isolated-evidence
+          path: artifacts/data-readiness
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Audit
-        run: npm audit
-        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Stop isolated application
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/eventsible-data-readiness-next.pid ]; then
+            kill "$(cat /tmp/eventsible-data-readiness-next.pid)" 2>/dev/null || true
+          fi
 
       - name: Stop local Supabase
         if: always()

@@ -11,6 +11,7 @@ test("HQ navigation registry has the approved destinations and no future placeho
     { id: "gigs", label: "Gigs", href: "/admin#gig-workspace", group: "primary" },
     { id: "leads", label: "Leads", href: "/admin#lead-review", group: "primary" },
     { id: "imports", label: "Imports", href: "/admin/imports", group: "review" },
+    { id: "data-readiness", label: "Data readiness", href: "/admin/data-readiness", group: "review" },
   ]);
   assert.doesNotMatch(JSON.stringify(HQ_NAVIGATION), /Contacts|Team|Equipment|Money|Content Factory|Custom Creations/);
 });
@@ -22,6 +23,7 @@ test("route and anchor matching preserve active global context", () => {
   assert.equal(activeHqNavigationId("/admin", "#gig-workspace"), "gigs");
   assert.equal(activeHqNavigationId("/admin/calendar"), "calendar");
   assert.equal(activeHqNavigationId("/admin/imports"), "imports");
+  assert.equal(activeHqNavigationId("/admin/data-readiness"), "data-readiness");
   assert.equal(activeHqNavigationId("/admin/gigs/event-id"), "gigs");
   assert.equal(activeHqNavigationId("/admin/wedding/event-id"), "gigs");
   assert.equal(activeHqNavigationId("/admin/event/event-id"), "gigs");
@@ -32,6 +34,7 @@ test("context labels distinguish nested workspaces without adding top-level dest
   assert.equal(hqContextLabel("/admin/wedding/event-id"), "Wedding Hero review");
   assert.equal(hqContextLabel("/admin/event/event-id"), "Event Hero review");
   assert.equal(hqContextLabel("/admin/imports"), "Imports");
+  assert.equal(hqContextLabel("/admin/data-readiness"), "Data readiness");
 });
 
 test("shared shell owns protected landmarks, mobile navigation, and accessible drawer behavior", () => {
@@ -65,6 +68,7 @@ test("ordinary admin pages no longer render page-specific sidebars", () => {
     "../app/admin/page.tsx",
     "../app/admin/calendar/page.tsx",
     "../app/admin/imports/page.tsx",
+    "../app/admin/data-readiness/page.tsx",
     "../app/admin/gigs/[eventId]/page.tsx",
     "../app/admin/wedding/[eventId]/page.tsx",
     "../app/admin/event/[eventId]/page.tsx",

@@ -222,5 +222,12 @@
       "name": "team_calendar_entry_controls",
       "sha256": "0f4e91cf01e8b41a93efb42a2382c447d05e990cd1fe775414f062aa0bb90071"
     }
+  ],
+  "pendingMigrations": [
+    {
+      "version": "20260909042244",
+      "name": "hq_data_readiness_foundation",
+      "sha256": "f6135f7b8d928d38a0d78eec5fc87a7bcd4db7bbfb1b9e6f584acf827b757d6e"
+    }
   ]
 }
