@@ -45,8 +45,8 @@ try {
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   page.on("response", (response) => { if (response.status() >= 500) serverFailures.push(`${response.status()} ${new URL(response.url()).pathname}`); });
   await signIn(page, users[0].email);
-  if (!page.url().endsWith("/admin/data-readiness")) throw new Error(`Owner did not reach Data Readiness: ${new URL(page.url()).pathname}`);
-  await page.getByRole("heading", { name: "Data Readiness" }).waitFor();
+  if (!page.url().endsWith("/admin/data-readiness")) throw new Error(`Owner did not reach Records & Intake: ${new URL(page.url()).pathname}`);
+  await page.getByRole("heading", { name: "Records & Intake" }).waitFor();
 
   for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
@@ -57,37 +57,50 @@ try {
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByLabel("Display name").first().fill("Synthetic browser contact");
-  await page.getByLabel("Email").first().fill("browser-contact@example.invalid");
   await page.getByRole("button", { name: "Create contact" }).click();
+  const editor = page.getByRole("dialog");
+  await editor.getByLabel("Display name").fill("Synthetic browser contact");
+  await editor.getByLabel("Email", { exact: true }).fill("browser-contact@example.invalid");
+  await editor.getByRole("button", { name: "Create contact" }).click();
   await page.getByText(/Contact create recorded with provenance/).waitFor();
-  const contactDetails = page.locator("details").filter({ has: page.locator("summary", { hasText: "Synthetic browser contact" }) });
-  await contactDetails.locator("summary").click();
-  await contactDetails.getByLabel("Display name").fill("Synthetic browser contact corrected");
-  await contactDetails.getByRole("button", { name: "Save contact" }).click();
+  await editor.getByRole("button", { name: "Close editor" }).click();
+  await page.getByPlaceholder("Search names, titles, source…").fill("Synthetic browser contact");
+  await page.getByRole("button", { name: /Synthetic browser contact/ }).click();
+  await editor.getByLabel("Display name").fill("Synthetic browser contact corrected");
+  await editor.getByRole("button", { name: "Save contact" }).click();
   await page.getByText(/Contact update recorded with provenance/).waitFor();
-  await contactDetails.getByRole("button", { name: "Archive" }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await editor.getByRole("button", { name: "Archive" }).click();
   await page.getByText(/Contact archive recorded with provenance/).waitFor();
-  await contactDetails.getByRole("button", { name: "Restore" }).click();
+  await editor.getByRole("button", { name: "Restore" }).click();
   await page.getByText(/Contact restore recorded with provenance/).waitFor();
-
-  const eventDetails = page.locator("details").filter({ has: page.locator("summary", { hasText: "Synthetic corrected event" }) });
-  await eventDetails.locator("summary").click();
-  await eventDetails.getByLabel("Event title").fill("Synthetic browser-corrected event");
-  await eventDetails.getByRole("button", { name: "Save event" }).click();
+  await editor.getByRole("button", { name: "Close editor" }).click();
+  await page.getByPlaceholder("Search names, titles, source…").fill("");
+  await page.locator(".record-type-tabs").getByRole("button", { name: "Gigs" }).click();
+  await page.getByPlaceholder("Search names, titles, source…").fill("Synthetic corrected event");
+  await page.getByRole("button", { name: /Synthetic corrected event/ }).click();
+  await editor.getByLabel("Title").fill("Synthetic browser-corrected event");
+  await editor.getByRole("button", { name: "Save gig" }).click();
   await page.getByText(/Event update recorded with provenance/).waitFor();
+  await editor.getByRole("button", { name: "Close editor" }).click();
+  await page.locator(".record-type-tabs").getByRole("button", { name: "Leads" }).click();
+  await page.getByPlaceholder("Search names, titles, source…").fill("");
+  await page.locator(".record-row").first().click();
+  await editor.getByLabel("Status").selectOption({ label: "follow up" });
+  await editor.getByLabel("Next follow-up").fill("2026-10-21");
+  await editor.getByRole("button", { name: "Save lead" }).click();
+  const leadFeedback = editor.locator(".operational-message");
+  await leadFeedback.waitFor();
+  const leadMessage = await leadFeedback.innerText();
+  if (!/Lead update recorded with provenance/.test(leadMessage)) throw new Error(`Synthetic lead edit failed: ${leadMessage}`);
+  await editor.getByRole("button", { name: "Close editor" }).click();
 
-  const lead = page.locator(".data-lead").first();
-  await lead.getByLabel("Status").selectOption({ label: "follow up" });
-  await lead.getByLabel("Next follow-up").fill("2026-10-21");
-  await lead.getByRole("button", { name: "Save" }).click();
-  await page.getByText(/Lead update recorded with provenance/).waitFor();
-
-  const intakeTab = page.getByRole("button", { name: "Reviewed intake" });
+  const intakeTab = page.getByRole("button", { name: "Reviewed Intake" });
   await intakeTab.focus();
   await page.keyboard.press("Enter");
   if ((await intakeTab.getAttribute("aria-current")) !== "page") throw new Error("Keyboard section navigation failed.");
   const manifest = { contractVersion: "intake_manifest_v1", sourceLabel: "Synthetic browser review", items: [{ key: "contact.browser-1", type: "contact", sourceHash: "9".repeat(64), sourceRef: "synthetic/browser-1", uncertainFields: [], data: { displayName: "Synthetic browser import", primaryEmail: "browser-import@example.invalid" } }] };
+  await page.getByText("Stage reviewed intake").click();
   await page.getByLabel("Versioned JSON manifest").fill(JSON.stringify(manifest));
   await page.getByRole("button", { name: "Validate and stage dry run" }).click();
   await page.getByText(/Dry run staged/).waitFor();

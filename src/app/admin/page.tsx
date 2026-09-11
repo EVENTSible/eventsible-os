@@ -166,6 +166,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       supabase
         .from("os_leads")
         .select(MISSION_CONTROL_SELECTS.leads)
+        .neq("status", "archived")
         .order("created_at", { ascending: false })
         .limit(30),
       "Leads",
@@ -195,7 +196,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       "Bookings",
     ),
     optionalRows<AnyRow>(
-      supabase.from("os_contacts").select("id,display_name,primary_email,primary_phone,preferred_channel,notes").limit(100),
+      supabase.from("os_contacts").select("id,display_name,primary_email,primary_phone,preferred_channel,notes").neq("status", "archived").limit(100),
       "Contacts",
     ),
     optionalRows<AnyRow>(
@@ -206,7 +207,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const warnings = [dashboardWarning, leadResult.warning, quoteResult.warning, itemResult.warning, bookingResult.warning, contactResult.warning, submissionResult.warning].filter(Boolean);
   const eventsById = new Map(events.map((event) => [event.event_id, event]));
-  const latestQuotes = latestQuoteByLead(quoteResult.rows);
+  const visibleQuoteRows = quoteResult.rows.filter((quote) => eventsById.has(idValue(quote, "event_id")));
+  const latestQuotes = latestQuoteByLead(visibleQuoteRows);
   const quoteItemsByQuote = new Map<string, AnyRow[]>();
   for (const item of itemResult.rows) {
     const quoteId = idValue(item, "quote_version_id");
@@ -264,7 +266,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
         <section className="metrics" aria-label="Business overview">
           <article><span>Active leads</span><b>{leadRows.length}</b><small>Builder and direct inquiries</small></article>
-          <article><span>Quotes to review</span><b>{quoteResult.rows.filter((quote) => ["draft", QUOTE_APPROVAL_STATUS].includes(String(quote.status ?? ""))).length}</b><small>Draft and approved quotes</small></article>
+          <article><span>Quotes to review</span><b>{visibleQuoteRows.filter((quote) => ["draft", QUOTE_APPROVAL_STATUS].includes(String(quote.status ?? ""))).length}</b><small>Draft and approved quotes</small></article>
           <article><span>Booked gigs</span><b>{bookedRows.length}</b><small>Confirmed or workspace-ready</small></article>
           <article><span>Needs attention</span><b>{attention.length}</b><small>Contracts, deposits, or follow-up</small></article>
         </section>
@@ -324,9 +326,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <article className="panel" id="quote-review">
               <div className="panel-heading"><div><span className="eyebrow">Quote approval</span><h2>Approval lane</h2></div></div>
               <p className="panel-note">Approval advances the quote through the canonical sent state and keeps final booking authority inside EVENTSible OS. Convert to Gig creates or updates the OS booking and service workspace.</p>
-              <div className="mini-stat"><span>Draft quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "draft").length}</b></div>
-              <div className="mini-stat"><span>Approved quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === QUOTE_APPROVAL_STATUS).length}</b></div>
-              <div className="mini-stat"><span>Accepted quotes</span><b>{quoteResult.rows.filter((quote) => quote.status === "accepted").length}</b></div>
+              <div className="mini-stat"><span>Draft quotes</span><b>{visibleQuoteRows.filter((quote) => quote.status === "draft").length}</b></div>
+              <div className="mini-stat"><span>Approved quotes</span><b>{visibleQuoteRows.filter((quote) => quote.status === QUOTE_APPROVAL_STATUS).length}</b></div>
+              <div className="mini-stat"><span>Accepted quotes</span><b>{visibleQuoteRows.filter((quote) => quote.status === "accepted").length}</b></div>
             </article>
 
             <article className="panel" id="automation">

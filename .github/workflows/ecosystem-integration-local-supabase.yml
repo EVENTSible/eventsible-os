@@ -18,6 +18,7 @@ on:
   push:
     branches:
       - codex/hq-data-readiness
+      - codex/hq-bounded-cleanup-and-density
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
@@ -146,6 +147,9 @@ jobs:
 
       - name: Run Data Readiness authorization and intake verification
         run: npm run test:data-readiness:local-supabase
+
+      - name: Run bounded cleanup and archive verification
+        run: npm run test:bounded-cleanup:local-supabase
 
       - name: Capture local Supabase advisors
         run: |

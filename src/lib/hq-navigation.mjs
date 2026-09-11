@@ -4,7 +4,7 @@ export const HQ_NAVIGATION = Object.freeze([
   Object.freeze({ id: "gigs", label: "Gigs", href: "/admin#gig-workspace", icon: "gigs", group: "primary" }),
   Object.freeze({ id: "leads", label: "Leads", href: "/admin#lead-review", icon: "leads", group: "primary" }),
   Object.freeze({ id: "imports", label: "Imports", href: "/admin/imports", icon: "imports", group: "review" }),
-  Object.freeze({ id: "data-readiness", label: "Data readiness", href: "/admin/data-readiness", icon: "imports", group: "review", ownerOnly: true }),
+  Object.freeze({ id: "data-readiness", label: "Records & Intake", href: "/admin/data-readiness", icon: "imports", group: "review", ownerOnly: true }),
 ]);
 
 const GIG_PATH_PREFIXES = ["/admin/gigs/", "/admin/wedding/", "/admin/event/"];

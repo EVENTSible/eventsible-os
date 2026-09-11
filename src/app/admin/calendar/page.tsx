@@ -31,7 +31,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
 
   const [dashboardResult, eventSettingsResult, factResult, snapshotResult] = await Promise.all([
     supabase.from("os_event_dashboard_v").select("event_id,title,event_type,event_status,starts_at,ends_at,timezone,venue_name,venue_summary,booking_id,booking_status,booked_services").order("starts_at", { ascending: true, nullsFirst: false }),
-    supabase.from("os_events").select("id,settings"),
+    supabase.from("os_events").select("id,settings").neq("status", "archived"),
     supabase.from("os_event_facts").select("event_id,fact_key,value").in("fact_key", ["event.arrival_time", "event.load_in_window", "event.breakdown_start", "event.must_be_out"]),
     supabase.rpc("os_team_calendar_snapshot", { p_from: dateOffsetKey(-90), p_to: dateOffsetKey(310) }),
   ]);
