@@ -153,7 +153,11 @@ jobs:
         run: npm run test:bounded-cleanup:local-supabase
 
       - name: Run complete atomic intake verification
-        run: npm run test:complete-intake:local-supabase
+        shell: bash
+        run: |
+          mkdir -p artifacts/data-readiness
+          set -o pipefail
+          npm run test:complete-intake:local-supabase 2>&1 | tee artifacts/data-readiness/complete-intake-verification.log
 
       - name: Capture local Supabase advisors
         run: |
