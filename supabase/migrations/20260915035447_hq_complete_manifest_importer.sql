@@ -355,6 +355,7 @@ declare
   v_target_type text;
   v_before jsonb;
   v_warnings jsonb;
+  v_booking_linked boolean;
   v_applied integer:=0;
 begin
   if v_actor is null or not public.os_has_hq_capability('data.readiness.manage') then raise exception 'Owner authorization required' using errcode='42501'; end if;
@@ -386,7 +387,7 @@ begin
     select * from public.os_import_batch_items where batch_id=p_batch_id and status='approved'
     order by case candidate_type when 'contact' then 1 when 'event' then 2 when 'inquiry' then 3 when 'booking' then 4 when 'booking_service' then 5 when 'payment_fact' then 6 when 'staff_assignment' then 7 when 'operational_note' then 8 when 'source_provenance' then 9 end, created_at, id
   loop
-    v_id:=null; v_event:=null; v_contact:=null; v_lead:=null; v_booking:=null; v_service:=null; v_before:=null;
+    v_id:=null; v_event:=null; v_contact:=null; v_lead:=null; v_booking:=null; v_service:=null; v_before:=null; v_booking_linked:=false;
     update public.os_import_batch_items set status='applying',updated_at=now() where id=v_item.id;
     if v_item.candidate_type='contact' and coalesce(v_item.proposed_data->>'recordMode','create')='link_existing' then
       v_id:=(v_item.proposed_data->>'existingRecordId')::uuid;
@@ -445,11 +446,15 @@ begin
       values(v_booking,v_service,v_item.proposed_data->>'serviceCode',left(v_item.proposed_data->>'serviceName',160),v_item.proposed_data->>'status',nullif(v_item.proposed_data->>'startsAt','')::timestamptz,nullif(v_item.proposed_data->>'endsAt','')::timestamptz,nullif(left(v_item.proposed_data->>'locationLabel',180),''),jsonb_build_object('importBatchId',p_batch_id,'sourceHash',v_item.source_hash,'quantity',coalesce(nullif(v_item.proposed_data->>'quantity','')::numeric,1),'unitPrice',nullif(v_item.proposed_data->>'unitPrice','')::numeric,'lineTotal',nullif(v_item.proposed_data->>'lineTotal','')::numeric)) returning id into v_id;
     elsif v_item.candidate_type='payment_fact' then
       select (canonical_record_ids->>'primaryId')::uuid into v_booking from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'bookingItemKey' and candidate_type='booking' and status='applied';
+      select coalesce((result->'before'->>'linkedExisting')::boolean,false) into v_booking_linked from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'bookingItemKey' and candidate_type='booking' and status='applied';
       select jsonb_build_object('paymentStatus',payment_status,'totalAmount',total_amount,'depositAmount',deposit_amount,'balanceDue',balance_due,'updatedAt',updated_at) into v_before from public.os_bookings where id=v_booking for update;
       if v_booking is null or v_before is null then raise exception 'Referenced booking is not applied' using errcode='P0002'; end if;
+      v_before:=v_before||jsonb_build_object('bookingLinkedExisting',v_booking_linked);
       insert into public.os_booking_payment_facts(booking_id,import_batch_item_id,gross_client_amount,platform_fee_amount,net_payout_amount,payment_method,payment_status,payout_status,currency,source_ref,source_hash,created_by)
       values(v_booking,v_item.id,nullif(v_item.proposed_data->>'grossClientAmount','')::numeric,nullif(v_item.proposed_data->>'platformFeeAmount','')::numeric,nullif(v_item.proposed_data->>'netPayoutAmount','')::numeric,v_item.proposed_data->>'paymentMethod',v_item.proposed_data->>'paymentStatus',v_item.proposed_data->>'payoutStatus',coalesce(nullif(v_item.proposed_data->>'currency',''),'USD'),v_item.source_ref,v_item.source_hash,v_actor) returning id into v_id;
-      update public.os_bookings set payment_status=v_item.proposed_data->>'paymentStatus',total_amount=nullif(v_item.proposed_data->>'grossClientAmount','')::numeric,deposit_amount=coalesce(nullif(v_item.proposed_data->>'depositAmount','')::numeric,deposit_amount),balance_due=coalesce(nullif(v_item.proposed_data->>'balanceDue','')::numeric,balance_due),updated_at=now() where id=v_booking;
+      if not v_booking_linked then
+        update public.os_bookings set payment_status=v_item.proposed_data->>'paymentStatus',total_amount=nullif(v_item.proposed_data->>'grossClientAmount','')::numeric,deposit_amount=coalesce(nullif(v_item.proposed_data->>'depositAmount','')::numeric,deposit_amount),balance_due=coalesce(nullif(v_item.proposed_data->>'balanceDue','')::numeric,balance_due),updated_at=now() where id=v_booking;
+      end if;
     elsif v_item.candidate_type='staff_assignment' then
       select (canonical_record_ids->>'primaryId')::uuid into v_event from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'eventItemKey' and candidate_type='event' and status='applied';
       if v_event is null or not exists(select 1 from public.os_team_members where id=(v_item.proposed_data->>'teamMemberId')::uuid and status='active') then raise exception 'Referenced event or team member is not available' using errcode='P0002'; end if;
@@ -503,7 +508,9 @@ begin
     elsif v_item.candidate_type='payment_fact' then
       select booking_id into v_booking from public.os_booking_payment_facts where id=v_id and import_batch_item_id=v_item.id;
       update public.os_booking_payment_facts set status='archived',updated_at=now() where id=v_id;
-      update public.os_bookings set payment_status=v_item.result->'before'->>'paymentStatus',total_amount=(v_item.result->'before'->>'totalAmount')::numeric,deposit_amount=(v_item.result->'before'->>'depositAmount')::numeric,balance_due=(v_item.result->'before'->>'balanceDue')::numeric,updated_at=(v_item.result->'before'->>'updatedAt')::timestamptz where id=v_booking;
+      if not coalesce((v_item.result->'before'->>'bookingLinkedExisting')::boolean,false) then
+        update public.os_bookings set payment_status=v_item.result->'before'->>'paymentStatus',total_amount=(v_item.result->'before'->>'totalAmount')::numeric,deposit_amount=(v_item.result->'before'->>'depositAmount')::numeric,balance_due=(v_item.result->'before'->>'balanceDue')::numeric,updated_at=(v_item.result->'before'->>'updatedAt')::timestamptz where id=v_booking;
+      end if;
     elsif v_item.candidate_type='staff_assignment' then update public.os_staff_assignments set status='cancelled',updated_by_user_id=v_actor,updated_at=now() where id=v_id;
     elsif v_item.candidate_type='operational_note' then update public.os_event_notes set status='archived',updated_at=now() where id=v_id;
     end if;

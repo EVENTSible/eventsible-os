@@ -106,7 +106,7 @@ test("complete importer migration is atomic, source-bound, automation-isolated, 
   assert.match(migration,/c9b2f167f8ea2ac2255e01ba52891a9e23df9f09646918cd8468cc1c22cff643/);
   assert.match(migration,/Production duplicate detection stopped the complete import/);
   assert.match(migration,/recordMode','create'\)='link_existing'/);
-  assert.match(migration,/sourcePrecedence'<>'preserve_existing_native'/);
+  assert.match(migration,/coalesce\(v_data->>'sourcePrecedence',''\)<>'preserve_existing_native'/);
   assert.match(migration,/Native submission or canonical record changed after preview/);
   assert.match(migration,/lock table public\.os_bookings, public\.os_builder_intake_requests, public\.os_builder_submissions/);
   assert.match(migration,/linkedExisting/);
