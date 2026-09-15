@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { duplicateWarnings, manifestHash, validateIntakeManifest } from "../lib/data-readiness.mjs";
+import { COMPLETE_INTAKE_SOURCE_BASELINE, completeItemCounts, duplicateWarnings, manifestFileHash, manifestHash, validateCompleteIntakeManifest, validateIntakeManifest } from "../lib/data-readiness.mjs";
 
 const read = (path) => readFile(new URL(`../../${path}`, import.meta.url), "utf8");
 const candidate = (overrides = {}) => ({ key: "contact.synthetic-1", type: "contact", sourceHash: "a".repeat(64), sourceRef: "redacted/source-1", uncertainFields: [], data: { displayName: "Synthetic contact", primaryEmail: "person@example.invalid" }, ...overrides });
@@ -27,6 +27,19 @@ test("linked candidates require certain canonical or prior-item references", () 
   assert.equal(validateIntakeManifest(manifest([candidate(), { ...event, data: { ...event.data, primaryContactItemKey: "contact.synthetic-1" } }])).ok, true);
   const inquiry = candidate({ key: "inquiry.synthetic-1", type: "inquiry", data: { status: "new", contactItemKey: "contact.synthetic-1", eventItemKey: "event.synthetic-1" } });
   assert.equal(validateIntakeManifest(manifest([candidate(), { ...event, data: { ...event.data, primaryContactItemKey: "contact.synthetic-1" } }, inquiry])).ok, true);
+});
+
+test("intake_manifest_v2 binds the exact 24-event source baseline and complete relationship keys", () => {
+  const contacts = Array.from({ length: 24 }, (_, index) => ({ key:`contact.complete-${index}`,type:"contact",sourceHash:(index+1).toString(16).padStart(64,"0"),sourceRef:`synthetic/contact-${index}`,uncertainFields:[],data:{displayName:`Synthetic ${index}`,primaryEmail:`complete-${index}@example.invalid`} }));
+  const events = contacts.map((contact,index) => ({ key:`event.complete-${index}`,type:"event",sourceHash:(index+101).toString(16).padStart(64,"0"),sourceRef:`synthetic/event-${index}`,uncertainFields:[],data:{primaryContactItemKey:contact.key,title:`Synthetic gig ${index}`,eventType:"test",status:index===22?"inquiry":index===23?"pending":"completed",recordDisposition:index===22?"lower_confidence_review":index===23?"pending_unbooked":"confirmed"} }));
+  const items=[...contacts,...events];
+  const complete={contractVersion:"intake_manifest_v2",sourceBaselineHash:COMPLETE_INTAKE_SOURCE_BASELINE,sourceLabel:"Synthetic complete importer contract",recordCount:24,itemCounts:completeItemCounts(items),items};
+  assert.equal(validateCompleteIntakeManifest(complete).ok,true);
+  assert.match(manifestFileHash(JSON.stringify(complete)),/^[a-f0-9]{64}$/);
+  assert.equal(validateCompleteIntakeManifest({...complete,recordCount:23}).ok,false);
+  const invalidBooking={key:"booking.lower",type:"booking",sourceHash:"f".repeat(64),sourceRef:"synthetic/lower",uncertainFields:[],data:{eventItemKey:"event.complete-22",status:"confirmed",contractStatus:"signed"}};
+  const invalidItems=[...items,invalidBooking];
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(invalidItems),items:invalidItems}).ok,false);
 });
 
 test("duplicate warnings are advisory and never merge records", () => {
@@ -78,6 +91,25 @@ test("migration uses RLS, exact approval, internal identity, bounded grants, and
   assert.doesNotMatch(migration, /user_metadata|insert into auth\.|update auth\./i);
 });
 
+test("complete importer migration is atomic, source-bound, automation-isolated, and reversible", async () => {
+  const migration=await read("supabase/migrations/20260915035447_hq_complete_manifest_importer.sql");
+  assert.match(migration,/create table public\.os_booking_payment_facts/);
+  assert.match(migration,/gross_client_amount numeric\(12,2\)/);
+  assert.match(migration,/platform_fee_amount numeric\(12,2\)/);
+  assert.match(migration,/net_payout_amount numeric\(12,2\)/);
+  assert.match(migration,/create table public\.os_import_source_provenance/);
+  assert.match(migration,/p_expected_record_count<>24/);
+  assert.match(migration,/c9b2f167f8ea2ac2255e01ba52891a9e23df9f09646918cd8468cc1c22cff643/);
+  assert.match(migration,/Production duplicate detection stopped the complete import/);
+  assert.match(migration,/suppressAutomations/);
+  assert.match(migration,/status='archived'/);
+  assert.match(migration,/status='cancelled'/);
+  assert.match(migration,/set search_path = ''/);
+  assert.match(migration,/revoke all on function public\.os_apply_complete_intake_batch/);
+  assert.doesNotMatch(migration,/delete\s+from|truncate/i);
+  assert.doesNotMatch(migration,/insert into auth\.|update auth\.|user_metadata/i);
+});
+
 test("verifiers use the canonical migration chain and remain synthetic and isolated", async () => {
   const [history, verifier, browserVerifier, workflow, guard] = await Promise.all([
     read("supabase/migration-history.json"),
@@ -86,8 +118,9 @@ test("verifiers use the canonical migration chain and remain synthetic and isola
     read(".github/workflows/ecosystem-integration-local-supabase.yml"),
     read("scripts/guard-local-supabase-ci.mjs"),
   ]);
-  assert.match(history, /"canonicalThrough": "20260909042244"/);
+  assert.match(history, /"canonicalThrough": "20260910185316"/);
   assert.match(history, /"version": "20260909042244"/);
+  assert.match(history, /"version": "20260915035447"/);
   assert.match(verifier, /Refusing to run Data Readiness verification against a remote or Production database/);
   assert.match(verifier, /example\.invalid/);
   assert.match(browserVerifier, /Isolated local Supabase browser-test environment is incomplete/);

@@ -30,6 +30,16 @@ Staging is a dry run: it validates the complete manifest, records duplicate warn
 
 Compensation preserves history. Imported contacts, inquiries, and events are archived; assignments are cancelled; notes are archived; calendar facts become private archived notes; payment facts restore their captured prior values. No intake RPC hard-deletes canonical or staging history.
 
+## Complete 24-record importer
+
+`intake_manifest_v2` is the narrowly bounded path for the accepted 24-gig preview-v3 source baseline. It retains the preview hash as provenance but requires a separate SHA-256 of the exact executable manifest file, exactly 24 event items, and an exact count for every supported item type. Stable manifest keys resolve contacts to events, inquiries to their contact/event pair, bookings to events, services and financial facts to bookings, and assignments/notes/provenance to their canonical parent. The private source documents and their client details are not stored in source control.
+
+The v2 candidate set adds `booking`, `booking_service`, and `source_provenance` to the canonical contact/inquiry/event/assignment/note chain. `os_booking_payment_facts` stores gross client payment, platform fee, net payout, method, payment status, and payout status separately. The related booking retains the operational payment summary; the per-item audit row records its before-image.
+
+Staging and exact Owner approval remain separate from apply. The v2 apply RPC re-runs duplicate detection and then applies the entire manifest in one database transaction. It has no per-item exception handler: any invalid relationship or constraint violation rolls back every canonical write and every in-transaction item-state change. A completed hash replays as a read-only idempotent result. Lower-confidence review entries must remain inquiries, and pending-unbooked entries cannot have booking items.
+
+Imported confirmed bookings carry a transaction-only, Owner-validated batch marker that suppresses existing booking automation triggers during creation. The marker is removed before commit, so later lifecycle changes use the normal triggers. The complete-import verification asserts that neither outbox changes. Rollback archives or cancels imported records, restores booking financial before-images, and preserves batch, item, source-provenance, and activity history; it never hard-deletes or merges records.
+
 ## Rollout
 
 1. Freeze Owner Data Readiness mutations.
@@ -38,6 +48,8 @@ Compensation preserves history. Imported contacts, inquiries, and events are arc
 4. Verify RLS, grants, function definitions, Owner authorization, non-Owner denial, and empty Data Readiness snapshot.
 5. Deploy the application commit.
 6. Verify signed-out and non-Owner denial, Owner read-only rendering, then one separately approved synthetic dry run before real intake.
+
+The complete importer requires a later migration-first rollout of `20260915035447_hq_complete_manifest_importer.sql`. Applying that migration does not authorize staging or applying the private manifest. A future Production import approval must cite the exact executable-manifest file hash, exact item counts, and the accepted preview-v3 source hash; migration rollout, manifest staging, import apply, and rollback remain separately auditable gates.
 
 If the migration fails, its transaction must roll back before application deployment. If the application deployment fails after a successful migration, keep the additive migration in place and roll the application back; the prior application does not call the new objects. If authorization is too permissive, disable execute on the eight Data Readiness RPCs immediately, preserve audit evidence, and deploy a reviewed corrective migration.
 
