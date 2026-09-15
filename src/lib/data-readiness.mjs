@@ -15,6 +15,7 @@ export const LEAD_STATUSES = Object.freeze(["new", "qualifying", "quoted", "foll
 
 const ITEM_KEY = /^[a-z0-9][a-z0-9._:-]{0,119}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function object(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
@@ -63,8 +64,16 @@ export function validateCompleteIntakeManifest(input, expectedFileHash = null) {
     if (item.sourceRef != null && (typeof item.sourceRef !== "string" || item.sourceRef.length > 240)) errors.push(`items[${index}].sourceRef is invalid`);
     if (item.uncertainFields != null && (!Array.isArray(item.uncertainFields) || item.uncertainFields.length > 30)) errors.push(`items[${index}].uncertainFields is invalid`);
     if (JSON.stringify(item.data ?? {}).length > 32768) errors.push(`items[${index}].data is too large`);
+    const recordMode = item.data?.recordMode ?? "create";
+    if (!["create", "link_existing"].includes(recordMode)) errors.push(`items[${index}].recordMode is unsupported`);
+    if (recordMode === "link_existing") {
+      if (!["contact", "event", "inquiry", "booking"].includes(item.type)) errors.push(`items[${index}] cannot link this item type to an existing record`);
+      if (!UUID.test(String(item.data?.existingRecordId ?? ""))) errors.push(`items[${index}].existingRecordId must be UUID`);
+      if (!SHA256.test(String(item.data?.expectedRecordHash ?? ""))) errors.push(`items[${index}].expectedRecordHash must be SHA-256`);
+      if (item.data?.sourcePrecedence !== "preserve_existing_native") errors.push(`items[${index}].sourcePrecedence must preserve existing native data`);
+    }
     for (const required of completeRequiredFields(item.type)) if (item?.uncertainFields?.includes(required) || item?.data?.[required] == null || item.data[required] === "") errors.push(`items[${index}].${required} must be certain and supplied`);
-    if (item.type === "contact" && !item.data?.primaryEmail && !item.data?.primaryPhone) errors.push(`items[${index}] contact requires email or phone`);
+    if (item.type === "contact" && recordMode === "create" && !item.data?.primaryEmail && !item.data?.primaryPhone) errors.push(`items[${index}] contact requires email or phone`);
     if (item.type === "event" && !EVENT_STATUSES.filter((value) => value !== "archived").includes(item.data?.status)) errors.push(`items[${index}].status is unsupported`);
     if (item.type === "event" && !["confirmed", "lower_confidence_review", "pending_unbooked"].includes(item.data?.recordDisposition)) errors.push(`items[${index}].recordDisposition is unsupported`);
     if (item.type === "event" && item.data?.recordDisposition === "lower_confidence_review" && item.data?.status !== "inquiry") errors.push(`items[${index}] lower-confidence records must remain inquiries`);

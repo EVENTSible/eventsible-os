@@ -40,6 +40,10 @@ test("intake_manifest_v2 binds the exact 24-event source baseline and complete r
   const invalidBooking={key:"booking.lower",type:"booking",sourceHash:"f".repeat(64),sourceRef:"synthetic/lower",uncertainFields:[],data:{eventItemKey:"event.complete-22",status:"confirmed",contractStatus:"signed"}};
   const invalidItems=[...items,invalidBooking];
   assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(invalidItems),items:invalidItems}).ok,false);
+  const linkedContact={...contacts[0],data:{...contacts[0].data,recordMode:"link_existing",existingRecordId:"12000000-0000-4000-8000-000000000001",expectedRecordHash:"b".repeat(64),sourcePrecedence:"preserve_existing_native"}};
+  const linkedItems=[linkedContact,...contacts.slice(1),...events];
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(linkedItems),items:linkedItems}).ok,true);
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(linkedItems),items:linkedItems.map((item)=>item.key===linkedContact.key?{...item,data:{...item.data,sourcePrecedence:"overwrite_native"}}:item)}).ok,false);
 });
 
 test("duplicate warnings are advisory and never merge records", () => {
@@ -101,6 +105,11 @@ test("complete importer migration is atomic, source-bound, automation-isolated, 
   assert.match(migration,/p_expected_record_count<>24/);
   assert.match(migration,/c9b2f167f8ea2ac2255e01ba52891a9e23df9f09646918cd8468cc1c22cff643/);
   assert.match(migration,/Production duplicate detection stopped the complete import/);
+  assert.match(migration,/recordMode','create'\)='link_existing'/);
+  assert.match(migration,/sourcePrecedence'<>'preserve_existing_native'/);
+  assert.match(migration,/Native submission or canonical record changed after preview/);
+  assert.match(migration,/lock table public\.os_bookings, public\.os_builder_intake_requests, public\.os_builder_submissions/);
+  assert.match(migration,/linkedExisting/);
   assert.match(migration,/suppressAutomations/);
   assert.match(migration,/status='archived'/);
   assert.match(migration,/status='cancelled'/);
@@ -108,6 +117,19 @@ test("complete importer migration is atomic, source-bound, automation-isolated, 
   assert.match(migration,/revoke all on function public\.os_apply_complete_intake_batch/);
   assert.doesNotMatch(migration,/delete\s+from|truncate/i);
   assert.doesNotMatch(migration,/insert into auth\.|update auth\.|user_metadata/i);
+});
+
+test("complete importer preserves native Wedding Hero and Event Builder records", async () => {
+  const [migration,builder,wedding]=await Promise.all([
+    read("supabase/migrations/20260915035447_hq_complete_manifest_importer.sql"),
+    read("supabase/migrations/20260719053712_fix_event_builder_contact_merge.sql"),
+    read("src/app/client/wedding/submission-actions.ts"),
+  ]);
+  assert.match(builder,/source_session_id[\s\S]+on conflict\(source_session_id\)/);
+  assert.match(wedding,/submission_id === request\.submissionId/);
+  assert.match(wedding,/os_planning_answers/);
+  assert.doesNotMatch(migration,/(update|delete from) public\.os_(builder_submissions|builder_intake_requests|planning_assignments|planning_answers)/i);
+  assert.doesNotMatch(migration,/set\s+(raw_payload|normalized_payload|value)\s*=/i);
 });
 
 test("verifiers use the canonical migration chain and remain synthetic and isolated", async () => {

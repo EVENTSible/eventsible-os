@@ -63,12 +63,53 @@ function buildManifest({suffix="success",badTeam=false,duplicateEmail=null}={}){
 function stage(manifest){const raw=JSON.stringify(manifest);const hash=createHash("sha256").update(raw).digest("hex");const base64=Buffer.from(raw).toString("base64");const counts=sqlText(JSON.stringify(manifest.itemCounts));const result=JSON.parse(asUser(ids.owner,"owner",`select public.os_stage_complete_intake_manifest('${base64}','${hash}',24,'${counts}'::jsonb)`));return {...result,hash,counts,keys:manifest.items.map(item=>item.key)};}
 function approve(staged){return asUser(ids.owner,"owner",`select public.os_approve_complete_intake_batch('${staged.batchId}','${staged.hash}',24,'${staged.counts}'::jsonb,array[${staged.keys.map(key=>`'${sqlText(key)}'`).join(",")}])`);}
 function apply(staged){return JSON.parse(asUser(ids.owner,"owner",`select public.os_apply_complete_intake_batch('${staged.batchId}','${staged.hash}',24,'${staged.counts}'::jsonb)`));}
+function linkExisting(manifest,key,id,expectedRecordHash){const item=manifest.items.find((candidate)=>candidate.key===key);if(!item)throw new Error(`Missing synthetic link item ${key}`);item.data={...item.data,recordMode:"link_existing",existingRecordId:id,expectedRecordHash,sourcePrecedence:"preserve_existing_native"};}
 
 const roleManifest=buildManifest({suffix:"role"});const roleRaw=JSON.stringify(roleManifest);const roleHash=createHash("sha256").update(roleRaw).digest("hex");const roleBase64=Buffer.from(roleRaw).toString("base64");
 for(const [id,role] of [[ids.manager,"manager"],[ids.staff,"staff"],[ids.host,"host"],[ids.other,null]])denied(id,role,`select public.os_stage_complete_intake_manifest('${roleBase64}','${roleHash}',24,'${sqlText(JSON.stringify(roleManifest.itemCounts))}'::jsonb)`);
 execute(`set role anon; select public.os_stage_complete_intake_manifest('${roleBase64}','${roleHash}',24,'${sqlText(JSON.stringify(roleManifest.itemCounts))}'::jsonb)`,{expectFailure:true});
 denied(ids.owner,"owner",`select public.os_stage_complete_intake_manifest('${roleBase64}','${"0".repeat(64)}',24,'${sqlText(JSON.stringify(roleManifest.itemCounts))}'::jsonb)`);
 denied(ids.owner,"owner",`select public.os_stage_complete_intake_manifest('${roleBase64}','${roleHash}',23,'${sqlText(JSON.stringify(roleManifest.itemCounts))}'::jsonb)`);
+
+const native={contact:"61000000-0000-4000-8000-000000000001",submission:"61000000-0000-4000-8000-000000000002",event:"61000000-0000-4000-8000-000000000003",lead:"61000000-0000-4000-8000-000000000004",booking:"61000000-0000-4000-8000-000000000005",weddingContact:"61000000-0000-4000-8000-000000000006",weddingEvent:"61000000-0000-4000-8000-000000000007",assignment:"61000000-0000-4000-8000-000000000008",answer:"61000000-0000-4000-8000-000000000009"};
+execute(`
+insert into public.os_contacts(id,display_name,primary_email,source,status) values
+('${native.contact}','Synthetic Builder native','native-builder@example.invalid','eventsible_event_builder','active'),
+('${native.weddingContact}','Synthetic Wedding native','native-wedding@example.invalid','wedding_hero_public_submission','active');
+insert into public.os_builder_submissions(id,contact_id,source_session_id,event_type,status,source,request_fingerprint,submitted_from,intake_version)
+values('${native.submission}','${native.contact}','synthetic-native-session','Private Party','lead_created','eventsible_event_builder','synthetic-native-fingerprint','eventsible-event-builder',1);
+insert into public.os_events(id,primary_contact_id,builder_submission_id,title,event_type,status,starts_at,timezone,source) values
+('${native.event}','${native.contact}','${native.submission}','Synthetic Builder native gig','Private Party','inquiry','2027-01-01T15:00:00Z','America/Indiana/Indianapolis','eventsible_event_builder'),
+('${native.weddingEvent}','${native.weddingContact}',null,'Synthetic Wedding native gig','Wedding','inquiry','2027-02-01T15:00:00Z','America/Indiana/Indianapolis','wedding_hero_public_submission');
+insert into public.os_leads(id,contact_id,event_id,builder_submission_id,status,source) values('${native.lead}','${native.contact}','${native.event}','${native.submission}','new','eventsible_event_builder');
+insert into public.os_bookings(id,event_id,status,contract_status,payment_status) values('${native.booking}','${native.event}','pending','sent','unpaid');
+insert into public.os_planning_assignments(id,event_id,template_id,status,settings) select '${native.assignment}','${native.weddingEvent}',id,'submitted','{"public_draft_id":"synthetic-native-draft"}'::jsonb from public.os_planning_templates where slug='wedding-hero' order by version desc limit 1;
+insert into public.os_planning_answers(id,assignment_id,question_key,value,source,is_confirmed) values('${native.answer}','${native.assignment}','synthetic_native_answer','"preserve me"'::jsonb,'client',true);
+`);
+const nativeHashes={contact:execute(`select private.os_complete_intake_record_fingerprint('contact','${native.contact}')`),event:execute(`select private.os_complete_intake_record_fingerprint('event','${native.event}')`),lead:execute(`select private.os_complete_intake_record_fingerprint('inquiry','${native.lead}')`),booking:execute(`select private.os_complete_intake_record_fingerprint('booking','${native.booking}')`),weddingContact:execute(`select private.os_complete_intake_record_fingerprint('contact','${native.weddingContact}')`),weddingEvent:execute(`select private.os_complete_intake_record_fingerprint('event','${native.weddingEvent}')`)};
+const protectedNativeHash=execute(`select encode(extensions.digest(convert_to(jsonb_build_object('builder',(select to_jsonb(r) from public.os_builder_submissions r where id='${native.submission}'),'planning',(select to_jsonb(r) from public.os_planning_assignments r where id='${native.assignment}'),'answer',(select to_jsonb(r) from public.os_planning_answers r where id='${native.answer}'))::text,'UTF8'),'sha256'),'hex')`);
+const compatibility=buildManifest({suffix:"compatibility"});
+linkExisting(compatibility,"contact.compatibility-0",native.contact,nativeHashes.contact);
+linkExisting(compatibility,"event.compatibility-0",native.event,nativeHashes.event);
+linkExisting(compatibility,"booking.compatibility-0",native.booking,nativeHashes.booking);
+linkExisting(compatibility,"contact.compatibility-1",native.weddingContact,nativeHashes.weddingContact);
+linkExisting(compatibility,"event.compatibility-1",native.weddingEvent,nativeHashes.weddingEvent);
+const linkedInquiry=compatibility.items.find((item)=>item.key==="inquiry.compatibility-22");
+linkedInquiry.data={...linkedInquiry.data,contactItemKey:"contact.compatibility-0",eventItemKey:"event.compatibility-0",recordMode:"link_existing",existingRecordId:native.lead,expectedRecordHash:nativeHashes.lead,sourcePrecedence:"preserve_existing_native"};
+const compatibilityStage=stage(compatibility);approve(compatibilityStage);const compatibilityApplied=apply(compatibilityStage);
+if(compatibilityApplied.status!=="completed")throw new Error("Existing native chains could not be linked safely.");
+if(execute(`select private.os_complete_intake_record_fingerprint('contact','${native.contact}')||':'||private.os_complete_intake_record_fingerprint('event','${native.event}')||':'||private.os_complete_intake_record_fingerprint('inquiry','${native.lead}')`)!==`${nativeHashes.contact}:${nativeHashes.event}:${nativeHashes.lead}`)throw new Error("Linking imported evidence overwrote native contact, event, or inquiry fields.");
+if(execute(`select encode(extensions.digest(convert_to(jsonb_build_object('builder',(select to_jsonb(r) from public.os_builder_submissions r where id='${native.submission}'),'planning',(select to_jsonb(r) from public.os_planning_assignments r where id='${native.assignment}'),'answer',(select to_jsonb(r) from public.os_planning_answers r where id='${native.answer}'))::text,'UTF8'),'sha256'),'hex')`)!==protectedNativeHash)throw new Error("Import changed Builder submission or Wedding planning data.");
+if(execute(`select count(*) from public.os_import_batch_items where batch_id='${compatibilityStage.batchId}' and proposed_data->>'recordMode'='link_existing' and result->'before'->>'sourcePrecedence'='preserve_existing_native'`)!=="6")throw new Error("Existing-link audit results do not preserve the source-precedence decision.");
+const compatibilityRolled=JSON.parse(asUser(ids.owner,"owner",`select public.os_rollback_complete_intake_batch('${compatibilityStage.batchId}','${compatibilityStage.hash}',24,'${compatibilityStage.counts}'::jsonb)`));
+if(compatibilityRolled.status!=="rolled_back")throw new Error("Compatibility import did not roll back.");
+if(execute(`select private.os_complete_intake_record_fingerprint('contact','${native.contact}')||':'||private.os_complete_intake_record_fingerprint('event','${native.event}')||':'||private.os_complete_intake_record_fingerprint('inquiry','${native.lead}')||':'||private.os_complete_intake_record_fingerprint('booking','${native.booking}')`)!==`${nativeHashes.contact}:${nativeHashes.event}:${nativeHashes.lead}:${nativeHashes.booking}`)throw new Error("Import rollback harmed a linked native record.");
+if(execute(`select encode(extensions.digest(convert_to(jsonb_build_object('builder',(select to_jsonb(r) from public.os_builder_submissions r where id='${native.submission}'),'planning',(select to_jsonb(r) from public.os_planning_assignments r where id='${native.assignment}'),'answer',(select to_jsonb(r) from public.os_planning_answers r where id='${native.answer}'))::text,'UTF8'),'sha256'),'hex')`)!==protectedNativeHash)throw new Error("Import rollback harmed Builder submission or Wedding planning data.");
+
+const liveChange=stage(buildManifest({suffix:"live-change"}));approve(liveChange);
+execute(`insert into public.os_builder_intake_requests(source_session_id,request_fingerprint,payload,status) values('synthetic-live-change','synthetic-live-change','{}'::jsonb,'received')`);
+denied(ids.owner,"owner",`select public.os_apply_complete_intake_batch('${liveChange.batchId}','${liveChange.hash}',24,'${liveChange.counts}'::jsonb)`);
+if(execute(`select count(*) from public.os_contacts where metadata->>'importBatchId'='${liveChange.batchId}'`)!=="0")throw new Error("A live native submission did not stop the import before canonical writes.");
 
 const outboxBefore=execute("select (select count(*) from public.os_integration_outbox)||':'||(select count(*) from public.os_automation_outbox)");
 const failed=stage(buildManifest({suffix:"atomic",badTeam:true}));approve(failed);
@@ -100,4 +141,4 @@ if(execute(`select count(*) from public.os_bookings where metadata->>'importBatc
 if(execute(`select count(*) from public.os_import_source_provenance where batch_id='${staged.batchId}'`)!=="24")throw new Error("Rollback erased source provenance history.");
 if(execute("select (select count(*) from public.os_integration_outbox)||':'||(select count(*) from public.os_automation_outbox)")!==outboxBefore)throw new Error("Rollback touched an outbox.");
 
-console.log("Complete intake local Supabase verification passed: exact 24-event source binding, atomic rollback, replay idempotency, duplicate stop, stable-key chains, financial separation, review-only and pending-unbooked preservation, Owner-only grants, outbox isolation, and reversible before-image restoration.");
+console.log("Complete intake local Supabase verification passed: exact 24-event source binding, native Builder/Wedding chain linking without overwrite, live-change duplicate stop, atomic rollback, replay idempotency, stable-key chains, financial separation, review-only and pending-unbooked preservation, Owner-only grants, outbox isolation, and reversible before-image restoration.");

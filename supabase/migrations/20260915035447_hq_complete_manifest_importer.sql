@@ -105,26 +105,74 @@ returns jsonb language sql immutable set search_path = '' as $$
 $$;
 revoke all on function private.os_complete_manifest_item_counts(jsonb) from public, anon, authenticated;
 
+create or replace function private.os_complete_intake_record_fingerprint(p_type text, p_id uuid)
+returns text language plpgsql stable security definer set search_path = '' as $$
+declare v_record jsonb;
+begin
+  if p_type='contact' then select to_jsonb(r) into v_record from public.os_contacts r where r.id=p_id;
+  elsif p_type='event' then select to_jsonb(r) into v_record from public.os_events r where r.id=p_id;
+  elsif p_type='inquiry' then select to_jsonb(r) into v_record from public.os_leads r where r.id=p_id;
+  elsif p_type='booking' then select to_jsonb(r) into v_record from public.os_bookings r where r.id=p_id;
+  else raise exception 'Existing-record linking is not supported for this item type' using errcode='22023';
+  end if;
+  if v_record is null then return null; end if;
+  return encode(extensions.digest(convert_to(v_record::text,'UTF8'),'sha256'),'hex');
+end;
+$$;
+revoke all on function private.os_complete_intake_record_fingerprint(text,uuid) from public, anon, authenticated;
+
+create or replace function private.os_complete_intake_native_state_fingerprint()
+returns text language sql stable security definer set search_path = '' as $$
+  select encode(extensions.digest(convert_to(jsonb_build_object(
+    'contacts',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_contacts r),'[]'::jsonb),
+    'events',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_events r),'[]'::jsonb),
+    'leads',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_leads r),'[]'::jsonb),
+    'bookings',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_bookings r),'[]'::jsonb),
+    'builderSubmissions',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_builder_submissions r),'[]'::jsonb),
+    'builderIntakeRequests',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_builder_intake_requests r),'[]'::jsonb),
+    'planningAssignments',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_planning_assignments r),'[]'::jsonb),
+    'planningAnswers',coalesce((select jsonb_agg(to_jsonb(r) order by r.id) from public.os_planning_answers r),'[]'::jsonb)
+  )::text,'UTF8'),'sha256'),'hex');
+$$;
+revoke all on function private.os_complete_intake_native_state_fingerprint() from public, anon, authenticated;
+
 create or replace function private.os_complete_manifest_duplicate_warnings(
   p_type text, p_source_hash text, p_data jsonb
 ) returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v_result jsonb := '[]'::jsonb;
+  v_target uuid;
+  v_actual_hash text;
+  v_status text;
 begin
+  if coalesce(p_data->>'recordMode','create')='link_existing' then
+    begin v_target := (p_data->>'existingRecordId')::uuid; exception when others then
+      return jsonb_build_array(jsonb_build_object('kind','invalid_existing_record_id'));
+    end;
+    v_actual_hash:=private.os_complete_intake_record_fingerprint(p_type,v_target);
+    if v_actual_hash is null then return jsonb_build_array(jsonb_build_object('kind','existing_record_missing')); end if;
+    if v_actual_hash<>lower(coalesce(p_data->>'expectedRecordHash','')) then return jsonb_build_array(jsonb_build_object('kind','existing_record_changed')); end if;
+    if p_type='contact' then select status into v_status from public.os_contacts where id=v_target;
+    elsif p_type='event' then select status into v_status from public.os_events where id=v_target;
+    elsif p_type='inquiry' then select status into v_status from public.os_leads where id=v_target;
+    elsif p_type='booking' then select status into v_status from public.os_bookings where id=v_target;
+    end if;
+    if v_status in ('archived','cancelled') then return jsonb_build_array(jsonb_build_object('kind','archived_match_requires_owner_review','recordId',v_target)); end if;
+  end if;
   if p_type='contact' then
     select coalesce(jsonb_agg(jsonb_build_object('kind',kind,'recordId',id)),'[]'::jsonb) into v_result from (
-      select id,'exact_source_hash'::text kind from public.os_contacts where metadata->>'sourceHash'=p_source_hash
-      union all select id,'exact_email' from public.os_contacts where nullif(lower(p_data->>'primaryEmail'),'') is not null and lower(primary_email)=lower(p_data->>'primaryEmail')
-      union all select id,'exact_phone' from public.os_contacts where nullif(regexp_replace(p_data->>'primaryPhone','\D','','g'),'') is not null and regexp_replace(primary_phone,'\D','','g')=regexp_replace(p_data->>'primaryPhone','\D','','g')
+      select id,'exact_source_hash'::text kind from public.os_contacts where metadata->>'sourceHash'=p_source_hash and id is distinct from v_target
+      union all select id,'exact_email' from public.os_contacts where nullif(lower(p_data->>'primaryEmail'),'') is not null and lower(primary_email)=lower(p_data->>'primaryEmail') and id is distinct from v_target
+      union all select id,'exact_phone' from public.os_contacts where nullif(regexp_replace(p_data->>'primaryPhone','\D','','g'),'') is not null and regexp_replace(primary_phone,'\D','','g')=regexp_replace(p_data->>'primaryPhone','\D','','g') and id is distinct from v_target
     ) d;
   elsif p_type='event' then
     select coalesce(jsonb_agg(jsonb_build_object('kind',kind,'recordId',id)),'[]'::jsonb) into v_result from (
-      select id,'exact_source_hash'::text kind from public.os_events where settings->>'sourceHash'=p_source_hash
-      union all select id,'same_title_and_start' from public.os_events where lower(title)=lower(p_data->>'title') and starts_at is not distinct from nullif(p_data->>'startsAt','')::timestamptz
+      select id,'exact_source_hash'::text kind from public.os_events where settings->>'sourceHash'=p_source_hash and id is distinct from v_target
+      union all select id,'same_title_and_start' from public.os_events where lower(title)=lower(p_data->>'title') and starts_at is not distinct from nullif(p_data->>'startsAt','')::timestamptz and id is distinct from v_target
     ) d;
   elsif p_type='inquiry' then
-    select coalesce(jsonb_agg(jsonb_build_object('kind','exact_source_hash','recordId',id)),'[]'::jsonb) into v_result from public.os_leads where metadata->>'sourceHash'=p_source_hash;
+    select coalesce(jsonb_agg(jsonb_build_object('kind','exact_source_hash','recordId',id)),'[]'::jsonb) into v_result from public.os_leads where metadata->>'sourceHash'=p_source_hash and id is distinct from v_target;
   elsif p_type='booking' then
-    select coalesce(jsonb_agg(jsonb_build_object('kind','exact_source_hash','recordId',id)),'[]'::jsonb) into v_result from public.os_bookings where metadata->>'sourceHash'=p_source_hash;
+    select coalesce(jsonb_agg(jsonb_build_object('kind','exact_source_hash','recordId',id)),'[]'::jsonb) into v_result from public.os_bookings where metadata->>'sourceHash'=p_source_hash and id is distinct from v_target;
   elsif p_type='booking_service' then
     select coalesce(jsonb_agg(jsonb_build_object('kind','exact_source_hash','recordId',id)),'[]'::jsonb) into v_result from public.os_booking_services where configuration->>'sourceHash'=p_source_hash;
   elsif p_type='payment_fact' then
@@ -183,6 +231,7 @@ declare
   v_required text[];
   v_field text;
   v_type text;
+  v_mode text;
   v_data jsonb;
   v_ref text;
   v_warnings jsonb;
@@ -209,13 +258,14 @@ begin
   if v_batch is not null then return jsonb_build_object('status','replayed','batchId',v_batch,'manifestHash',v_hash,'recordCount',p_expected_record_count,'itemCounts',v_counts); end if;
 
   for v_item in select value from jsonb_array_elements(p_manifest->'items') loop
-    v_type:=v_item->>'type'; v_data:=v_item->'data';
+    v_type:=v_item->>'type'; v_data:=v_item->'data'; v_mode:=coalesce(v_item->'data'->>'recordMode','create');
     if jsonb_typeof(v_item)<>'object' or coalesce(v_item->>'key','') !~ '^[a-z0-9][a-z0-9._:-]{0,119}$'
       or v_type not in ('contact','inquiry','event','booking','booking_service','payment_fact','staff_assignment','operational_note','source_provenance')
       or jsonb_typeof(v_data)<>'object' or coalesce(v_item->>'sourceHash','') !~ '^[a-f0-9]{64}$'
       or char_length(coalesce(v_item->>'sourceRef',''))>240 or octet_length(v_data::text)>32768
       or jsonb_typeof(coalesce(v_item->'uncertainFields','[]'::jsonb))<>'array'
       or jsonb_array_length(coalesce(v_item->'uncertainFields','[]'::jsonb))>30 then raise exception 'Invalid complete intake item' using errcode='22023'; end if;
+    if v_mode not in ('create','link_existing') or (v_mode='link_existing' and v_type not in ('contact','event','inquiry','booking')) then raise exception 'Invalid existing-record link mode' using errcode='22023'; end if;
     if v_item->>'key'=any(v_keys) then raise exception 'Duplicate intake item key' using errcode='22023'; end if;
     v_keys:=array_append(v_keys,v_item->>'key');
     v_required:=case v_type
@@ -231,7 +281,8 @@ begin
     foreach v_field in array v_required loop
       if nullif(v_data->>v_field,'') is null or coalesce(v_item->'uncertainFields','[]'::jsonb) ? v_field then raise exception 'Required intake value is missing or uncertain' using errcode='22023'; end if;
     end loop;
-    if v_type='contact' and nullif(v_data->>'primaryEmail','') is null and nullif(v_data->>'primaryPhone','') is null then raise exception 'Contact email or phone required' using errcode='22023'; end if;
+    if v_mode='link_existing' and (coalesce(v_data->>'existingRecordId','') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' or coalesce(v_data->>'expectedRecordHash','') !~ '^[a-f0-9]{64}$' or coalesce(v_data->>'sourcePrecedence','')<>'preserve_existing_native') then raise exception 'Existing-record links require an exact id, fingerprint, and preserve-existing source policy' using errcode='22023'; end if;
+    if v_type='contact' and v_mode='create' and nullif(v_data->>'primaryEmail','') is null and nullif(v_data->>'primaryPhone','') is null then raise exception 'Contact email or phone required' using errcode='22023'; end if;
     if v_type='event' and (v_data->>'status' not in ('draft','inquiry','quoted','pending','booked','planning','ready','active','completed','cancelled') or v_data->>'recordDisposition' not in ('confirmed','lower_confidence_review','pending_unbooked')) then raise exception 'Invalid event classification' using errcode='22023'; end if;
     if v_type='event' and ((v_data->>'recordDisposition'='lower_confidence_review' and v_data->>'status'<>'inquiry') or (v_data->>'recordDisposition'='pending_unbooked' and v_data->>'status'<>'pending')) then raise exception 'Review-only and pending-unbooked events must retain bounded statuses' using errcode='22023'; end if;
     if v_type='inquiry' and v_data->>'status' not in ('new','qualifying','quoted','follow_up','won','lost') then raise exception 'Invalid inquiry status' using errcode='22023'; end if;
@@ -260,7 +311,7 @@ begin
   end loop;
 
   insert into public.os_import_batches(import_type,status,row_count,summary,created_by,contract_version,manifest_hash,source_label)
-  values('manual_backfill','previewed',jsonb_array_length(p_manifest->'items'),jsonb_build_object('contractVersion','intake_manifest_v2','recordCount',p_expected_record_count,'itemCounts',v_counts,'sourceBaselineHash',lower(p_manifest->>'sourceBaselineHash'),'atomic',true),v_actor,'intake_manifest_v2',v_hash,btrim(p_manifest->>'sourceLabel')) returning id into v_batch;
+  values('manual_backfill','previewed',jsonb_array_length(p_manifest->'items'),jsonb_build_object('contractVersion','intake_manifest_v2','recordCount',p_expected_record_count,'itemCounts',v_counts,'sourceBaselineHash',lower(p_manifest->>'sourceBaselineHash'),'nativeStateHash',private.os_complete_intake_native_state_fingerprint(),'sourcePrecedence','preserve_existing_native','atomic',true),v_actor,'intake_manifest_v2',v_hash,btrim(p_manifest->>'sourceLabel')) returning id into v_batch;
   for v_item in select value from jsonb_array_elements(p_manifest->'items') loop
     v_warnings:=private.os_complete_manifest_duplicate_warnings(v_item->>'type',v_item->>'sourceHash',v_item->'data');
     insert into public.os_import_batch_items(batch_id,item_key,candidate_type,source_ref,source_hash,proposed_data,uncertain_fields,duplicate_warnings)
@@ -315,7 +366,17 @@ begin
   if v_batch.status<>'importing' or exists(select 1 from public.os_import_batch_items where batch_id=p_batch_id and status<>'approved')
     or (select count(*) from public.os_import_batch_items where batch_id=p_batch_id)<>v_batch.row_count then raise exception 'The exact approved item set is no longer applicable' using errcode='40001'; end if;
 
-  -- Re-run duplicate detection immediately before the first canonical write.
+  -- Serialize the final compatibility check with native Event Builder, Wedding
+  -- Hero, planning, and canonical writes. A submission committed after preview
+  -- invalidates this import instead of being overwritten or silently merged.
+  lock table public.os_bookings, public.os_builder_intake_requests, public.os_builder_submissions,
+    public.os_contacts, public.os_events, public.os_leads, public.os_planning_answers,
+    public.os_planning_assignments in share row exclusive mode;
+  if private.os_complete_intake_native_state_fingerprint()<>v_batch.summary->>'nativeStateHash' then
+    raise exception 'Native submission or canonical record changed after preview; rebuild the reviewed manifest' using errcode='40001';
+  end if;
+
+  -- Re-run duplicate and exact-link detection immediately before the first canonical write.
   for v_item in select * from public.os_import_batch_items where batch_id=p_batch_id order by id loop
     v_warnings:=private.os_complete_manifest_duplicate_warnings(v_item.candidate_type,v_item.source_hash,v_item.proposed_data);
     if jsonb_array_length(v_warnings)>0 then raise exception 'Production duplicate detection stopped the complete import' using errcode='23505'; end if;
@@ -327,22 +388,50 @@ begin
   loop
     v_id:=null; v_event:=null; v_contact:=null; v_lead:=null; v_booking:=null; v_service:=null; v_before:=null;
     update public.os_import_batch_items set status='applying',updated_at=now() where id=v_item.id;
-    if v_item.candidate_type='contact' then
+    if v_item.candidate_type='contact' and coalesce(v_item.proposed_data->>'recordMode','create')='link_existing' then
+      v_id:=(v_item.proposed_data->>'existingRecordId')::uuid;
+      if private.os_complete_intake_record_fingerprint('contact',v_id)<>v_item.proposed_data->>'expectedRecordHash' then raise exception 'Existing contact changed after review' using errcode='40001'; end if;
+      select id into v_contact from public.os_contacts where id=v_id and status<>'archived';
+      if v_contact is null then raise exception 'Existing contact is unavailable' using errcode='P0002'; end if;
+      v_before:=jsonb_build_object('linkedExisting',true,'sourcePrecedence','preserve_existing_native');
+    elsif v_item.candidate_type='contact' then
       insert into public.os_contacts(first_name,last_name,display_name,organization_name,primary_email,primary_phone,preferred_channel,source,status,notes,metadata,created_by)
       values(nullif(btrim(v_item.proposed_data->>'firstName'),''),nullif(btrim(v_item.proposed_data->>'lastName'),''),btrim(v_item.proposed_data->>'displayName'),nullif(btrim(v_item.proposed_data->>'organizationName'),''),nullif(lower(btrim(v_item.proposed_data->>'primaryEmail')),''),nullif(btrim(v_item.proposed_data->>'primaryPhone'),''),case when v_item.proposed_data->>'preferredChannel' in ('email','text','phone','portal') then v_item.proposed_data->>'preferredChannel' else 'email' end,'reviewed_intake','active',nullif(left(btrim(v_item.proposed_data->>'notes'),4000),''),jsonb_build_object('importBatchId',p_batch_id,'sourceHash',v_item.source_hash),v_actor)
       returning id into v_id; v_contact:=v_id;
+    elsif v_item.candidate_type='event' and coalesce(v_item.proposed_data->>'recordMode','create')='link_existing' then
+      select (canonical_record_ids->>'primaryId')::uuid into v_contact from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'primaryContactItemKey' and candidate_type='contact' and status='applied';
+      v_id:=(v_item.proposed_data->>'existingRecordId')::uuid;
+      if private.os_complete_intake_record_fingerprint('event',v_id)<>v_item.proposed_data->>'expectedRecordHash' then raise exception 'Existing event changed after review' using errcode='40001'; end if;
+      select id into v_event from public.os_events where id=v_id and status<>'archived' and primary_contact_id=v_contact;
+      if v_event is null then raise exception 'Existing event or reviewed contact relationship is unavailable' using errcode='P0002'; end if;
+      v_before:=jsonb_build_object('linkedExisting',true,'sourcePrecedence','preserve_existing_native');
     elsif v_item.candidate_type='event' then
       select (canonical_record_ids->>'primaryId')::uuid into v_contact from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'primaryContactItemKey' and candidate_type='contact' and status='applied';
       if v_contact is null then raise exception 'Referenced contact is not applied' using errcode='P0002'; end if;
       insert into public.os_events(primary_contact_id,title,event_type,status,starts_at,ends_at,timezone,venue_name,venue_address_1,venue_address_2,venue_city,venue_state,venue_postal_code,guest_count,source,settings,created_by)
       values(v_contact,btrim(v_item.proposed_data->>'title'),left(btrim(v_item.proposed_data->>'eventType'),80),v_item.proposed_data->>'status',nullif(v_item.proposed_data->>'startsAt','')::timestamptz,nullif(v_item.proposed_data->>'endsAt','')::timestamptz,coalesce(nullif(v_item.proposed_data->>'timezone',''),'America/Indiana/Indianapolis'),nullif(left(btrim(v_item.proposed_data->>'venueName'),180),''),nullif(left(btrim(v_item.proposed_data->>'venueAddress1'),200),''),nullif(left(btrim(v_item.proposed_data->>'venueAddress2'),160),''),nullif(left(btrim(v_item.proposed_data->>'venueCity'),120),''),nullif(left(btrim(v_item.proposed_data->>'venueState'),80),''),nullif(left(btrim(v_item.proposed_data->>'venuePostalCode'),24),''),nullif(v_item.proposed_data->>'guestCount','')::integer,'reviewed_intake',jsonb_build_object('importBatchId',p_batch_id,'sourceHash',v_item.source_hash,'recordDisposition',v_item.proposed_data->>'recordDisposition'),v_actor)
       returning id into v_id; v_event:=v_id;
+    elsif v_item.candidate_type='inquiry' and coalesce(v_item.proposed_data->>'recordMode','create')='link_existing' then
+      select (canonical_record_ids->>'primaryId')::uuid into v_contact from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'contactItemKey' and candidate_type='contact' and status='applied';
+      select (canonical_record_ids->>'primaryId')::uuid into v_event from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'eventItemKey' and candidate_type='event' and status='applied';
+      v_id:=(v_item.proposed_data->>'existingRecordId')::uuid;
+      if private.os_complete_intake_record_fingerprint('inquiry',v_id)<>v_item.proposed_data->>'expectedRecordHash' then raise exception 'Existing inquiry changed after review' using errcode='40001'; end if;
+      select id into v_lead from public.os_leads where id=v_id and status<>'archived' and contact_id=v_contact and event_id=v_event;
+      if v_lead is null then raise exception 'Existing inquiry or reviewed relationships are unavailable' using errcode='P0002'; end if;
+      v_before:=jsonb_build_object('linkedExisting',true,'sourcePrecedence','preserve_existing_native');
     elsif v_item.candidate_type='inquiry' then
       select (canonical_record_ids->>'primaryId')::uuid into v_contact from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'contactItemKey' and candidate_type='contact' and status='applied';
       select (canonical_record_ids->>'primaryId')::uuid into v_event from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'eventItemKey' and candidate_type='event' and status='applied';
       if v_contact is null or v_event is null then raise exception 'Referenced contact or event is not applied' using errcode='P0002'; end if;
       insert into public.os_leads(contact_id,event_id,status,source,inquiry_summary,estimated_value,next_follow_up_at,metadata)
       values(v_contact,v_event,v_item.proposed_data->>'status','reviewed_intake',nullif(left(btrim(v_item.proposed_data->>'summary'),2000),''),nullif(v_item.proposed_data->>'estimatedValue','')::numeric,nullif(v_item.proposed_data->>'nextFollowUpAt','')::timestamptz,jsonb_build_object('importBatchId',p_batch_id,'sourceHash',v_item.source_hash)) returning id into v_id; v_lead:=v_id;
+    elsif v_item.candidate_type='booking' and coalesce(v_item.proposed_data->>'recordMode','create')='link_existing' then
+      select (canonical_record_ids->>'primaryId')::uuid into v_event from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'eventItemKey' and candidate_type='event' and status='applied';
+      v_id:=(v_item.proposed_data->>'existingRecordId')::uuid;
+      if private.os_complete_intake_record_fingerprint('booking',v_id)<>v_item.proposed_data->>'expectedRecordHash' then raise exception 'Existing booking changed after review' using errcode='40001'; end if;
+      select id into v_booking from public.os_bookings where id=v_id and status<>'cancelled' and event_id=v_event;
+      if v_booking is null then raise exception 'Existing booking or reviewed event relationship is unavailable' using errcode='P0002'; end if;
+      v_before:=jsonb_build_object('linkedExisting',true,'sourcePrecedence','preserve_existing_native');
     elsif v_item.candidate_type='booking' then
       select (canonical_record_ids->>'primaryId')::uuid into v_event from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'eventItemKey' and candidate_type='event' and status='applied';
       if v_event is null then raise exception 'Referenced event is not applied' using errcode='P0002'; end if;
@@ -356,7 +445,7 @@ begin
       values(v_booking,v_service,v_item.proposed_data->>'serviceCode',left(v_item.proposed_data->>'serviceName',160),v_item.proposed_data->>'status',nullif(v_item.proposed_data->>'startsAt','')::timestamptz,nullif(v_item.proposed_data->>'endsAt','')::timestamptz,nullif(left(v_item.proposed_data->>'locationLabel',180),''),jsonb_build_object('importBatchId',p_batch_id,'sourceHash',v_item.source_hash,'quantity',coalesce(nullif(v_item.proposed_data->>'quantity','')::numeric,1),'unitPrice',nullif(v_item.proposed_data->>'unitPrice','')::numeric,'lineTotal',nullif(v_item.proposed_data->>'lineTotal','')::numeric)) returning id into v_id;
     elsif v_item.candidate_type='payment_fact' then
       select (canonical_record_ids->>'primaryId')::uuid into v_booking from public.os_import_batch_items where batch_id=p_batch_id and item_key=v_item.proposed_data->>'bookingItemKey' and candidate_type='booking' and status='applied';
-      select jsonb_build_object('paymentStatus',payment_status,'totalAmount',total_amount,'depositAmount',deposit_amount,'balanceDue',balance_due) into v_before from public.os_bookings where id=v_booking for update;
+      select jsonb_build_object('paymentStatus',payment_status,'totalAmount',total_amount,'depositAmount',deposit_amount,'balanceDue',balance_due,'updatedAt',updated_at) into v_before from public.os_bookings where id=v_booking for update;
       if v_booking is null or v_before is null then raise exception 'Referenced booking is not applied' using errcode='P0002'; end if;
       insert into public.os_booking_payment_facts(booking_id,import_batch_item_id,gross_client_amount,platform_fee_amount,net_payout_amount,payment_method,payment_status,payout_status,currency,source_ref,source_hash,created_by)
       values(v_booking,v_item.id,nullif(v_item.proposed_data->>'grossClientAmount','')::numeric,nullif(v_item.proposed_data->>'platformFeeAmount','')::numeric,nullif(v_item.proposed_data->>'netPayoutAmount','')::numeric,v_item.proposed_data->>'paymentMethod',v_item.proposed_data->>'paymentStatus',v_item.proposed_data->>'payoutStatus',coalesce(nullif(v_item.proposed_data->>'currency',''),'USD'),v_item.source_ref,v_item.source_hash,v_actor) returning id into v_id;
@@ -405,7 +494,8 @@ begin
   if v_batch.status<>'completed' then raise exception 'Only a completed atomic batch can be rolled back' using errcode='40001'; end if;
   for v_item in select * from public.os_import_batch_items where batch_id=p_batch_id and status='applied' order by applied_at desc,id desc loop
     v_id:=(v_item.canonical_record_ids->>'primaryId')::uuid;
-    if v_item.candidate_type='contact' then update public.os_contacts set status='archived',updated_at=now() where id=v_id and metadata->>'importBatchId'=p_batch_id::text;
+    if coalesce((v_item.result->'before'->>'linkedExisting')::boolean,false) then null;
+    elsif v_item.candidate_type='contact' then update public.os_contacts set status='archived',updated_at=now() where id=v_id and metadata->>'importBatchId'=p_batch_id::text;
     elsif v_item.candidate_type='event' then update public.os_events set status='archived',updated_at=now() where id=v_id and settings->>'importBatchId'=p_batch_id::text;
     elsif v_item.candidate_type='inquiry' then update public.os_leads set status='archived',updated_at=now() where id=v_id and metadata->>'importBatchId'=p_batch_id::text;
     elsif v_item.candidate_type='booking' then update public.os_bookings set status='cancelled',updated_at=now() where id=v_id and metadata->>'importBatchId'=p_batch_id::text;
@@ -413,7 +503,7 @@ begin
     elsif v_item.candidate_type='payment_fact' then
       select booking_id into v_booking from public.os_booking_payment_facts where id=v_id and import_batch_item_id=v_item.id;
       update public.os_booking_payment_facts set status='archived',updated_at=now() where id=v_id;
-      update public.os_bookings set payment_status=v_item.result->'before'->>'paymentStatus',total_amount=(v_item.result->'before'->>'totalAmount')::numeric,deposit_amount=(v_item.result->'before'->>'depositAmount')::numeric,balance_due=(v_item.result->'before'->>'balanceDue')::numeric,updated_at=now() where id=v_booking;
+      update public.os_bookings set payment_status=v_item.result->'before'->>'paymentStatus',total_amount=(v_item.result->'before'->>'totalAmount')::numeric,deposit_amount=(v_item.result->'before'->>'depositAmount')::numeric,balance_due=(v_item.result->'before'->>'balanceDue')::numeric,updated_at=(v_item.result->'before'->>'updatedAt')::timestamptz where id=v_booking;
     elsif v_item.candidate_type='staff_assignment' then update public.os_staff_assignments set status='cancelled',updated_by_user_id=v_actor,updated_at=now() where id=v_id;
     elsif v_item.candidate_type='operational_note' then update public.os_event_notes set status='archived',updated_at=now() where id=v_id;
     end if;
