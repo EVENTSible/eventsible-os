@@ -1,8 +1,9 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { authorizeHqCapability } from "@/lib/hq-auth";
-import { validateIntakeManifest } from "@/lib/data-readiness.mjs";
+import { validateCompleteIntakeManifest, validateIntakeManifest } from "@/lib/data-readiness.mjs";
 import { localDateTimeToIso } from "@/lib/team-availability.mjs";
 
 export type DataReadinessActionState = { status: "idle" | "success" | "error"; message: string; errors?: string[]; result?: Record<string, unknown> };
@@ -61,6 +62,16 @@ export async function manageLeadAction(_state: DataReadinessActionState, form: F
 
 export async function stageManifestAction(_state: DataReadinessActionState, form: FormData): Promise<DataReadinessActionState> {
   const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const completeUpload=form.get("complete_manifest");
+  if(completeUpload instanceof File && completeUpload.size){
+    if(completeUpload.size>524288)return fail("Complete manifest exceeds the 512 KiB review limit.");
+    const bytes=Buffer.from(await completeUpload.arrayBuffer());
+    let parsed:unknown; try{parsed=JSON.parse(bytes.toString("utf8"));}catch{return fail("Complete manifest is not valid UTF-8 JSON.");}
+    const checked=validateCompleteIntakeManifest(parsed); if(!checked.ok)return fail("Complete manifest validation failed. Nothing was staged.",checked.errors);
+    const expectedHash=createHash("sha256").update(bytes).digest("hex");
+    const result=await auth.supabase.rpc("os_stage_complete_intake_manifest",{p_manifest_base64:bytes.toString("base64"),p_expected_hash:expectedHash,p_expected_record_count:24,p_expected_item_counts:checked.itemCounts});
+    if(result.error)return fail(rpcFailure(result.error,"Complete manifest could not be staged.")); refresh(); return {status:"success",message:`Atomic 24-record dry run staged. Confirm hash ${expectedHash.slice(0,12)}… before exact approval.`,result:result.data};
+  }
   const raw=value(form,"manifest"); if(new TextEncoder().encode(raw).length>524288)return fail("Manifest exceeds the 512 KiB review limit.");
   let parsed:unknown; try{parsed=JSON.parse(raw);}catch{return fail("Manifest is not valid JSON.");}
   const checked=validateIntakeManifest(parsed); if(!checked.ok)return fail("Manifest validation failed. Nothing was staged.",checked.errors);
@@ -70,20 +81,33 @@ export async function stageManifestAction(_state: DataReadinessActionState, form
 
 export async function approveBatchAction(_state: DataReadinessActionState, form: FormData): Promise<DataReadinessActionState> {
   const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
-  const result=await auth.supabase.rpc("os_approve_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash"),p_item_keys:form.getAll("item_keys").map(String)});
+  const version=value(form,"contract_version"); const keys=form.getAll("item_keys").map(String);
+  let result;
+  if(version==="intake_manifest_v2"){
+    let counts:unknown; try{counts=JSON.parse(value(form,"item_counts"));}catch{return fail("The exact staged item counts are unavailable.");}
+    result=await auth.supabase.rpc("os_approve_complete_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash"),p_record_count:Number(value(form,"record_count")),p_item_counts:counts,p_item_keys:keys});
+  }else result=await auth.supabase.rpc("os_approve_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash"),p_item_keys:keys});
   if(result.error)return fail(rpcFailure(result.error,"Exact batch approval failed.")); refresh(); return {status:"success",message:"Exact manifest hash and selected item set approved. No canonical data has been applied yet.",result:result.data};
 }
 
 export async function applyBatchAction(_state: DataReadinessActionState, form: FormData): Promise<DataReadinessActionState> {
   const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
-  const result=await auth.supabase.rpc("os_apply_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash")});
+  const version=value(form,"contract_version"); let result;
+  if(version==="intake_manifest_v2"){
+    let counts:unknown; try{counts=JSON.parse(value(form,"item_counts"));}catch{return fail("The exact staged item counts are unavailable.");}
+    result=await auth.supabase.rpc("os_apply_complete_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash"),p_record_count:Number(value(form,"record_count")),p_item_counts:counts});
+  }else result=await auth.supabase.rpc("os_apply_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash")});
   if(result.error)return fail(rpcFailure(result.error,"Approved batch could not be applied.")); refresh(); return {status:result.data?.failed?"error":"success",message:result.data?.failed?"Batch completed partially. Failed items remain retryable after exact reapproval.":"Approved items applied idempotently.",result:result.data};
 }
 
 export async function compensateBatchAction(_state: DataReadinessActionState, form: FormData): Promise<DataReadinessActionState> {
   const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
   if(value(form,"confirmation")!=="ARCHIVE BATCH")return fail("Type ARCHIVE BATCH to confirm non-destructive compensation.");
-  const result=await auth.supabase.rpc("os_compensate_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash")});
+  const version=value(form,"contract_version"); let result;
+  if(version==="intake_manifest_v2"){
+    let counts:unknown; try{counts=JSON.parse(value(form,"item_counts"));}catch{return fail("The exact staged item counts are unavailable.");}
+    result=await auth.supabase.rpc("os_rollback_complete_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash"),p_record_count:Number(value(form,"record_count")),p_item_counts:counts});
+  }else result=await auth.supabase.rpc("os_compensate_intake_batch",{p_batch_id:value(form,"batch_id"),p_manifest_hash:value(form,"manifest_hash")});
   if(result.error)return fail(rpcFailure(result.error,"Batch compensation could not be completed.")); refresh(); return {status:"success",message:"Imported records were archived or compensated without erasing history.",result:result.data};
 }
 
