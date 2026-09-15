@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 
 import { COMPLETE_INTAKE_SOURCE_BASELINE, completeItemCounts } from "../src/lib/data-readiness.mjs";
 
@@ -15,6 +15,24 @@ function execute(sql,{expectFailure=false}={}){
   if(expectFailure&&result.status===0)throw new Error(`Expected denial/failure but command succeeded: ${sql.slice(0,120)}`);
   if(!expectFailure&&result.status!==0)throw new Error(`Complete-intake database verification failed: ${(result.stderr||result.stdout).slice(0,1200)}`);
   return String(result.stdout??"").trim().split(/\r?\n/).filter(Boolean).at(-1)??"";
+}
+
+function holdNativeCompatibilityLock(){
+  const args=dockerBin
+    ? ["exec","-i",container,"psql","-U","postgres","-d","postgres","--no-psqlrc","--quiet","--set","ON_ERROR_STOP=1","--tuples-only","--no-align"]
+    : [databaseUrl,"--no-password","--no-psqlrc","--quiet","--set","ON_ERROR_STOP=1","--tuples-only","--no-align"];
+  const child=spawn(dockerBin||"psql",args,{env:{...process.env,PGPASSWORD:process.env.PGPASSWORD??"postgres"}});
+  let output="";let errors="";
+  const locked=new Promise((resolve,reject)=>{
+    const timeout=setTimeout(()=>reject(new Error(`Timed out waiting for native compatibility lock: ${errors}`)),5000);
+    child.stdout.on("data",(chunk)=>{output+=String(chunk);if(output.includes("LOCKED")){clearTimeout(timeout);resolve();}});
+    child.stderr.on("data",(chunk)=>{errors+=String(chunk);});
+    child.once("error",(error)=>{clearTimeout(timeout);reject(error);});
+    child.once("exit",(code)=>{if(code!==0&&!output.includes("LOCKED")){clearTimeout(timeout);reject(new Error(`Lock holder failed: ${errors}`));}});
+  });
+  const complete=new Promise((resolve,reject)=>child.once("exit",(code)=>code===0?resolve():reject(new Error(`Lock holder failed: ${errors}`))));
+  child.stdin.end("begin; select pg_advisory_xact_lock(hashtextextended('eventsible.complete_intake.native_compatibility',0));\n\\echo LOCKED\nselect pg_sleep(2); commit;\n");
+  return {locked,complete};
 }
 
 const ids={owner:"12000000-0000-4000-8000-000000000001",manager:"12000000-0000-4000-8000-000000000002",staff:"12000000-0000-4000-8000-000000000003",host:"12000000-0000-4000-8000-000000000004",other:"12000000-0000-4000-8000-000000000005",team:["52000000-0000-4000-8000-000000000001","52000000-0000-4000-8000-000000000002","52000000-0000-4000-8000-000000000003"]};
@@ -43,8 +61,15 @@ if(execute("select not has_table_privilege('anon','public.os_booking_payment_fac
 if(execute("select bool_and(p.prosecdef and r.rolname='postgres' and 'search_path=\"\"'=any(p.proconfig)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace join pg_roles r on r.oid=p.proowner where n.nspname='public' and p.proname in ('os_stage_complete_intake_manifest','os_approve_complete_intake_batch','os_apply_complete_intake_batch','os_rollback_complete_intake_batch')")!=="t")throw new Error("Complete importer function owner, SECURITY DEFINER, or search_path contract failed.");
 if(execute("select count(*) from pg_indexes where schemaname='public' and indexname in ('os_booking_payment_facts_booking_idx','os_booking_payment_facts_source_hash_idx','os_import_source_provenance_batch_idx','os_import_source_provenance_contact_idx','os_import_source_provenance_lead_idx','os_import_source_provenance_event_idx','os_import_source_provenance_booking_idx','os_contacts_import_source_hash_idx','os_events_import_source_hash_idx','os_leads_import_source_hash_idx','os_bookings_import_source_hash_idx','os_booking_services_import_source_hash_idx')")!=="12")throw new Error("Complete importer supporting indexes are incomplete.");
 if(execute("select not has_function_privilege('public','public.os_apply_complete_intake_batch(uuid,text,integer,jsonb)','execute') and not has_function_privilege('anon','public.os_apply_complete_intake_batch(uuid,text,integer,jsonb)','execute') and has_function_privilege('authenticated','public.os_apply_complete_intake_batch(uuid,text,integer,jsonb)','execute')")!=="t")throw new Error("Complete importer execution grants are incorrect.");
+if(execute("select count(*) from pg_trigger where not tgisinternal and tgname like '%complete_import_serialization'")!=="8")throw new Error("Native-form serialization triggers are incomplete.");
 denied(ids.owner,"owner","select count(*) from public.os_booking_payment_facts");
 execute("set role anon; select public.os_apply_complete_intake_batch(null,'',24,'{}'::jsonb)",{expectFailure:true});
+
+const lockHolder=holdNativeCompatibilityLock();
+await lockHolder.locked;
+execute("insert into public.os_contacts(display_name,primary_email,source,status) values('Synthetic concurrent native write','concurrent-native@example.invalid','eventsible_event_builder','active')",{expectFailure:true});
+await lockHolder.complete;
+if(execute("select count(*) from public.os_contacts where primary_email='concurrent-native@example.invalid'")!=="0")throw new Error("A simultaneous native write bypassed the import serialization guard.");
 
 function buildManifest({suffix="success",badTeam=false,duplicateEmail=null}={}){
   const contacts=Array.from({length:24},(_,i)=>({key:`contact.${suffix}-${i}`,type:"contact",sourceHash:sourceHash(`${suffix}:contact:${i}`),sourceRef:`synthetic/${suffix}/contact-${i}`,uncertainFields:[],data:{displayName:`Synthetic contact ${suffix} ${i}`,primaryEmail:duplicateEmail&&i===0?duplicateEmail:`${suffix}-${i}@example.invalid`}}));

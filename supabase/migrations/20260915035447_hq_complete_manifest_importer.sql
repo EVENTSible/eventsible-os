@@ -136,6 +136,45 @@ returns text language sql stable security definer set search_path = '' as $$
 $$;
 revoke all on function private.os_complete_intake_native_state_fingerprint() from public, anon, authenticated;
 
+-- Serialize native Wedding Hero / Event Builder writes with the final import
+-- duplicate check. The importer takes the same transaction lock before its
+-- final fingerprint comparison; native writes fail closed while it is held.
+create or replace function private.os_guard_complete_intake_native_write()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if not pg_try_advisory_xact_lock(hashtextextended('eventsible.complete_intake.native_compatibility',0)) then
+    raise exception 'A reviewed import is being applied; retry the native submission' using errcode='40001';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.os_guard_complete_intake_native_write() from public, anon, authenticated;
+
+create trigger os_builder_intake_complete_import_serialization
+before insert or update on public.os_builder_intake_requests
+for each row execute function private.os_guard_complete_intake_native_write();
+create trigger os_builder_submission_complete_import_serialization
+before insert or update on public.os_builder_submissions
+for each row execute function private.os_guard_complete_intake_native_write();
+create trigger os_contact_complete_import_serialization
+before insert or update on public.os_contacts
+for each row execute function private.os_guard_complete_intake_native_write();
+create trigger os_event_complete_import_serialization
+before insert or update on public.os_events
+for each row execute function private.os_guard_complete_intake_native_write();
+create trigger os_lead_complete_import_serialization
+before insert or update on public.os_leads
+for each row execute function private.os_guard_complete_intake_native_write();
+create trigger os_booking_complete_import_serialization
+before insert or update on public.os_bookings
+for each row execute function private.os_guard_complete_intake_native_write();
+create trigger os_planning_assignment_complete_import_serialization
+before insert or update on public.os_planning_assignments
+for each row execute function private.os_guard_complete_intake_native_write();
+create trigger os_planning_answer_complete_import_serialization
+before insert or update on public.os_planning_answers
+for each row execute function private.os_guard_complete_intake_native_write();
+
 create or replace function private.os_complete_manifest_duplicate_warnings(
   p_type text, p_source_hash text, p_data jsonb
 ) returns jsonb language plpgsql stable security definer set search_path = '' as $$
@@ -370,6 +409,7 @@ begin
   -- Serialize the final compatibility check with native Event Builder, Wedding
   -- Hero, planning, and canonical writes. A submission committed after preview
   -- invalidates this import instead of being overwritten or silently merged.
+  perform pg_advisory_xact_lock(hashtextextended('eventsible.complete_intake.native_compatibility',0));
   lock table public.os_bookings, public.os_builder_intake_requests, public.os_builder_submissions,
     public.os_contacts, public.os_events, public.os_leads, public.os_planning_answers,
     public.os_planning_assignments in share row exclusive mode;

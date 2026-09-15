@@ -108,6 +108,10 @@ test("complete importer migration is atomic, source-bound, automation-isolated, 
   assert.match(migration,/recordMode','create'\)='link_existing'/);
   assert.match(migration,/coalesce\(v_data->>'sourcePrecedence',''\)<>'preserve_existing_native'/);
   assert.match(migration,/Native submission or canonical record changed after preview/);
+  assert.match(migration,/pg_advisory_xact_lock\(hashtextextended\('eventsible\.complete_intake\.native_compatibility',0\)\)/);
+  assert.match(migration,/pg_try_advisory_xact_lock\(hashtextextended\('eventsible\.complete_intake\.native_compatibility',0\)\)/);
+  assert.match(migration,/create trigger os_builder_intake_complete_import_serialization/);
+  assert.match(migration,/create trigger os_planning_answer_complete_import_serialization/);
   assert.match(migration,/lock table public\.os_bookings, public\.os_builder_intake_requests, public\.os_builder_submissions/);
   assert.match(migration,/linkedExisting/);
   assert.match(migration,/suppressAutomations/);
@@ -128,6 +132,7 @@ test("complete importer preserves native Wedding Hero and Event Builder records"
   assert.match(builder,/source_session_id[\s\S]+on conflict\(source_session_id\)/);
   assert.match(wedding,/submission_id === request\.submissionId/);
   assert.match(wedding,/os_planning_answers/);
+  assert.match(migration,/A reviewed import is being applied; retry the native submission/);
   assert.doesNotMatch(migration,/(update|delete from) public\.os_(builder_submissions|builder_intake_requests|planning_assignments|planning_answers)/i);
   assert.doesNotMatch(migration,/set\s+(raw_payload|normalized_payload|value)\s*=/i);
 });
