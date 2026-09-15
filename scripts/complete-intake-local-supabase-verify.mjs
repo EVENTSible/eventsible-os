@@ -132,7 +132,7 @@ if(execute(`select private.os_complete_intake_record_fingerprint('contact','${na
 if(execute(`select encode(extensions.digest(convert_to(jsonb_build_object('builder',(select to_jsonb(r) from public.os_builder_submissions r where id='${native.submission}'),'planning',(select to_jsonb(r) from public.os_planning_assignments r where id='${native.assignment}'),'answer',(select to_jsonb(r) from public.os_planning_answers r where id='${native.answer}'))::text,'UTF8'),'sha256'),'hex')`)!==protectedNativeHash)throw new Error("Import rollback harmed Builder submission or Wedding planning data.");
 
 const liveChange=stage(buildManifest({suffix:"live-change"}));approve(liveChange);
-execute(`insert into public.os_builder_intake_requests(source_session_id,request_fingerprint,payload,status) values('synthetic-live-change','synthetic-live-change','{}'::jsonb,'received')`);
+execute(`update public.os_builder_submissions set intake_version=2 where id='${native.submission}'`);
 denied(ids.owner,"owner",`select public.os_apply_complete_intake_batch('${liveChange.batchId}','${liveChange.hash}',24,'${liveChange.counts}'::jsonb)`);
 if(execute(`select count(*) from public.os_contacts where metadata->>'importBatchId'='${liveChange.batchId}'`)!=="0")throw new Error("A live native submission did not stop the import before canonical writes.");
 
