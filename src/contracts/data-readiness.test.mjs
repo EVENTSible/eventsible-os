@@ -46,9 +46,43 @@ test("intake_manifest_v2 binds the exact 24-event source baseline and complete r
   assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(linkedItems),items:linkedItems.map((item)=>item.key===linkedContact.key?{...item,data:{...item.data,sourcePrecedence:"overwrite_native"}}:item)}).ok,false);
 });
 
+test("intake_manifest_v2 permits only bounded contactless operational events", () => {
+  const contacts = Array.from({ length: 22 }, (_, index) => ({ key:`contact.operational-${index}`,type:"contact",sourceHash:(index+1).toString(16).padStart(64,"0"),sourceRef:`synthetic/contact-${index}`,uncertainFields:[],data:{displayName:`Synthetic client ${index}`,primaryEmail:`operational-${index}@example.invalid`} }));
+  const clientEvents = contacts.map((contact,index) => ({ key:`event.operational-${index}`,type:"event",sourceHash:(index+101).toString(16).padStart(64,"0"),sourceRef:`synthetic/event-${index}`,uncertainFields:[],data:{primaryContactItemKey:contact.key,title:`Synthetic client gig ${index}`,eventType:"test",status:"completed",recordDisposition:"confirmed"} }));
+  const vendor = { key:"event.synthetic-vendor",type:"event",sourceHash:"e".repeat(64),sourceRef:"synthetic/vendor",uncertainFields:[],data:{title:"Synthetic vendor appearance",eventType:"vendor_market",status:"completed",recordDisposition:"vendor_appearance"} };
+  const community = { key:"event.synthetic-community",type:"event",sourceHash:"d".repeat(64),sourceRef:"synthetic/community",uncertainFields:[],data:{title:"Synthetic community event",eventType:"community_event",status:"active",recordDisposition:"operational_event"} };
+  const items = [...contacts,...clientEvents,vendor,community];
+  const complete = { contractVersion:"intake_manifest_v2",sourceBaselineHash:COMPLETE_INTAKE_SOURCE_BASELINE,sourceLabel:"Synthetic operational compatibility",recordCount:24,itemCounts:completeItemCounts(items),items };
+  assert.equal(validateCompleteIntakeManifest(complete).ok,true);
+
+  const ordinaryWithoutContact = {...vendor,key:"event.misused",data:{...vendor.data,recordDisposition:"confirmed"}};
+  const badOrdinaryItems = items.map((item)=>item.key===vendor.key?ordinaryWithoutContact:item);
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(badOrdinaryItems),items:badOrdinaryItems}).ok,false);
+
+  const booking = {key:"booking.synthetic-vendor",type:"booking",sourceHash:"c".repeat(64),sourceRef:"synthetic/vendor-booking",uncertainFields:[],data:{eventItemKey:vendor.key,status:"completed",contractStatus:"signed"}};
+  const bookedItems = [...items,booking];
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(bookedItems),items:bookedItems}).ok,false);
+
+  const inquiry = {key:"inquiry.synthetic-community",type:"inquiry",sourceHash:"b".repeat(64),sourceRef:"synthetic/community-inquiry",uncertainFields:[],data:{contactItemKey:contacts[0].key,eventItemKey:community.key,status:"new"}};
+  const inquiryItems = [...items,inquiry];
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(inquiryItems),items:inquiryItems}).ok,false);
+});
+
 test("duplicate warnings are advisory and never merge records", () => {
   const warnings = duplicateWarnings(candidate(), { contacts: [{ id: "redacted-contact", primaryEmail: "PERSON@example.invalid", primaryPhone: null }] });
   assert.deepEqual(warnings, [{ kind: "exact_email", recordId: "redacted-contact" }]);
+});
+
+test("contactless operational migration preserves Owner-only atomic boundaries", async () => {
+  const migration = await read("supabase/migrations/20260915223726_hq_contactless_operational_import.sql");
+  assert.match(migration, /recordDisposition' in \('vendor_appearance','operational_event'\)/);
+  assert.match(migration, /'contactRelationship',case when v_operational then 'none_operational' end/);
+  assert.match(migration, /Contactless operational events cannot become bookings/);
+  assert.match(migration, /auth\.uid\(\)/);
+  assert.match(migration, /os_has_hq_capability\('data\.readiness\.manage'\)/);
+  assert.match(migration, /security definer set search_path = ''/);
+  assert.match(migration, /revoke all on function public\.os_apply_complete_intake_batch\(uuid,text,integer,jsonb\) from public, anon, authenticated/);
+  assert.doesNotMatch(migration, /delete from|service_role key|gigs@gigsalad/i);
 });
 
 test("Data Readiness route and actions remain Owner-only and server mediated", async () => {
@@ -145,9 +179,10 @@ test("verifiers use the canonical migration chain and remain synthetic and isola
     read(".github/workflows/ecosystem-integration-local-supabase.yml"),
     read("scripts/guard-local-supabase-ci.mjs"),
   ]);
-  assert.match(history, /"canonicalThrough": "20260910185316"/);
+  assert.match(history, /"canonicalThrough": "20260915035447"/);
   assert.match(history, /"version": "20260909042244"/);
   assert.match(history, /"version": "20260915035447"/);
+  assert.match(history, /"version": "20260915223726"/);
   assert.match(verifier, /Refusing to run Data Readiness verification against a remote or Production database/);
   assert.match(verifier, /example\.invalid/);
   assert.match(browserVerifier, /Isolated local Supabase browser-test environment is incomplete/);

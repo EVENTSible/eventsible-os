@@ -12,6 +12,7 @@ export const INTAKE_ITEM_TYPES = Object.freeze([
 export const CONTACT_STATUSES = Object.freeze(["active", "inactive", "archived"]);
 export const EVENT_STATUSES = Object.freeze(["draft", "inquiry", "quoted", "pending", "booked", "planning", "ready", "active", "completed", "cancelled", "archived"]);
 export const LEAD_STATUSES = Object.freeze(["new", "qualifying", "quoted", "follow_up", "won", "lost", "archived"]);
+export const CONTACTLESS_OPERATIONAL_DISPOSITIONS = Object.freeze(["vendor_appearance", "operational_event"]);
 
 const ITEM_KEY = /^[a-z0-9][a-z0-9._:-]{0,119}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -75,9 +76,16 @@ export function validateCompleteIntakeManifest(input, expectedFileHash = null) {
     for (const required of completeRequiredFields(item.type)) if (item?.uncertainFields?.includes(required) || item?.data?.[required] == null || item.data[required] === "") errors.push(`items[${index}].${required} must be certain and supplied`);
     if (item.type === "contact" && recordMode === "create" && !item.data?.primaryEmail && !item.data?.primaryPhone) errors.push(`items[${index}] contact requires email or phone`);
     if (item.type === "event" && !EVENT_STATUSES.filter((value) => value !== "archived").includes(item.data?.status)) errors.push(`items[${index}].status is unsupported`);
-    if (item.type === "event" && !["confirmed", "lower_confidence_review", "pending_unbooked"].includes(item.data?.recordDisposition)) errors.push(`items[${index}].recordDisposition is unsupported`);
+    if (item.type === "event" && !["confirmed", "lower_confidence_review", "pending_unbooked", ...CONTACTLESS_OPERATIONAL_DISPOSITIONS].includes(item.data?.recordDisposition)) errors.push(`items[${index}].recordDisposition is unsupported`);
     if (item.type === "event" && item.data?.recordDisposition === "lower_confidence_review" && item.data?.status !== "inquiry") errors.push(`items[${index}] lower-confidence records must remain inquiries`);
     if (item.type === "event" && item.data?.recordDisposition === "pending_unbooked" && item.data?.status !== "pending") errors.push(`items[${index}] pending-unbooked records must remain pending`);
+    if (item.type === "event" && isContactlessOperational(item)) {
+      if (recordMode !== "create") errors.push(`items[${index}] contactless operational records must be newly created`);
+      if (item.data?.primaryContactItemKey) errors.push(`items[${index}] contactless operational records cannot reference a client contact`);
+      if (!["draft", "planning", "ready", "active", "completed", "cancelled"].includes(item.data?.status)) errors.push(`items[${index}] contactless operational status is unsupported`);
+    } else if (item.type === "event" && !item.data?.primaryContactItemKey) {
+      errors.push(`items[${index}] client events require a verified contact item`);
+    }
     if (item.type === "booking" && !["pending", "pending_contract", "pending_deposit", "confirmed", "cancelled", "completed"].includes(item.data?.status)) errors.push(`items[${index}].status is unsupported`);
     if (item.type === "payment_fact" && !["cash", "check", "card", "bank_transfer", "gigsalad", "invoice", "other", "unknown"].includes(item.data?.paymentMethod)) errors.push(`items[${index}].paymentMethod is unsupported`);
     if (item.type === "payment_fact" && !["unpaid", "deposit_due", "deposit_paid", "partially_paid", "paid", "refunded"].includes(item.data?.paymentStatus)) errors.push(`items[${index}].paymentStatus is unsupported`);
@@ -92,7 +100,11 @@ export function validateCompleteIntakeManifest(input, expectedFileHash = null) {
     if (item.type === "booking") {
       const event = byKey.get(item.data?.eventItemKey);
       if (event?.type !== "event") errors.push(`items[${index}] booking must reference an event item`);
-      if (["lower_confidence_review", "pending_unbooked"].includes(event?.data?.recordDisposition)) errors.push(`items[${index}] cannot book a review-only or pending-unbooked event`);
+      if (["lower_confidence_review", "pending_unbooked", ...CONTACTLESS_OPERATIONAL_DISPOSITIONS].includes(event?.data?.recordDisposition)) errors.push(`items[${index}] cannot book a review-only, pending-unbooked, or contactless operational event`);
+    }
+    if (item.type === "inquiry") {
+      const event = byKey.get(item.data?.eventItemKey);
+      if (isContactlessOperational(event)) errors.push(`items[${index}] contactless operational events cannot create client inquiries`);
     }
   }
   if (expectedFileHash != null && !SHA256.test(String(expectedFileHash).toLowerCase())) errors.push("expected manifest file hash must be SHA-256");
@@ -101,12 +113,16 @@ export function validateCompleteIntakeManifest(input, expectedFileHash = null) {
 
 function completeReferences(item) {
   const data = item.data ?? {};
-  return ({ event: [data.primaryContactItemKey], inquiry: [data.contactItemKey, data.eventItemKey], booking: [data.eventItemKey], booking_service: [data.bookingItemKey], payment_fact: [data.bookingItemKey], staff_assignment: [data.eventItemKey], operational_note: [data.eventItemKey], source_provenance: [data.targetItemKey] }[item.type] ?? []).filter(Boolean);
+  return ({ event: isContactlessOperational(item) ? [] : [data.primaryContactItemKey], inquiry: [data.contactItemKey, data.eventItemKey], booking: [data.eventItemKey], booking_service: [data.bookingItemKey], payment_fact: [data.bookingItemKey], staff_assignment: [data.eventItemKey], operational_note: [data.eventItemKey], source_provenance: [data.targetItemKey] }[item.type] ?? []).filter(Boolean);
+}
+
+function isContactlessOperational(item) {
+  return item?.type === "event" && CONTACTLESS_OPERATIONAL_DISPOSITIONS.includes(item.data?.recordDisposition);
 }
 
 function completeRequiredFields(type) {
   return {
-    contact: ["displayName"], inquiry: ["contactItemKey", "eventItemKey", "status"], event: ["primaryContactItemKey", "title", "eventType", "status", "recordDisposition"],
+    contact: ["displayName"], inquiry: ["contactItemKey", "eventItemKey", "status"], event: ["title", "eventType", "status", "recordDisposition"],
     booking: ["eventItemKey", "status", "contractStatus"], booking_service: ["bookingItemKey", "serviceCode", "serviceName", "status"],
     payment_fact: ["bookingItemKey", "paymentMethod", "paymentStatus", "payoutStatus"], staff_assignment: ["eventItemKey", "teamMemberId", "assignmentRole"],
     operational_note: ["eventItemKey", "body"], source_provenance: ["targetItemKey", "evidenceKind", "confidence"],
