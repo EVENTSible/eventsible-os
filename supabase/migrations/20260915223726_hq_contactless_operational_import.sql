@@ -305,11 +305,16 @@ begin
       else array[]::text[] end loop
       if not v_ref=any(v_keys) then raise exception 'Referenced manifest item key does not exist' using errcode='22023'; end if;
     end loop;
-    if v_type in ('booking','inquiry') and exists(
+    if v_type='booking' and exists(
       select 1 from jsonb_array_elements(p_manifest->'items') x
       where x->>'key'=v_data->>'eventItemKey'
         and x->'data'->>'recordDisposition' in ('lower_confidence_review','pending_unbooked','vendor_appearance','operational_event')
-    ) then raise exception 'Review-only, pending-unbooked, and contactless operational events cannot create client inquiries or bookings' using errcode='22023'; end if;
+    ) then raise exception 'Review-only, pending-unbooked, and contactless operational events cannot create bookings' using errcode='22023'; end if;
+    if v_type='inquiry' and exists(
+      select 1 from jsonb_array_elements(p_manifest->'items') x
+      where x->>'key'=v_data->>'eventItemKey'
+        and x->'data'->>'recordDisposition' in ('vendor_appearance','operational_event')
+    ) then raise exception 'Contactless operational events cannot create client inquiries' using errcode='22023'; end if;
   end loop;
 
   insert into public.os_import_batches(import_type,status,row_count,summary,created_by,contract_version,manifest_hash,source_label)
