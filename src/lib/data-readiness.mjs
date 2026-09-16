@@ -79,6 +79,12 @@ export function validateCompleteIntakeManifest(input, expectedFileHash = null) {
     if (item.type === "event" && !["confirmed", "lower_confidence_review", "pending_unbooked", ...CONTACTLESS_OPERATIONAL_DISPOSITIONS].includes(item.data?.recordDisposition)) errors.push(`items[${index}].recordDisposition is unsupported`);
     if (item.type === "event" && item.data?.recordDisposition === "lower_confidence_review" && item.data?.status !== "inquiry") errors.push(`items[${index}] lower-confidence records must remain inquiries`);
     if (item.type === "event" && item.data?.recordDisposition === "pending_unbooked" && item.data?.status !== "pending") errors.push(`items[${index}] pending-unbooked records must remain pending`);
+    if (item.type === "event" && item.data?.historicalDate != null && item.data.historicalDate !== "") {
+      const historicalDate = String(item.data.historicalDate);
+      const parsedDate = new Date(`${historicalDate}T00:00:00Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(historicalDate) || Number.isNaN(parsedDate.valueOf()) || parsedDate.toISOString().slice(0,10) !== historicalDate) errors.push(`items[${index}].historicalDate must be an ISO calendar date`);
+      if (item.data?.startsAt || item.data?.endsAt) errors.push(`items[${index}] date-only events cannot include start or end timestamps`);
+    }
     if (item.type === "event" && isContactlessOperational(item)) {
       if (recordMode !== "create") errors.push(`items[${index}] contactless operational records must be newly created`);
       if (item.data?.primaryContactItemKey) errors.push(`items[${index}] contactless operational records cannot reference a client contact`);
@@ -90,9 +96,16 @@ export function validateCompleteIntakeManifest(input, expectedFileHash = null) {
     if (item.type === "payment_fact" && !["cash", "check", "card", "bank_transfer", "gigsalad", "invoice", "other", "unknown"].includes(item.data?.paymentMethod)) errors.push(`items[${index}].paymentMethod is unsupported`);
     if (item.type === "payment_fact" && !["unpaid", "deposit_due", "deposit_paid", "partially_paid", "paid", "refunded"].includes(item.data?.paymentStatus)) errors.push(`items[${index}].paymentStatus is unsupported`);
     if (item.type === "payment_fact" && !["not_applicable", "pending", "paid", "refunded", "unknown"].includes(item.data?.payoutStatus)) errors.push(`items[${index}].payoutStatus is unsupported`);
-    const amounts = ["grossClientAmount", "platformFeeAmount", "netPayoutAmount"].map((key) => item.data?.[key]).filter((value) => value != null && value !== "").map(Number);
+    const amountKeys = ["contractedOrQuotedValue", "grossClientAmount", "depositAmount", "tipAmount", "overtimeAmount", "platformFeeAmount", "netPayoutAmount", "balanceDue"];
+    const amounts = amountKeys.map((key) => item.data?.[key]).filter((value) => value != null && value !== "").map(Number);
     if (amounts.some((value) => !Number.isFinite(value) || value < 0)) errors.push(`items[${index}] financial amounts must be non-negative numbers`);
-    if (item.type === "payment_fact" && amounts.length === 3 && Math.abs(amounts[0] - amounts[1] - amounts[2]) > 0.01) errors.push(`items[${index}] gross less platform fee must equal net payout`);
+    if (item.type === "payment_fact") {
+      const amount = (key) => item.data?.[key] == null || item.data[key] === "" ? null : Number(item.data[key]);
+      const contract = amount("contractedOrQuotedValue"), gross = amount("grossClientAmount"), deposit = amount("depositAmount"), fee = amount("platformFeeAmount"), net = amount("netPayoutAmount");
+      if (contract != null && deposit != null && deposit > contract) errors.push(`items[${index}] deposit cannot exceed the reviewed contract value`);
+      if (gross != null && deposit != null && deposit > gross) errors.push(`items[${index}] deposit cannot exceed reviewed gross receipts`);
+      if (gross != null && fee != null && net != null && Math.abs(gross - fee - net) > 0.01) errors.push(`items[${index}] gross less platform fee must equal net payout`);
+    }
   }
   for (const [index, item] of items.entries()) {
     if (!object(item)) continue;
@@ -190,6 +203,7 @@ export function duplicateWarnings(candidate, records) {
     for (const row of records.events ?? []) {
       if (data.sourceId && row.sourceId === data.sourceId) warnings.push({ kind: "exact_source_id", recordId: row.id });
       else if (normalizeText(data.title) && normalizeText(row.title) === normalizeText(data.title) && data.startsAt && row.startsAt === data.startsAt) warnings.push({ kind: "same_title_and_start", recordId: row.id });
+      else if (normalizeText(data.title) && normalizeText(row.title) === normalizeText(data.title) && data.historicalDate && row.historicalDate === data.historicalDate) warnings.push({ kind: "same_title_and_historical_date", recordId: row.id });
     }
   }
   return warnings;

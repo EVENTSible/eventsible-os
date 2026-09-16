@@ -2003,6 +2003,13 @@ a { color: inherit; text-decoration: none; }
 .data-form, .data-inline-form { display: grid; gap: 14px; min-width: 0; padding: 4px 0 16px; }
 .data-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-width: 0; }
 .data-form-grid .span { grid-column: 1 / -1; }
+.financial-evidence-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-bottom: 8px; }
+.financial-evidence-grid > div { min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; background: var(--panel); }
+.financial-evidence-grid span,.financial-evidence-grid b { display: block; overflow-wrap: anywhere; }
+.financial-evidence-grid span { color: var(--muted); font-size: .78rem; }
+.date-only-notice { align-self: end; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--purple-soft); }
+.date-only-notice b,.date-only-notice span { display: block; }
+.date-only-notice span { color: var(--muted); font-size: .78rem; }
 .data-form label, .data-inline-form label, .danger-zone label, .data-readiness-main form > label { min-width: 0; display: grid; gap: 6px; color: var(--muted); font-size: .86rem; font-weight: 800; }
 .data-form input, .data-form select, .data-form textarea, .data-inline-form input, .data-inline-form select, .danger-zone input, .manifest-input { width: 100%; min-width: 0; min-height: 44px; }
 .data-form fieldset { min-width: 0; margin: 0; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
@@ -2062,7 +2069,7 @@ a { color: inherit; text-decoration: none; }
 .cleanup-actions input { width: 100%; min-height: 44px; }
 
 @media (max-width: 980px) {
-  .data-form-grid, .data-checks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .data-form-grid, .data-checks, .financial-evidence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .data-inline-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -2071,7 +2078,7 @@ a { color: inherit; text-decoration: none; }
   .data-readiness-main .admin-header.compact p { font-size: .9rem; }
   .data-tabs { width: 100%; }
   .data-tabs button { flex: 1 0 auto; }
-  .data-form-grid, .data-checks, .data-inline-form { grid-template-columns: 1fr; }
+  .data-form-grid, .data-checks, .data-inline-form, .financial-evidence-grid { grid-template-columns: 1fr; }
   .data-inline-form button, .data-actions button, .data-batch button { width: 100%; }
   .data-batch > header, .data-history article { grid-template-columns: 1fr; }
   .data-history article { display: grid; }

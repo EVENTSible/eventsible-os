@@ -42,10 +42,11 @@ export async function manageContactAction(_state: DataReadinessActionState, form
 
 export async function manageEventAction(_state: DataReadinessActionState, form: FormData): Promise<DataReadinessActionState> {
   const auth = await owner(); if (!auth) return fail("Owner authorization is required.");
-  const timezone=value(form,"timezone") || "America/Indiana/Indianapolis";
+  const dateOnly=!form.has("timezone");
+  const timezone=dateOnly?"":value(form,"timezone") || "America/Indiana/Indianapolis";
   const start=value(form,"starts_at"), end=value(form,"ends_at");
   const payload: Record<string, unknown> = {
-    title:value(form,"title"),eventType:value(form,"event_type"),status:value(form,"status"),startsAt:start?localDateTimeToIso(start,timezone):null,endsAt:end?localDateTimeToIso(end,timezone):null,timezone,
+    title:value(form,"title"),eventType:value(form,"event_type"),status:value(form,"status"),startsAt:start?localDateTimeToIso(start,timezone):null,endsAt:end?localDateTimeToIso(end,timezone):null,timezone:dateOnly?null:timezone,
     venueName:value(form,"venue_name"),venueAddress1:value(form,"venue_address_1"),venueAddress2:value(form,"venue_address_2"),venueCity:value(form,"venue_city"),venueState:value(form,"venue_state"),venuePostalCode:value(form,"venue_postal_code"),guestCount:value(form,"guest_count"),
   };
   if (value(form, "replace_services") === "true") payload.serviceIds = form.getAll("service_ids").map(String);
