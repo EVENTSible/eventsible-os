@@ -73,6 +73,25 @@ test("duplicate warnings are advisory and never merge records", () => {
   assert.deepEqual(warnings, [{ kind: "exact_email", recordId: "redacted-contact" }]);
 });
 
+test("complete manifest keeps contract, receipts, deposits, tips, fees, payouts, and date-only evidence distinct", () => {
+  const contacts=Array.from({length:24},(_,index)=>({key:`contact.financial-${index}`,type:"contact",sourceHash:(index+1).toString(16).padStart(64,"0"),sourceRef:`synthetic/contact-${index}`,uncertainFields:[],data:{displayName:`Synthetic ${index}`,primaryEmail:`financial-${index}@example.invalid`}}));
+  const events=contacts.map((contact,index)=>({
+    key:`event.financial-${index}`,type:"event",sourceHash:(index+101).toString(16).padStart(64,"0"),sourceRef:`synthetic/event-${index}`,uncertainFields:[],
+    data:{primaryContactItemKey:contact.key,title:`Synthetic gig ${index}`,eventType:"test",status:"completed",recordDisposition:"confirmed",...(index===0?{historicalDate:"2027-06-12"}:{startsAt:`2027-06-${String(index+1).padStart(2,"0")}T15:00:00Z`,endsAt:`2027-06-${String(index+1).padStart(2,"0")}T18:00:00Z`})},
+  }));
+  const booking={key:"booking.financial-0",type:"booking",sourceHash:"e".repeat(64),sourceRef:"synthetic/booking",uncertainFields:[],data:{eventItemKey:events[0].key,status:"completed",contractStatus:"signed"}};
+  const payment={key:"payment.financial-0",type:"payment_fact",sourceHash:"f".repeat(64),sourceRef:"synthetic/payment",uncertainFields:[],data:{bookingItemKey:booking.key,contractedOrQuotedValue:"1025",grossClientAmount:"365",depositAmount:"265",tipAmount:"100",overtimeAmount:null,platformFeeAmount:"14.88",netPayoutAmount:"350.12",balanceDue:"760",paymentMethod:"gigsalad",paymentStatus:"partially_paid",payoutStatus:"paid"}};
+  const items=[...contacts,...events,booking,payment];
+  const complete={contractVersion:"intake_manifest_v2",sourceBaselineHash:COMPLETE_INTAKE_SOURCE_BASELINE,sourceLabel:"Synthetic financial contract",recordCount:24,itemCounts:completeItemCounts(items),items};
+  assert.equal(validateCompleteIntakeManifest(complete).ok,true);
+  const timedDateOnly={...events[0],data:{...events[0].data,startsAt:"2027-06-12T00:00:00Z"}};
+  const badDateItems=[...contacts,timedDateOnly,...events.slice(1),booking,payment];
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(badDateItems),items:badDateItems}).ok,false);
+  const promotedDeposit={...payment,data:{...payment.data,contractedOrQuotedValue:null,grossClientAmount:"145",depositAmount:"145",netPayoutAmount:"130.12"}};
+  const depositItems=[...contacts,...events,booking,promotedDeposit];
+  assert.equal(validateCompleteIntakeManifest({...complete,itemCounts:completeItemCounts(depositItems),items:depositItems}).ok,true);
+});
+
 test("contactless operational migration preserves Owner-only atomic boundaries", async () => {
   const migration = await read("supabase/migrations/20260915223726_hq_contactless_operational_import.sql");
   assert.match(migration, /recordDisposition' in \('vendor_appearance','operational_event'\)/);
@@ -157,6 +176,33 @@ test("complete importer migration is atomic, source-bound, automation-isolated, 
   assert.doesNotMatch(migration,/insert into auth\.|update auth\.|user_metadata/i);
 });
 
+test("financial-integrity migration maps reviewed evidence without inventing totals or times", async () => {
+  const [migration,page,workspace,actions]=await Promise.all([
+    read("supabase/migrations/20260916194052_hq_importer_financial_integrity.sql"),
+    read("src/app/admin/data-readiness/page.tsx"),
+    read("src/components/records-intake-workspace.tsx"),
+    read("src/app/admin/data-readiness/actions.ts"),
+  ]);
+  assert.match(migration,/add column contracted_or_quoted_amount numeric\(12,2\)/);
+  assert.match(migration,/add column deposit_received_amount numeric\(12,2\)/);
+  assert.match(migration,/add column tip_amount numeric\(12,2\)/);
+  assert.match(migration,/add column overtime_amount numeric\(12,2\)/);
+  assert.match(migration,/add column historical_date date/);
+  assert.match(migration,/new\.total_amount := v_fact\.contracted_or_quoted_amount/);
+  assert.match(migration,/new\.deposit_amount := v_fact\.deposit_received_amount/);
+  assert.match(migration,/historical_date = \(p_data->>'historicalDate'\)::date/);
+  assert.match(migration,/security definer set search_path = ''/);
+  assert.match(migration,/revoke all on function private\.os_correct_complete_import_booking_financials\(\) from public, anon, authenticated/);
+  assert.doesNotMatch(migration,/delete\s+from|insert into auth\.|update auth\./i);
+  assert.match(page,/paymentFacts=\{snapshotData\.paymentFacts\?\?\[\]\}/);
+  assert.match(workspace,/Contracted \/ quoted value/);
+  assert.match(workspace,/Gross amount received/);
+  assert.match(workspace,/Time not provided/);
+  assert.match(workspace,/No start, end, midnight, or timezone conversion was fabricated/);
+  assert.match(actions,/const dateOnly=!form\.has\("timezone"\)/);
+  assert.match(actions,/timezone:dateOnly\?null:timezone/);
+});
+
 test("complete importer preserves native Wedding Hero and Event Builder records", async () => {
   const [migration,builder,wedding]=await Promise.all([
     read("supabase/migrations/20260915035447_hq_complete_manifest_importer.sql"),
@@ -179,10 +225,11 @@ test("verifiers use the canonical migration chain and remain synthetic and isola
     read(".github/workflows/ecosystem-integration-local-supabase.yml"),
     read("scripts/guard-local-supabase-ci.mjs"),
   ]);
-  assert.match(history, /"canonicalThrough": "20260915035447"/);
+  assert.match(history, /"canonicalThrough": "20260915223726"/);
   assert.match(history, /"version": "20260909042244"/);
   assert.match(history, /"version": "20260915035447"/);
   assert.match(history, /"version": "20260915223726"/);
+  assert.match(history, /"version": "20260916194052"/);
   assert.match(verifier, /Refusing to run Data Readiness verification against a remote or Production database/);
   assert.match(verifier, /example\.invalid/);
   assert.match(browserVerifier, /Isolated local Supabase browser-test environment is incomplete/);

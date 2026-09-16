@@ -21,6 +21,7 @@ on:
       - codex/hq-bounded-cleanup-and-density
       - codex/hq-complete-manifest-importer
       - codex/historical-operational-import
+      - codex/hq-importer-financial-integrity
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
