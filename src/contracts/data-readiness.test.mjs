@@ -218,30 +218,36 @@ test("complete importer preserves native Wedding Hero and Event Builder records"
 });
 
 test("verifiers use the canonical migration chain and remain synthetic and isolated", async () => {
-  const [history, verifier, browserVerifier, workflow, guard] = await Promise.all([
+  const [history, verifier, quickAddVerifier, browserVerifier, workflow, guard] = await Promise.all([
     read("supabase/migration-history.json"),
     read("scripts/data-readiness-local-supabase-verify.mjs"),
+    read("scripts/quick-add-local-supabase-verify.mjs"),
     read("scripts/data-readiness-browser-verify.mjs"),
     read(".github/workflows/ecosystem-integration-local-supabase.yml"),
     read("scripts/guard-local-supabase-ci.mjs"),
   ]);
-  assert.match(history, /"canonicalThrough": "20260917064225"/);
+  assert.match(history, /"canonicalThrough": "20260917172431"/);
   assert.match(history, /"version": "20260909042244"/);
   assert.match(history, /"version": "20260915035447"/);
   assert.match(history, /"version": "20260915223726"/);
   assert.match(history, /"version": "20260916194052"/);
   assert.match(history, /"version": "20260917032706"/);
   assert.match(history, /"version": "20260917064225"/);
+  assert.match(history, /"version": "20260917172431"/);
+  assert.match(history, /"version": "20260917210520"/);
   assert.match(verifier, /Refusing to run Data Readiness verification against a remote or Production database/);
   assert.match(verifier, /example\.invalid/);
+  assert.match(quickAddVerifier, /Refusing to run Quick Add verification against a remote database/);
+  assert.match(quickAddVerifier, /example\.invalid/);
   assert.match(browserVerifier, /Isolated local Supabase browser-test environment is incomplete/);
   assert.match(browserVerifier, /example\.invalid/);
   assert.match(workflow, /db reset --local/);
   assert.match(workflow, /test:migration-history/);
   assert.doesNotMatch(workflow, /supabase\/local-verification|LOCAL_VERIFICATION_SCHEMA/);
   assert.match(workflow, /test:data-readiness:local-supabase/);
+  assert.match(workflow, /test:quick-add:local-supabase/);
   assert.match(workflow, /db advisors --local --type security/);
   assert.match(workflow, /test:data-readiness:browser/);
   assert.match(guard, /productionMigrationRoot = "supabase\/migrations"/);
-  assert.doesNotMatch(verifier + browserVerifier, /gmail\.com|yahoo\.com|hotmail\.com/i);
+  assert.doesNotMatch(verifier + quickAddVerifier + browserVerifier, /gmail\.com|yahoo\.com|hotmail\.com/i);
 });

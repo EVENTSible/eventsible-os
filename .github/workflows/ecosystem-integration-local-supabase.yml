@@ -24,6 +24,7 @@ on:
       - codex/hq-importer-financial-integrity
       - codex/vera-warren-bounded-correction
       - codex/warren-owner-attestation-promotion
+      - codex/hq-owner-quick-add
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
@@ -152,6 +153,9 @@ jobs:
 
       - name: Run Data Readiness authorization and intake verification
         run: npm run test:data-readiness:local-supabase
+
+      - name: Run Owner Quick Add verification
+        run: npm run test:quick-add:local-supabase
 
       - name: Run bounded cleanup and archive verification
         run: npm run test:bounded-cleanup:local-supabase
