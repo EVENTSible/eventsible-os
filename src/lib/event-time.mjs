@@ -28,7 +28,15 @@ export function eventTimeLabel(value, timeZone, fallback = "Not provided") {
 
 export function eventDateTimeLabel(value, timeZone, fallback = "Date not provided") {
   const date = parsed(value);
-  return date ? new Intl.DateTimeFormat("en-US", { timeZone: eventTimeZone(timeZone), dateStyle: "medium", timeStyle: "short" }).format(date) : fallback;
+  return date ? new Intl.DateTimeFormat("en-US", {
+    timeZone: eventTimeZone(timeZone),
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(date) : fallback;
 }
 
 export function eventLocalDateTimeInput(value, timeZone) {
