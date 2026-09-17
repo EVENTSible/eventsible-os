@@ -4,6 +4,7 @@ import test from "node:test";
 import { eventDateLabel, eventLocalDateTimeInput, eventTimeLabel, eventWhenLabel } from "../lib/event-time.mjs";
 
 const migration=readFileSync("supabase/migrations/20260917032706_hq_vera_warren_bounded_correction.sql","utf8");
+const titleCorrection=readFileSync("supabase/migrations/20260917064225_correct_vera_event_title.sql","utf8");
 
 test("event displays use the stored event timezone, not the browser timezone",()=>{
   assert.equal(eventTimeLabel("2026-08-22T23:00:00.000Z","America/Chicago"),"6:00 PM CDT");
@@ -24,6 +25,17 @@ test("bounded correction pins the exact chain and preserves audit history",()=>{
   assert.doesNotMatch(migration,/os_(integration|automation)_outbox\s+(set|values)/i);
 });
 
+test("forward correction uses the approved Vera title across preview, apply, and compensation",()=>{
+  assert.match(titleCorrection,/'correctedTitle','70th Birthday Karaoke'/);
+  assert.match(titleCorrection,/set title='70th Birthday Karaoke'/);
+  assert.match(titleCorrection,/title='70th Birthday Karaoke'/);
+  assert.doesNotMatch(titleCorrection,/70th Birthday Celebration/);
+  assert.match(titleCorrection,/private\.os_assert_vera_warren_before_state\(\)/);
+  assert.match(titleCorrection,/private\.os_vera_warren_correction_fingerprint\(\)/);
+  assert.match(titleCorrection,/v_existing\.status='applied'/);
+  assert.match(titleCorrection,/set title=v_correction\.before_image->'event'->>'title'/);
+});
+
 test("correction boundary is Owner-only and Warren remains noncanonical",()=>{
   assert.match(migration,/auth\.uid\(\)/);
   assert.match(migration,/os_has_hq_capability\('data\.readiness\.manage'\)/);
@@ -34,4 +46,7 @@ test("correction boundary is Owner-only and Warren remains noncanonical",()=>{
   assert.match(migration,/'services','\[\]'::jsonb/);
   assert.match(migration,/'financial_facts',null/);
   assert.doesNotMatch(migration,/insert into public\.os_(contacts|leads|events|bookings|booking_services|booking_payment_facts|staff_assignments)/i);
+  assert.doesNotMatch(titleCorrection,/insert into public\.os_(contacts|leads|events|bookings|booking_services|booking_payment_facts|staff_assignments)/i);
+  assert.doesNotMatch(titleCorrection,/delete\s+from/i);
+  assert.doesNotMatch(titleCorrection,/os_(integration|automation)_outbox\s+(set|values)/i);
 });
