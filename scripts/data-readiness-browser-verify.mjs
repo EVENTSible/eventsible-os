@@ -115,8 +115,8 @@ try {
   await editor.getByRole("button", { name: "Close editor" }).click();
   await page.getByPlaceholder("Search names, titles, source…").fill("");
   await page.locator(".record-type-tabs").getByRole("button", { name: "Gigs" }).click();
-  await page.getByPlaceholder("Search names, titles, source…").fill("Warren 70th Birthday Karaoke");
-  const veraRow=page.getByRole("button",{name:/Warren 70th Birthday Karaoke/});
+  await page.getByPlaceholder("Search names, titles, source…").fill("70th Birthday Karaoke");
+  const veraRow=page.getByRole("button",{name:/70th Birthday Karaoke/});
   await veraRow.getByText(/6:00 PM CDT/).waitFor();
   await veraRow.click();
   if(await editor.getByLabel("Starts").inputValue()!=="2026-08-22T18:00"||await editor.getByLabel("Ends").inputValue()!=="2026-08-22T22:30")throw new Error("Event-local Central time was converted to the browser's Eastern timezone.");

@@ -1,6 +1,6 @@
 {
   "format": "eventsible_supabase_migration_history_v1",
-  "canonicalThrough": "20260917032706",
+  "canonicalThrough": "20260917064225",
   "migrations": [
     {
       "version": "20260717212229",
@@ -251,13 +251,18 @@
       "version": "20260917032706",
       "name": "hq_vera_warren_bounded_correction",
       "sha256": "55138d914c60aa86aff5826f5f7b3a24fcb432076e1a5e6c7ae2b77e00d44d0f"
-    }
-  ],
-  "pendingMigrations": [
+    },
     {
       "version": "20260917064225",
       "name": "correct_vera_event_title",
       "sha256": "74af6373a9b73a2a1bcf7b7b1f308b3546f5c71f17b9050264c154550a396c7c"
+    }
+  ],
+  "pendingMigrations": [
+    {
+      "version": "20260917172431",
+      "name": "warren_owner_attestation_promotion",
+      "sha256": "ede9a8ec125c03b6dbd305e112b7f987f9818b5f39fd8552b252a16da514d8b3"
     }
   ]
 }
