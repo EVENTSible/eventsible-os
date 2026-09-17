@@ -50,6 +50,14 @@ Source precedence is deliberately conservative: existing native form fields and 
 
 Imported confirmed bookings carry a transaction-only, Owner-validated batch marker that suppresses existing booking automation triggers during creation. The marker is removed before commit, so later lifecycle changes use the normal triggers. The complete-import verification asserts that neither outbox changes. Rollback archives or cancels imported records, restores booking financial before-images, and preserves batch, item, source-provenance, and activity history; it never hard-deletes or merges records.
 
+### Bounded Vera/Warren evidence correction
+
+The `vera-warren-separation-v1` Owner maintenance operation corrects one exact imported chain without rewriting its completed import batch. Its preview fingerprints the pinned event, contact, inquiry, booking, services, payment fact, assignments, note, provenance rows, and all 243 original batch items. Apply changes only the reviewed event title and service-agreement label, supersedes the false consolidation note, creates one unresolved Warren review candidate, and records durable before/after images plus activity history.
+
+The candidate deliberately contains only the Owner-confirmed title, date, and venue label. It has no contact, time, timezone, service, staff, financial, booking, notification, or outbox relationship and cannot become canonical through this operation. Compensation restores Vera's recorded prior values and marks the Warren candidate ignored while preserving correction and import audit history. Neither direction hard-deletes data.
+
+Owner-facing event times are formatted in each event's stored IANA timezone. A historical date without a time remains date-only and displays `Time not provided`; database instants are not rewritten for display.
+
 ## Rollout
 
 1. Freeze Owner Data Readiness mutations.

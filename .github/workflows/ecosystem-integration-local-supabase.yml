@@ -22,6 +22,7 @@ on:
       - codex/hq-complete-manifest-importer
       - codex/historical-operational-import
       - codex/hq-importer-financial-integrity
+      - codex/vera-warren-bounded-correction
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
@@ -160,6 +161,9 @@ jobs:
           mkdir -p artifacts/data-readiness
           set -o pipefail
           npm run test:complete-intake:local-supabase 2>&1 | tee artifacts/data-readiness/complete-intake-verification.log
+
+      - name: Run bounded Vera and Warren correction verification
+        run: npm run test:vera-warren:local-supabase
 
       - name: Capture local Supabase advisors
         run: |
