@@ -77,7 +77,7 @@ try {
     createdIds.push(created.id);
   }
 
-  const ownerContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const ownerContext = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "America/New_York" });
   const page = await ownerContext.newPage();
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   page.on("response", (response) => { if (response.status() >= 500) serverFailures.push(`${response.status()} ${new URL(response.url()).pathname}`); });
@@ -115,6 +115,13 @@ try {
   await editor.getByRole("button", { name: "Close editor" }).click();
   await page.getByPlaceholder("Search names, titles, source…").fill("");
   await page.locator(".record-type-tabs").getByRole("button", { name: "Gigs" }).click();
+  await page.getByPlaceholder("Search names, titles, source…").fill("Warren 70th Birthday Karaoke");
+  const veraRow=page.getByRole("button",{name:/Warren 70th Birthday Karaoke/});
+  await veraRow.getByText(/6:00 PM CDT/).waitFor();
+  await veraRow.click();
+  if(await editor.getByLabel("Starts").inputValue()!=="2026-08-22T18:00"||await editor.getByLabel("Ends").inputValue()!=="2026-08-22T22:30")throw new Error("Event-local Central time was converted to the browser's Eastern timezone.");
+  await editor.getByRole("button", { name: "Close editor" }).click();
+  await page.getByPlaceholder("Search names, titles, source…").fill("");
   await page.getByPlaceholder("Search names, titles, source…").fill("Synthetic corrected event");
   await page.getByRole("button", { name: /Synthetic corrected event/ }).click();
   await verifyEditorSurface(page, "record-details-timed-gig", { services: true });

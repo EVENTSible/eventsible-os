@@ -1,6 +1,6 @@
 {
   "format": "eventsible_supabase_migration_history_v1",
-  "canonicalThrough": "20260915223726",
+  "canonicalThrough": "20260916194052",
   "migrations": [
     {
       "version": "20260717212229",
@@ -241,13 +241,18 @@
       "version": "20260915223726",
       "name": "hq_contactless_operational_import",
       "sha256": "5b415b1028e0db4b7c1f4976fcb69b88315f14b45345818d6325eba1320bb1d2"
-    }
-  ],
-  "pendingMigrations": [
+    },
     {
       "version": "20260916194052",
       "name": "hq_importer_financial_integrity",
       "sha256": "a3ac1c33fbb4c61e9fd3ee5af2c81168c23e1bdc543ba64b8f52add38296c93c"
+    }
+  ],
+  "pendingMigrations": [
+    {
+      "version": "20260917032706",
+      "name": "hq_vera_warren_bounded_correction",
+      "sha256": "55138d914c60aa86aff5826f5f7b3a24fcb432076e1a5e6c7ae2b77e00d44d0f"
     }
   ]
 }

@@ -133,3 +133,24 @@ export async function archiveCleanupCustomersAction(_state:DataReadinessActionSt
 export async function restoreCleanupCustomersAction(_state:DataReadinessActionState,form:FormData){return cleanupAction(form,"os_restore_cleanup_customer_archive","The exact customer batch was restored to its recorded prior states.");}
 export async function quarantineCleanupOutboxAction(_state:DataReadinessActionState,form:FormData){return cleanupAction(form,"os_execute_cleanup_outbox_quarantine","The exact reviewed synthetic outbox set was quarantined without replay or deletion.");}
 export async function restoreCleanupOutboxAction(_state:DataReadinessActionState,form:FormData){return cleanupAction(form,"os_restore_cleanup_outbox_quarantine","The exact outbox batch was restored to its recorded prior states.");}
+
+export async function previewVeraWarrenAction():Promise<DataReadinessActionState>{
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const result=await auth.supabase.rpc("os_preview_vera_warren_correction");
+  if(result.error)return fail(rpcFailure(result.error,"The exact Vera/Warren correction could not be previewed."));
+  return {status:"success",message:"Exact current records verified. Review the correction fingerprint before applying.",result:result.data};
+}
+
+export async function applyVeraWarrenAction(_state:DataReadinessActionState,form:FormData):Promise<DataReadinessActionState>{
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const result=await auth.supabase.rpc("os_apply_vera_warren_correction",{p_expected_fingerprint:value(form,"expected_fingerprint"),p_confirmation:value(form,"confirmation")});
+  if(result.error)return fail(rpcFailure(result.error,"The bounded correction stopped without a partial change."));
+  refresh(); return {status:"success",message:result.data?.status==="replayed"?"The identical correction was already applied; nothing was duplicated.":"Vera was corrected and Warren was preserved as one unresolved review candidate.",result:result.data};
+}
+
+export async function compensateVeraWarrenAction(_state:DataReadinessActionState,form:FormData):Promise<DataReadinessActionState>{
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const result=await auth.supabase.rpc("os_compensate_vera_warren_correction",{p_expected_after_fingerprint:value(form,"expected_after_fingerprint"),p_confirmation:value(form,"confirmation")});
+  if(result.error)return fail(rpcFailure(result.error,"The bounded correction could not be compensated."));
+  refresh(); return {status:"success",message:"The recorded before-image was restored and the Warren candidate was preserved as ignored history.",result:result.data};
+}
