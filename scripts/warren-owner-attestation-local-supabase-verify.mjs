@@ -21,6 +21,24 @@ if(sql("select not has_table_privilege('authenticated','public.os_owner_candidat
 // The preceding Vera/Warren fixture ends compensated. Restore only that local
 // synthetic fixture to the exact deployed applied state needed by this test.
 sql(`
+do $$
+declare v_fixture_candidate uuid;
+begin
+  select id into v_fixture_candidate
+  from public.os_event_import_candidates
+  where source='owner_correction' and external_reference='warren-70th-birthday:2026-09-26';
+  if v_fixture_candidate is distinct from '15ce422a-18e3-4a53-a005-2e5a919be572'::uuid then
+    update public.os_owner_maintenance_corrections
+    set review_candidate_id=null
+    where correction_key='vera-warren-separation-v1';
+    update public.os_event_import_candidates
+    set id='15ce422a-18e3-4a53-a005-2e5a919be572'::uuid
+    where id=v_fixture_candidate;
+    update public.os_owner_maintenance_corrections
+    set review_candidate_id='15ce422a-18e3-4a53-a005-2e5a919be572'::uuid
+    where correction_key='vera-warren-separation-v1';
+  end if;
+end $$;
 update public.os_events set title='70th Birthday Karaoke' where id='4c277aa1-fbcd-4422-ba6b-7ce294a32ea5';
 update public.os_import_source_provenance set source_ref='Vera service agreement' where id='ca45d79e-bb12-4113-911c-360c9a7b411d';
 update public.os_event_notes set status='archived' where id='d4549943-7e9b-40eb-9ffb-888d75ed62a2';
