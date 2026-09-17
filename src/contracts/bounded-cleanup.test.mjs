@@ -8,8 +8,10 @@ const migration=read("../../supabase/migrations/20260910185316_hq_bounded_cleanu
 const actions=read("../app/admin/data-readiness/actions.ts");
 const page=read("../app/admin/data-readiness/page.tsx");
 const workspace=read("../components/records-intake-workspace.tsx");
+const styles=read("../app/globals.css");
 const dashboard=read("../app/admin/page.tsx");
 const calendar=read("../app/admin/calendar/page.tsx");
+const browserVerifier=read("../../scripts/data-readiness-browser-verify.mjs");
 
 test("cleanup executor accepts only the exact reviewed manifest and protected item set",()=>{
   assert.match(migration,/os_cleanup_manifest_scopes/);
@@ -68,4 +70,23 @@ test("Records & Intake is search-first, bounded, responsive, and keeps one edito
   assert.match(workspace,/cleanupEnabled/);
   assert.match(workspace,/Archived/);
   assert.match(workspace,/Advanced details/);
+});
+
+test("Record Details uses an opaque, isolated, scroll-contained editor",()=>{
+  assert.match(workspace,/record-editor-scroll/);
+  assert.match(workspace,/document\.body\.style\.overflow="hidden"/);
+  assert.match(workspace,/document\.documentElement\.style\.overflow="hidden"/);
+  assert.match(workspace,/event\.key!=="Tab"/);
+  assert.match(workspace,/querySelectorAll<HTMLElement>/);
+  assert.match(styles,/\.record-editor-backdrop[^}]*z-index:\s*100[^}]*isolation:\s*isolate/);
+  assert.match(styles,/\.record-editor\s*\{[^}]*overflow:\s*hidden[^}]*background:\s*var\(--paper\)/);
+  assert.match(styles,/\.record-editor-scroll[^}]*overflow-y:\s*auto[^}]*background:\s*var\(--paper\)/);
+  assert.match(styles,/\.record-editor \.data-form input:not\(\[type="checkbox"\]\)[^}]*background:\s*#fff/);
+  assert.match(styles,/\.record-editor \.data-checks[^}]*overflow-y:\s*auto[^}]*background:\s*#fff/);
+  assert.doesNotMatch(styles,/\.record-editor[^}]*background:\s*var\(--panel\)/);
+  assert.match(browserVerifier,/verifyEditorSurface/);
+  assert.match(browserVerifier,/record-details-contact/);
+  assert.match(browserVerifier,/record-details-timed-gig/);
+  assert.match(browserVerifier,/record-details-date-only-gig/);
+  assert.match(browserVerifier,/Booked-services selector is not visibly separated/);
 });
