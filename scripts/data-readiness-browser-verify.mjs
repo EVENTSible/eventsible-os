@@ -29,6 +29,43 @@ async function signIn(page, email) {
   await page.waitForLoadState("networkidle");
 }
 
+async function verifyEditorSurface(page, label, { services = false } = {}) {
+  const editor = page.getByRole("dialog");
+  for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(100);
+    const geometry = await page.evaluate(() => {
+      const dialog = document.querySelector(".record-editor");
+      const backdrop = document.querySelector(".record-editor-backdrop");
+      const scroller = document.querySelector(".record-editor-scroll");
+      const header = dialog?.querySelector(":scope > header");
+      const drawerBackground = dialog ? getComputedStyle(dialog).backgroundColor : "";
+      const scrollBackground = scroller ? getComputedStyle(scroller).backgroundColor : "";
+      const backdropBackground = backdrop ? getComputedStyle(backdrop).backgroundColor : "";
+      const blocker = document.elementFromPoint(8, Math.floor(innerHeight / 2));
+      return {
+        width: innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        bodyOverflow: getComputedStyle(document.body).overflow,
+        htmlOverflow: getComputedStyle(document.documentElement).overflow,
+        drawerBackground,
+        scrollBackground,
+        backdropBackground,
+        scrollerOverflow: scroller ? getComputedStyle(scroller).overflowY : "",
+        headerBottom: header?.getBoundingClientRect().bottom ?? 0,
+        scrollerTop: scroller?.getBoundingClientRect().top ?? 0,
+        blockerClass: blocker instanceof HTMLElement ? blocker.className : "",
+      };
+    });
+    if (geometry.scrollWidth > geometry.width || geometry.bodyOverflow !== "hidden" || geometry.htmlOverflow !== "hidden" || geometry.scrollerOverflow !== "auto" || /rgba\([^)]*,\s*0\)|transparent/.test(geometry.drawerBackground) || /rgba\([^)]*,\s*0\)|transparent/.test(geometry.scrollBackground) || !geometry.backdropBackground.startsWith("rgba(24, 10, 35, 0.68)") || Math.abs(geometry.headerBottom - geometry.scrollerTop) > 1 || !String(geometry.blockerClass).includes("record-editor")) throw new Error(`Record Details visual boundary failed for ${label} at ${viewport.width}px: ${JSON.stringify(geometry)}`);
+    if (services) {
+      const serviceList = editor.locator(".data-checks");
+      if (!(await serviceList.isVisible()) || !(await serviceList.locator("label").count())) throw new Error("Booked-services selector is not visibly separated inside Record Details.");
+    }
+    await page.screenshot({ path: `artifacts/data-readiness/${label}-${viewport.width}x${viewport.height}.png`, fullPage: false });
+  }
+}
+
 const browser = await chromium.launch({ headless: true });
 const consoleErrors = [];
 const serverFailures = [];
@@ -66,6 +103,7 @@ try {
   await editor.getByRole("button", { name: "Close editor" }).click();
   await page.getByPlaceholder("Search names, titles, source…").fill("Synthetic browser contact");
   await page.getByRole("button", { name: /Synthetic browser contact/ }).click();
+  await verifyEditorSurface(page, "record-details-contact");
   await editor.getByLabel("Display name").fill("Synthetic browser contact corrected");
   await editor.getByRole("button", { name: "Save contact" }).click();
   await page.getByText(/Contact update recorded with provenance/).waitFor();
@@ -79,9 +117,16 @@ try {
   await page.locator(".record-type-tabs").getByRole("button", { name: "Gigs" }).click();
   await page.getByPlaceholder("Search names, titles, source…").fill("Synthetic corrected event");
   await page.getByRole("button", { name: /Synthetic corrected event/ }).click();
+  await verifyEditorSurface(page, "record-details-timed-gig", { services: true });
   await editor.getByLabel("Title").fill("Synthetic browser-corrected event");
   await editor.getByRole("button", { name: "Save gig" }).click();
   await page.getByText(/Event update recorded with provenance/).waitFor();
+  await editor.getByRole("button", { name: "Close editor" }).click();
+  await page.locator(".record-type-tabs").getByRole("button", { name: "Archived" }).click();
+  await page.getByPlaceholder("Search names, titles, source…").fill("Synthetic gig success 19");
+  await page.getByRole("button", { name: /Synthetic gig success 19/ }).click();
+  await editor.getByText("Time not provided", { exact: true }).waitFor();
+  await verifyEditorSurface(page, "record-details-date-only-gig", { services: true });
   await editor.getByRole("button", { name: "Close editor" }).click();
   await page.locator(".record-type-tabs").getByRole("button", { name: "Leads" }).click();
   await page.getByPlaceholder("Search names, titles, source…").fill("");
