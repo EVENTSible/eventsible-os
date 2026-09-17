@@ -85,6 +85,55 @@ try {
   if (!page.url().endsWith("/admin/data-readiness")) throw new Error(`Owner did not reach Records & Intake: ${new URL(page.url()).pathname}`);
   await page.getByRole("heading", { name: "Records & Intake" }).waitFor();
 
+  await page.goto(`${appUrl}/admin/quick-add`, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Quick Add" }).waitFor();
+  for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(100);
+    const geometry = await page.evaluate(() => {
+      const controls = Array.from(document.querySelectorAll("main button, main a, main input:not([type='hidden']):not([type='checkbox']), main select, main textarea, main summary")).map((element) => element.getBoundingClientRect()).filter((box) => box.width > 0 && box.height > 0);
+      return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, minimumControlHeight: Math.min(...controls.map((box) => box.height)) };
+    });
+    if (geometry.scrollWidth > geometry.width || geometry.minimumControlHeight < 43.5) throw new Error(`Quick Add responsive contract failed at ${viewport.width}px: ${JSON.stringify(geometry)}`);
+    await page.screenshot({ path: `artifacts/data-readiness/quick-add-${viewport.width}x${viewport.height}.png`, fullPage: false });
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByLabel(/Display name/).fill("Synthetic Quick Add browser client");
+  await page.getByLabel("Email", { exact: true }).fill("quick-browser@example.invalid");
+  await page.getByRole("button", { name: "Save contact" }).click();
+  await page.getByText("Contact saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=lead`, { waitUntil: "networkidle" });
+  await page.getByLabel(/Contact/).selectOption({ label: "Synthetic Quick Add browser client" });
+  await page.getByLabel(/What do they want/).fill("Synthetic direct birthday inquiry");
+  await page.getByRole("button", { name: "Save lead" }).click();
+  await page.getByText("Lead saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=event`, { waitUntil: "networkidle" });
+  await page.getByLabel(/Gig \/ event title/).fill("Synthetic Quick Add date-only gig");
+  await page.getByLabel(/Client contact/).selectOption({ label: "Synthetic Quick Add browser client" });
+  await page.getByLabel(/Event type/).fill("birthday_party");
+  await page.getByLabel("Date *").fill("2027-08-14");
+  await page.getByRole("button", { name: "Save gig" }).click();
+  await page.getByText("Gig saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=booking`, { waitUntil: "networkidle" });
+  await page.getByLabel(/Gig \/ event/).selectOption({ label: /Synthetic Quick Add date-only gig/ });
+  await page.getByRole("button", { name: "Save booking" }).click();
+  await page.getByText("Booking saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=note`, { waitUntil: "networkidle" });
+  await page.getByLabel("Record type").selectOption("event");
+  await page.getByLabel(/Attach to/).selectOption({ label: "Synthetic Quick Add date-only gig" });
+  await page.getByLabel(/Business note/).fill("Synthetic Owner-entered browser note.");
+  await page.getByRole("button", { name: "Save note" }).click();
+  await page.getByText("Note saved to EVENTSible HQ.").waitFor();
+  await page.screenshot({ path: "artifacts/data-readiness/quick-add-owner-workflow-390x844.png", fullPage: false });
+
+  await page.goto(`${appUrl}/admin/data-readiness`, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Records & Intake" }).waitFor();
+
   for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
     await page.waitForTimeout(100);

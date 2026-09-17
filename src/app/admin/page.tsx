@@ -248,10 +248,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <p>{canApproveQuotes ? "Review Builder leads, approve the draft quote, and start the booked Gig workspace from the same OS records." : "Review leads, quotes, booked gigs, and operational readiness from the same OS records."}</p>
           </div>
           <div className="header-actions">
+            {canApproveQuotes ? <a className="primary-button" href="/admin/quick-add">+ Add</a> : null}
             <a className="secondary-button" href="/admin/calendar">Open calendar</a>
-            <a className="secondary-button" href="/admin/imports">{canApproveQuotes ? "Add existing gig" : "Review imports"}</a>
+            <a className="secondary-button" href="/admin/imports">Review imports</a>
             <a className="secondary-button" href="#lead-review">Review leads</a>
-            <a className="primary-button" href="#quote-review">{canApproveQuotes ? "Approve quotes" : "Review quotes"}</a>
+            <a className="secondary-button" href="#quote-review">{canApproveQuotes ? "Approve quotes" : "Review quotes"}</a>
           </div>
         </header>
 
@@ -270,6 +271,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <article><span>Booked gigs</span><b>{bookedRows.length}</b><small>Confirmed or workspace-ready</small></article>
           <article><span>Needs attention</span><b>{attention.length}</b><small>Contracts, deposits, or follow-up</small></article>
         </section>
+
+        {canApproveQuotes ? <section className="panel mission-quick-add" aria-labelledby="mission-quick-add-title"><div><span className="eyebrow">Ordinary business entry</span><h2 id="mission-quick-add-title">Quick Add</h2><p>Add a real customer, inquiry, or gig directly to HQ without an import workflow.</p></div><div className="header-actions"><a className="secondary-button" href="/admin/quick-add?type=contact">Add Contact</a><a className="secondary-button" href="/admin/quick-add?type=lead">Add Lead</a><a className="primary-button" href="/admin/quick-add?type=event">Add Gig</a></div></section> : null}
 
         <section className="mission-grid">
           <article className="panel lead-panel" id="lead-review">
