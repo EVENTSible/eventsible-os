@@ -23,6 +23,7 @@ on:
       - codex/historical-operational-import
       - codex/hq-importer-financial-integrity
       - codex/vera-warren-bounded-correction
+      - codex/warren-owner-attestation-promotion
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
@@ -164,6 +165,9 @@ jobs:
 
       - name: Run bounded Vera and Warren correction verification
         run: npm run test:vera-warren:local-supabase
+
+      - name: Run bounded Warren Owner-attestation promotion verification
+        run: npm run test:warren-owner-attestation:local-supabase
 
       - name: Capture local Supabase advisors
         run: |

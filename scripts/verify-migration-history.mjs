@@ -14,8 +14,8 @@ if (manifest.format !== "eventsible_supabase_migration_history_v1") {
   throw new Error(`Unsupported migration-history manifest: ${manifest.format}`);
 }
 
-if (manifest.migrations.length !== 50) {
-  throw new Error(`Expected 50 canonical migrations, found ${manifest.migrations.length}.`);
+if (manifest.migrations.length !== 51) {
+  throw new Error(`Expected 51 canonical migrations, found ${manifest.migrations.length}.`);
 }
 
 const pendingMigrations = manifest.pendingMigrations ?? [];
@@ -91,7 +91,7 @@ if (untrackedMigrations.length > 0) {
 }
 
 console.log(
-  `Migration history verified: 50 immutable canonical migrations${
+  `Migration history verified: 51 immutable canonical migrations${
     pendingMigrations.length > 0 ? ` and ${pendingMigrations.length} tracked pending migration(s)` : ""
   }; no duplicate or superseded timestamps.`,
 );

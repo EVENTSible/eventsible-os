@@ -154,3 +154,24 @@ export async function compensateVeraWarrenAction(_state:DataReadinessActionState
   if(result.error)return fail(rpcFailure(result.error,"The bounded correction could not be compensated."));
   refresh(); return {status:"success",message:"The recorded before-image was restored and the Warren candidate was preserved as ignored history.",result:result.data};
 }
+
+export async function previewWarrenOwnerAttestationAction():Promise<DataReadinessActionState>{
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const result=await auth.supabase.rpc("os_preview_warren_owner_attestation");
+  if(result.error)return fail(rpcFailure(result.error,"The exact Warren promotion could not be previewed."));
+  return {status:"success",message:"Candidate, protected history, and duplicate scan verified. Review the exact fingerprint before applying.",result:result.data};
+}
+
+export async function applyWarrenOwnerAttestationAction(_state:DataReadinessActionState,form:FormData):Promise<DataReadinessActionState>{
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const result=await auth.supabase.rpc("os_apply_warren_owner_attestation",{p_expected_fingerprint:value(form,"expected_fingerprint"),p_contact_display_name:value(form,"contact_display_name"),p_normalized_phone:value(form,"normalized_phone"),p_confirmation:value(form,"confirmation")});
+  if(result.error)return fail(rpcFailure(result.error,"The bounded Warren promotion stopped without a partial change."));
+  refresh(); return {status:"success",message:result.data?.status==="replayed"?"The identical promotion was already applied; nothing was duplicated.":"Warren was promoted from the exact review candidate with Owner-attested evidence and no automation.",result:result.data};
+}
+
+export async function compensateWarrenOwnerAttestationAction(_state:DataReadinessActionState,form:FormData):Promise<DataReadinessActionState>{
+  const auth=await owner(); if(!auth)return fail("Owner authorization is required.");
+  const result=await auth.supabase.rpc("os_compensate_warren_owner_attestation",{p_expected_after_fingerprint:value(form,"expected_after_fingerprint"),p_confirmation:value(form,"confirmation")});
+  if(result.error)return fail(rpcFailure(result.error,"The bounded Warren promotion could not be compensated."));
+  refresh(); return {status:"success",message:"Created records were archived, the candidate before-image was restored, and audit history was preserved.",result:result.data};
+}
