@@ -12,6 +12,7 @@ export type QuickAddState = {
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const fail = (message: string): QuickAddState => ({ status: "error", message });
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function refreshOperationalViews() {
   revalidatePath("/admin");
@@ -47,6 +48,8 @@ export async function quickAddAction(_state: QuickAddState, form: FormData): Pro
   if (!auth.ok) return fail("Owner authorization is required.");
 
   const recordType = value(form, "record_type");
+  const operationId = value(form, "operation_id");
+  if (!UUID.test(operationId)) return fail("Reload Quick Add before saving this record.");
   const confirmDuplicates = value(form, "confirm_duplicates") === "true";
   let payload: Record<string, unknown>;
 
@@ -117,6 +120,7 @@ export async function quickAddAction(_state: QuickAddState, form: FormData): Pro
   }
 
   const result = await auth.supabase.rpc("os_owner_quick_add", {
+    p_operation_id: operationId,
     p_record_type: recordType,
     p_payload: payload,
     p_confirm_duplicates: confirmDuplicates,

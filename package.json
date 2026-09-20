@@ -13,6 +13,7 @@
     "test:team-calendar:local-supabase": "node scripts/team-availability-local-supabase-verify.mjs",
     "test:data-readiness:local-supabase": "node scripts/data-readiness-local-supabase-verify.mjs",
     "test:quick-add:local-supabase": "node scripts/quick-add-local-supabase-verify.mjs",
+    "test:quick-add:rollback": "node scripts/quick-add-rollback-local-supabase-verify.mjs",
     "test:bounded-cleanup:local-supabase": "node scripts/bounded-cleanup-local-supabase-verify.mjs",
     "test:complete-intake:local-supabase": "node scripts/complete-intake-local-supabase-verify.mjs",
     "test:vera-warren:local-supabase": "node scripts/vera-warren-correction-local-supabase-verify.mjs",
