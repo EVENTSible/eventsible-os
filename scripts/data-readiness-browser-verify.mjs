@@ -5,6 +5,7 @@ const appUrl = process.env.DATA_READINESS_APP_URL ?? "http://127.0.0.1:3100";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const serviceKey = process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY ?? "";
 const password = process.env.DATA_READINESS_TEST_PASSWORD ?? "";
+const quickAddOnly = process.argv.includes("--quick-add-only");
 if (!/^http:\/\/(127\.0\.0\.1|localhost):/.test(supabaseUrl) || !serviceKey || !password) throw new Error("Isolated local Supabase browser-test environment is incomplete.");
 
 const users = [
@@ -21,8 +22,14 @@ async function admin(path, init = {}) {
   return response.status === 204 ? null : response.json();
 }
 
-async function signIn(page, email) {
-  await page.goto(`${appUrl}/login?next=/admin/data-readiness`, { waitUntil: "networkidle" });
+async function rows(table, query) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, { headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}` } });
+  if (!response.ok) throw new Error(`Local canonical-record verification failed for ${table} with status ${response.status}.`);
+  return response.json();
+}
+
+async function signIn(page, email, nextPath = "/admin/data-readiness") {
+  await page.goto(`${appUrl}/login?next=${nextPath}`, { waitUntil: "networkidle" });
   await page.getByLabel("Business email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -83,6 +90,69 @@ try {
   page.on("response", (response) => { if (response.status() >= 500) serverFailures.push(`${response.status()} ${new URL(response.url()).pathname}`); });
   await signIn(page, users[0].email);
   if (!page.url().endsWith("/admin/data-readiness")) throw new Error(`Owner did not reach Records & Intake: ${new URL(page.url()).pathname}`);
+  await page.getByRole("heading", { name: "Records & Intake" }).waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add`, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Quick Add" }).waitFor();
+  for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(100);
+    const geometry = await page.evaluate(() => {
+      const controls = Array.from(document.querySelectorAll("main button, main a, main input:not([type='hidden']):not([type='checkbox']), main select, main textarea, main summary")).map((element) => element.getBoundingClientRect()).filter((box) => box.width > 0 && box.height > 0);
+      return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, minimumControlHeight: Math.min(...controls.map((box) => box.height)) };
+    });
+    if (geometry.scrollWidth > geometry.width || geometry.minimumControlHeight < 43.5) throw new Error(`Quick Add responsive contract failed at ${viewport.width}px: ${JSON.stringify(geometry)}`);
+    await page.screenshot({ path: `artifacts/data-readiness/quick-add-${viewport.width}x${viewport.height}.png`, fullPage: false });
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByLabel(/Display name/).fill("Synthetic Quick Add browser client");
+  await page.getByLabel("Email", { exact: true }).fill("quick-browser@example.invalid");
+  await page.getByRole("button", { name: "Save contact" }).click();
+  await page.getByText("Contact saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=lead`, { waitUntil: "networkidle" });
+  await page.getByLabel(/Contact/).selectOption({ label: "Synthetic Quick Add browser client" });
+  await page.getByLabel(/What do they want/).fill("Synthetic direct birthday inquiry");
+  await page.getByRole("button", { name: "Save lead" }).click();
+  await page.getByText("Lead saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=event`, { waitUntil: "networkidle" });
+  await page.getByLabel(/Gig \/ event title/).fill("Synthetic Quick Add date-only gig");
+  await page.getByLabel(/Client contact/).selectOption({ label: "Synthetic Quick Add browser client" });
+  await page.getByLabel(/Event type/).fill("birthday_party");
+  await page.getByLabel("Date *").fill("2027-08-14");
+  await page.getByRole("button", { name: "Save gig" }).click();
+  await page.getByText("Gig saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=booking`, { waitUntil: "networkidle" });
+  await page.getByLabel(/Gig \/ event/).selectOption({ label: "Synthetic Quick Add date-only gig · inquiry" });
+  await page.getByRole("button", { name: "Save booking" }).click();
+  await page.getByText("Booking saved to EVENTSible HQ.").waitFor();
+
+  await page.goto(`${appUrl}/admin/quick-add?type=note`, { waitUntil: "networkidle" });
+  await page.getByRole("combobox", { name: "Record type" }).selectOption("event");
+  await page.getByLabel(/Attach to/).selectOption({ label: "Synthetic Quick Add date-only gig" });
+  await page.getByLabel(/Business note/).fill("Synthetic Owner-entered browser note.");
+  await page.getByRole("button", { name: "Save note" }).click();
+  await page.getByText("Note saved to EVENTSible HQ.").waitFor();
+  await page.screenshot({ path: "artifacts/data-readiness/quick-add-owner-workflow-390x844.png", fullPage: false });
+
+  const quickContacts = await rows("os_contacts", "primary_email=eq.quick-browser%40example.invalid&select=id");
+  if (quickContacts.length !== 1) throw new Error("Contact Quick Add browser flow did not create exactly one canonical contact.");
+  const quickLeads = await rows("os_leads", `contact_id=eq.${quickContacts[0].id}&inquiry_summary=eq.Synthetic%20direct%20birthday%20inquiry&select=id`);
+  if (quickLeads.length !== 1) throw new Error("Lead Quick Add browser flow did not create exactly one canonical lead.");
+  const quickEvents = await rows("os_events", "title=eq.Synthetic%20Quick%20Add%20date-only%20gig&select=id,historical_date,starts_at,timezone");
+  if (quickEvents.length !== 1 || quickEvents[0].historical_date !== "2027-08-14" || quickEvents[0].starts_at !== null || quickEvents[0].timezone !== null) throw new Error("Date-only Event Quick Add browser flow did not preserve exact canonical date semantics.");
+  const quickBookings = await rows("os_bookings", `event_id=eq.${quickEvents[0].id}&select=id,payment_status,total_amount,deposit_amount,balance_due`);
+  if (quickBookings.length !== 1 || quickBookings[0].payment_status !== "unknown" || quickBookings[0].total_amount !== null || quickBookings[0].deposit_amount !== null || quickBookings[0].balance_due !== null) throw new Error("Booking Quick Add browser flow did not preserve zero-service unknown-payment semantics.");
+  const quickServices = await rows("os_booking_services", `booking_id=eq.${quickBookings[0].id}&select=id`);
+  if (quickServices.length !== 0) throw new Error("Booking Quick Add browser flow created an unselected service.");
+  const quickNotes = await rows("os_event_notes", `event_id=eq.${quickEvents[0].id}&body=eq.Synthetic%20Owner-entered%20browser%20note.&select=id`);
+  if (quickNotes.length !== 1) throw new Error("Note Quick Add browser flow did not create exactly one canonical event note.");
+
+  if (!quickAddOnly) {
+  await page.goto(`${appUrl}/admin/data-readiness`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Records & Intake" }).waitFor();
 
   for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }, { width: 1440, height: 900 }]) {
@@ -167,18 +237,20 @@ try {
   await page.getByText(/without erasing history/).waitFor();
   await page.screenshot({ path: "artifacts/data-readiness/owner-workflow-complete-390x844.png", fullPage: false });
   await ownerContext.close();
+  }
+  if (quickAddOnly) await ownerContext.close();
 
   for (const user of users.slice(1)) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const deniedPage = await context.newPage();
-    await signIn(deniedPage, user.email);
+    await signIn(deniedPage, user.email, quickAddOnly ? "/admin/quick-add" : "/admin/data-readiness");
     await deniedPage.waitForURL(/\/access-denied$/);
-    if (!deniedPage.url().endsWith("/access-denied")) throw new Error(`${user.role} reached the Owner-only Data Readiness route.`);
+    if (!deniedPage.url().endsWith("/access-denied")) throw new Error(`${user.role} reached the Owner-only route.`);
     await context.close();
   }
 
   if (consoleErrors.length || serverFailures.length) throw new Error(`Browser/runtime errors occurred: ${JSON.stringify({ consoleErrors, serverFailures })}`);
-  console.log("Data Readiness authenticated browser verification passed with synthetic local Owner, Manager, Staff, and Host identities.");
+  console.log(`${quickAddOnly ? "Owner Quick Add" : "Data Readiness"} authenticated browser verification passed with synthetic local Owner, Manager, Staff, and Host identities.`);
 } finally {
   await browser.close();
   for (const id of createdIds) {

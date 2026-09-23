@@ -7,6 +7,7 @@ import { activeHqNavigationId, HQ_NAVIGATION, hqContextLabel } from "../lib/hq-n
 test("HQ navigation registry has the approved destinations and no future placeholders", () => {
   assert.deepEqual(HQ_NAVIGATION.map(({ id, label, href, group }) => ({ id, label, href, group })), [
     { id: "today", label: "Today", href: "/admin", group: "primary" },
+    { id: "quick-add", label: "Quick Add", href: "/admin/quick-add", group: "primary" },
     { id: "calendar", label: "Calendar", href: "/admin/calendar", group: "primary" },
     { id: "gigs", label: "Gigs", href: "/admin#gig-workspace", group: "primary" },
     { id: "leads", label: "Leads", href: "/admin#lead-review", group: "primary" },
@@ -22,6 +23,7 @@ test("route and anchor matching preserve active global context", () => {
   assert.equal(activeHqNavigationId("/admin", "quote-review"), "leads");
   assert.equal(activeHqNavigationId("/admin", "#gig-workspace"), "gigs");
   assert.equal(activeHqNavigationId("/admin/calendar"), "calendar");
+  assert.equal(activeHqNavigationId("/admin/quick-add"), "quick-add");
   assert.equal(activeHqNavigationId("/admin/imports"), "imports");
   assert.equal(activeHqNavigationId("/admin/data-readiness"), "data-readiness");
   assert.equal(activeHqNavigationId("/admin/gigs/event-id"), "gigs");
@@ -34,6 +36,7 @@ test("context labels distinguish nested workspaces without adding top-level dest
   assert.equal(hqContextLabel("/admin/wedding/event-id"), "Wedding Hero review");
   assert.equal(hqContextLabel("/admin/event/event-id"), "Event Hero review");
   assert.equal(hqContextLabel("/admin/imports"), "Imports");
+  assert.equal(hqContextLabel("/admin/quick-add"), "Quick Add");
   assert.equal(hqContextLabel("/admin/data-readiness"), "Records & Intake");
 });
 
@@ -67,6 +70,7 @@ test("ordinary admin pages no longer render page-specific sidebars", () => {
   for (const relativePath of [
     "../app/admin/page.tsx",
     "../app/admin/calendar/page.tsx",
+    "../app/admin/quick-add/page.tsx",
     "../app/admin/imports/page.tsx",
     "../app/admin/data-readiness/page.tsx",
     "../app/admin/gigs/[eventId]/page.tsx",

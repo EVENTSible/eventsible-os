@@ -2079,12 +2079,59 @@ a { color: inherit; text-decoration: none; }
 .cleanup-actions form { display: grid; align-content: start; gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
 .cleanup-actions input { width: 100%; min-height: 44px; }
 
+/* Quick Add keeps ordinary Owner entry distinct from reviewed intake tools. */
+.mission-quick-add { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 22px; background: linear-gradient(135deg,#fff 0%,#f7f1ff 100%); }
+.mission-quick-add h2 { margin: 4px 0; }
+.mission-quick-add p { margin: 0; color: var(--muted); }
+.quick-add-main { max-width: 980px; margin-inline: auto; }
+.quick-add-main .admin-header.compact { min-height: 0; }
+.quick-type-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; margin-bottom: 18px; }
+.quick-type-grid button { min-height: 82px; display: grid; align-content: center; gap: 4px; border: 1px solid var(--line); border-radius: 14px; padding: 12px; color: var(--ink); background: #fff; text-align: left; cursor: pointer; }
+.quick-type-grid button span { color: var(--muted); font-size: .78rem; line-height: 1.25; }
+.quick-type-grid button.active { border-color: var(--purple); background: #f4edff; box-shadow: 0 0 0 2px rgba(109,40,217,.12); }
+.quick-add-panel { max-width: 820px; margin-inline: auto; }
+.quick-form { display: grid; gap: 16px; }
+.quick-form > label, .quick-grid label { min-width: 0; display: grid; gap: 6px; color: var(--muted); font-size: .86rem; font-weight: 800; }
+.quick-form input:not([type="checkbox"]), .quick-form select, .quick-form textarea { width: 100%; min-width: 0; min-height: 46px; border: 1px solid #cfc5da; border-radius: 10px; padding: 9px 11px; color: var(--ink); background: #fff; }
+.quick-form textarea { resize: vertical; }
+.quick-form input:focus-visible, .quick-form select:focus-visible, .quick-form textarea:focus-visible, .quick-type-grid button:focus-visible { border-color: var(--purple); outline: 3px solid rgba(109,40,217,.18); outline-offset: 1px; }
+.quick-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; }
+.quick-grid .span { grid-column: 1/-1; }
+.quick-hint { margin: 0; color: var(--muted); font-size: .83rem; }
+.quick-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.quick-choice button { min-height: 46px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: #fff; font-weight: 800; }
+.quick-choice button.active { border-color: var(--purple); color: var(--purple); background: #f4edff; }
+.quick-form fieldset { min-width: 0; margin: 0; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.quick-form legend { padding: 0 6px; font-weight: 850; }
+.quick-toggle, .quick-confirm { min-height: 46px; display: flex !important; flex-direction: row; align-items: center; gap: 10px !important; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; color: var(--ink) !important; background: #faf8fc; }
+.quick-toggle input, .quick-confirm input { width: 20px; height: 20px; flex: 0 0 auto; }
+.quick-services { border: 1px solid var(--line); border-radius: 12px; background: #faf8fc; }
+.quick-services summary { min-height: 46px; display: flex; align-items: center; padding: 10px 13px; font-weight: 850; cursor: pointer; }
+.quick-services > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; max-height: 280px; overflow-y: auto; border-top: 1px solid var(--line); padding: 10px; background: #fff; }
+.quick-services label { min-height: 48px; display: flex; align-items: center; gap: 9px; border-radius: 9px; padding: 8px; color: var(--ink); background: #f5f1fa; }
+.quick-services input { width: 20px; height: 20px; flex: 0 0 auto; }
+.quick-services span { display: grid; gap: 1px; }
+.quick-services small { color: var(--muted); }
+.quick-submit { min-height: 48px; justify-self: start; }
+.quick-feedback { display: grid; gap: 8px; border-radius: 11px; padding: 12px 14px; }
+.quick-feedback.success { color: #0d5b3c; background: #e9f8f1; }
+.quick-feedback.warning { color: #69470a; background: #fff6dc; }
+.quick-feedback.error { color: #8b1d28; background: #fff0f1; }
+.quick-feedback ul { margin: 0; padding-left: 20px; }
+.quick-feedback .secondary-button { justify-self: start; }
+
 @media (max-width: 980px) {
   .data-form-grid, .data-checks, .financial-evidence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .data-inline-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 700px) {
+  .mission-quick-add { align-items: stretch; flex-direction: column; }
+  .mission-quick-add .header-actions a { flex: 1 1 120px; }
+  .quick-type-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .quick-type-grid button { min-height: 68px; }
+  .quick-grid, .quick-services > div { grid-template-columns: 1fr; }
+  .quick-submit { width: 100%; }
   .data-readiness-main { gap: 12px; }
   .data-readiness-main .admin-header.compact p { font-size: .9rem; }
   .data-tabs { width: 100%; }

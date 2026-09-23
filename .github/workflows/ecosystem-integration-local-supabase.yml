@@ -24,6 +24,7 @@ on:
       - codex/hq-importer-financial-integrity
       - codex/vera-warren-bounded-correction
       - codex/warren-owner-attestation-promotion
+      - codex/hq-owner-quick-add
       - feat/ecosystem-integration-foundation
       - fix/outbox-helper-grant-parity
       - feat/builder-intake-outbox-wiring
@@ -123,6 +124,16 @@ jobs:
       - name: Lint reconstructed database
         run: npx supabase@2.117.0 db lint --local --schema public,private --level warning --fail-on error
 
+      - name: Verify Owner Quick Add rollback
+        run: npm run test:quick-add:rollback
+
+      - name: Restore forward schema after rollback verification
+        run: |
+          npx supabase@2.117.0 db reset --local
+          expected_versions="$(node -e "const m=require('./supabase/migration-history.json'); process.stdout.write([...m.migrations,...(m.pendingMigrations ?? [])].map((x)=>x.version).join('\n'))")"
+          actual_versions="$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select version from supabase_migrations.schema_migrations order by version")"
+          test "$actual_versions" = "$expected_versions"
+
       - name: Export sanitized reconstructed schema catalog
         env:
           SCHEMA_CATALOG_DB_URL: ${{ env.SUPABASE_LOCAL_DB_URL }}
@@ -152,6 +163,9 @@ jobs:
 
       - name: Run Data Readiness authorization and intake verification
         run: npm run test:data-readiness:local-supabase
+
+      - name: Run Owner Quick Add verification
+        run: npm run test:quick-add:local-supabase
 
       - name: Run bounded cleanup and archive verification
         run: npm run test:bounded-cleanup:local-supabase
