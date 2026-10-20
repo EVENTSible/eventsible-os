@@ -224,6 +224,8 @@ jobs:
           printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$API_URL" >> "$GITHUB_ENV"
           printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$ANON_KEY" >> "$GITHUB_ENV"
           printf 'LOCAL_SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          # Only a disposable loopback Supabase key is used by the local public-content API.
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
           test_password="$(openssl rand -base64 30 | tr -d '\n')"
           printf '::add-mask::%s\n' "$test_password"
           printf 'DATA_READINESS_TEST_PASSWORD=%s\n' "$test_password" >> "$GITHUB_ENV"
@@ -252,12 +254,17 @@ jobs:
       - name: Run authenticated Data Readiness browser verification
         run: npm run test:data-readiness:browser
 
+      - name: Run Site Studio owner browser verification
+        run: node scripts/site-studio-browser-verify.mjs
+
       - name: Upload sanitized Data Readiness evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: data-readiness-isolated-evidence
-          path: artifacts/data-readiness
+          path: |
+            artifacts/data-readiness
+            artifacts/site-studio
           if-no-files-found: warn
           retention-days: 14
 
