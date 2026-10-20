@@ -69,6 +69,16 @@ export default async function SiteStudioPage({ searchParams }: { searchParams?: 
           <button className="primary-button" type="submit">Save private draft</button>
         </form>
       </section>
+      <section className="panel" aria-label="Private draft preview">
+        <p className="eyebrow">PRIVATE PREVIEW • NOT THE PUBLIC WEBSITE</p>
+        <h2 style={{fontSize:"2rem",maxWidth:"50rem"}}>
+          {field(current.heading, DEFAULTS.heading)}{" "}
+          <span>{field(current.highlight, DEFAULTS.highlight)}</span>
+        </h2>
+        <p style={{maxWidth:"50rem"}}>{field(current.subheading, DEFAULTS.subheading)}</p>
+        <h3>{field(current.portfolio_heading, DEFAULTS.portfolio_heading)}</h3>
+        <p>{field(current.portfolio_body, DEFAULTS.portfolio_body)}</p>
+      </section>
       <section className="panel">
         <h2>Revisions and deliberate publishing</h2>
         <p className="panel-note">Publishing changes the public-content API only after a separately approved deployment/database rollout. Restore an older version by re-publishing it.</p>
