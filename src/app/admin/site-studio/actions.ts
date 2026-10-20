@@ -18,6 +18,21 @@ export async function saveHomepageDraft(form: FormData) {
   const portfolioHeading = clean(form, "portfolio_heading", 140);
   const portfolioBody = clean(form, "portfolio_body", 600);
   const heroMediaId = clean(form, "hero_media_id", 40);
+  const sectionFields = {
+    event_types_heading: clean(form, "event_types_heading", 140),
+    services_heading: clean(form, "services_heading", 140),
+    services_body: clean(form, "services_body", 600),
+    featured_heading: clean(form, "featured_heading", 140),
+    featured_body: clean(form, "featured_body", 600),
+    final_cta_heading: clean(form, "final_cta_heading", 140),
+    final_cta_body: clean(form, "final_cta_body", 600),
+  };
+  const editableSections = ["home-event-types", "home-services", "home-trust", "home-featured-packages", "home-planning-tools", "home-faq"] as const;
+  const visible = form.getAll("visible_sections").map(String).filter((id) => editableSections.includes(id as typeof editableSections[number]));
+  const chosenOrder = clean(form, "section_order", 350).split(",").filter((id) => editableSections.includes(id as typeof editableSections[number]));
+  const sectionOrder = [...new Set([...chosenOrder, ...editableSections])];
+  const galleryIds = [...new Set(form.getAll("gallery_media_ids").map(String).filter(Boolean))].slice(0,3);
+  if (galleryIds.some((id) => !uuid.test(id))) redirect("/admin/site-studio?error=media");
   if (!heading || !highlight || !subheading) redirect("/admin/site-studio?error=required");
   if (heroMediaId && !uuid.test(heroMediaId)) redirect("/admin/site-studio?error=media");
 
@@ -27,6 +42,12 @@ export async function saveHomepageDraft(form: FormData) {
       .eq("usage_approved", true).eq("permission_confirmed", true).maybeSingle();
     if (error || !data) redirect("/admin/site-studio?error=media");
   }
+  if (galleryIds.length) {
+    const { data, error } = await auth.supabase.from("os_site_media")
+      .select("id").in("id",galleryIds).eq("status","approved")
+      .eq("usage_approved",true).eq("permission_confirmed",true);
+    if (error || data?.length !== galleryIds.length) redirect("/admin/site-studio?error=media");
+  }
   const { error } = await auth.supabase.from("os_site_content_revisions").insert({
     page_key: "home",
     state: "draft",
@@ -35,6 +56,10 @@ export async function saveHomepageDraft(form: FormData) {
       portfolio_heading: portfolioHeading,
       portfolio_body: portfolioBody,
       hero_media_id: heroMediaId || null,
+      gallery_media_ids: galleryIds,
+      section_order: sectionOrder,
+      visible_sections: visible,
+      ...sectionFields,
     },
     created_by: auth.user.id,
   });
