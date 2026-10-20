@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 const databaseUrl = process.env.SUPABASE_LOCAL_DB_URL || "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 const parsed = new URL(databaseUrl);
 assert(["127.0.0.1","localhost","::1"].includes(parsed.hostname), "Only disposable loopback PostgreSQL is allowed");
-assert(!/supabase\\.co/i.test(databaseUrl), "Production/remote DB URL forbidden");
+assert(!/supabase\.co/i.test(databaseUrl), "Production/remote DB URL forbidden");
 const env = { ...process.env, PGPASSWORD: process.env.PGPASSWORD || "postgres" };
 
 function psql(statement, expectFailure = false) {
@@ -17,7 +17,7 @@ function psql(statement, expectFailure = false) {
     return "";
   }
   if (result.status !== 0) throw new Error("Site Studio isolated SQL verification failed: " + String(result.stderr || result.stdout).slice(0,1000));
-  return String(result.stdout || "").trim().split(/\\r?\\n/).filter(Boolean).at(-1) || "";
+  return String(result.stdout || "").trim().split(/\r?\n/).filter(Boolean).at(-1) || "";
 }
 const owner = "55000000-0000-4000-8000-000000000001";
 const staff = "55000000-0000-4000-8000-000000000002";
