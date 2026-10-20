@@ -22,6 +22,7 @@ export async function GET() {
       portfolio_body: field("portfolio_body", 600),
       hero_media_url: null,
       hero_media_alt: null,
+      power_welcome: field("power_welcome", 32),
       event_types_heading: field("event_types_heading", 140),
       services_heading: field("services_heading", 140),
       services_body: field("services_body", 600),
@@ -58,9 +59,21 @@ export async function GET() {
         return media ? [{ public_url:media.public_url, alt_text:media.alt_text, title:media.title }] : [];
       });
     }
+    const allowedPowerIds = [
+      "hq", "fast-track", "builder", "stage", "workshop", "play-connect",
+    ] as const;
+    const rawPower = raw.power_subtitles &&
+      typeof raw.power_subtitles === "object" && !Array.isArray(raw.power_subtitles)
+      ? raw.power_subtitles as Record<string, unknown> : {};
+    const powerSubtitles = Object.fromEntries(
+      allowedPowerIds.map((id) => [
+        id,
+        typeof rawPower[id] === "string" ? String(rawPower[id]).slice(0, 52) : "",
+      ]),
+    );
     return NextResponse.json({
       version: 1, revision: page.revision,
-      content: { ...content, section_order:sectionOrder, visible_sections:visibleSections, gallery_media:galleryMedia },
+      content: { ...content, power_subtitles:powerSubtitles, section_order:sectionOrder, visible_sections:visibleSections, gallery_media:galleryMedia },
     }, { headers: publicHeaders });
   } catch {
     return NextResponse.json({ error: "content_unavailable" }, { status: 503, headers: { ...publicHeaders, "Cache-Control": "no-store" } });
