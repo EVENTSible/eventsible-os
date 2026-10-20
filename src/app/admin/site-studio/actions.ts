@@ -60,8 +60,9 @@ function driveFileId(value: string): string | null {
   try {
     const url = new URL(raw);
     if (url.protocol !== "https:" || url.hostname !== "drive.google.com") return null;
-    const match = /^\\/file\\/d\\/([A-Za-z0-9_-]{12,120})(?:\\/|$)/.exec(url.pathname);
-    return match?.[1] ?? null;
+    const segments = url.pathname.split("/").filter(Boolean);
+    if (segments[0] !== "file" || segments[1] !== "d" || !segments[2]) return null;
+    return /^[A-Za-z0-9_-]{12,120}$/.test(segments[2]) ? segments[2] : null;
   } catch {
     return null;
   }
