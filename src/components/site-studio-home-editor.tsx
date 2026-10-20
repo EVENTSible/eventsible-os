@@ -26,6 +26,8 @@ type Copy = {
   portfolio_heading: string;
   portfolio_body: string;
   hero_media_id: string;
+  power_welcome: string;
+  power_subtitles: Record<string, string>;
   event_types_heading: string;
   services_heading: string;
   services_body: string;
@@ -53,6 +55,7 @@ export function SiteStudioHomeEditor({
   ]);
   const [visible, setVisible] = useState<string[]>(initial.visible_sections ?? ALL_IDS);
   const [gallery, setGallery] = useState<string[]>([...initial.gallery_media_ids, "", "", ""].slice(0, 3));
+  const [powerSubtitles, setPowerSubtitles] = useState<Record<string, string>>(initial.power_subtitles);
   const photo = approvedMedia.find((media) => media.id === copy.hero_media_id);
   const update = (key: keyof Copy, value: string) =>
     setCopy((current) => ({ ...current, [key]: value }));
@@ -91,6 +94,32 @@ export function SiteStudioHomeEditor({
         <h2>Homepage editor</h2>
         <p className="panel-note">Live preview is private. Saving creates a draft; publishing is a separate owner action. The Event Builder and booking links are locked for safety.</p>
         <form action={saveAction} className="site-studio-form" style={{ display: "grid", gap: "1.2rem", maxWidth: 860 }}>
+          <fieldset style={{ display: "grid", gap: "0.8rem" }}>
+            <legend><strong>Power Mode front door</strong></legend>
+            <p className="panel-note">
+              Edit the welcome and short descriptions on our six comic-book panels.
+              Panel titles, destinations, Builder entry, and color scheme stay protected.
+            </p>
+            {textField("power_welcome", "Power Mode welcome", 32)}
+            {[
+              ["hq", "Discover"],
+              ["fast-track", "Fast Track"],
+              ["builder", "Build"],
+              ["stage", "Stage"],
+              ["workshop", "Custom Creations"],
+              ["play-connect", "Play / Connect"],
+            ].map(([id, label]) => (
+              <label key={id} style={{ display: "grid", gap: "0.4rem" }}>
+                {label} panel description
+                <input name={`power_subtitle_${id}`} maxLength={52}
+                  value={powerSubtitles[id] ?? ""}
+                  onChange={(event) => setPowerSubtitles((current) => ({
+                    ...current, [id]: event.target.value,
+                  }))}
+                />
+              </label>
+            ))}
+          </fieldset>
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
             <legend><strong>Welcome & hero</strong></legend>
             {textField("heading", "Headline", 110)}
@@ -179,6 +208,15 @@ export function SiteStudioHomeEditor({
               <img src={photo.public_url} alt={photo.alt_text} style={{ width: "100%", height: "auto", objectFit: "cover" }} />
             ) : <p style={{ padding: "1rem" }}>The existing hero photo stays until an approved replacement is selected.</p>}
           </div>
+        </div>
+        <div style={{ border: "1px solid currentColor", borderRadius: "0.75rem", padding: "1rem" }}>
+          <strong>Power Mode preview</strong>
+          <p>{copy.power_welcome || "Welcome To"} EVENTSible</p>
+          <ul style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "0.75rem" }}>
+            {Object.entries(powerSubtitles).map(([id, subtitle]) => (
+              <li key={id}><strong>{id}</strong>: {subtitle}</li>
+            ))}
+          </ul>
         </div>
         <h3>{copy.event_types_heading}</h3>
         <h3>{copy.services_heading}</h3>
