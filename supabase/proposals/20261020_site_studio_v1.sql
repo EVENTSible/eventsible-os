@@ -78,6 +78,34 @@ begin
     ) then
     raise exception 'Hero media not approved' using errcode = '22023';
   end if;
+  if target.content ? 'gallery_media_ids' then
+    if jsonb_typeof(target.content -> 'gallery_media_ids') <> 'array'
+      or jsonb_array_length(target.content -> 'gallery_media_ids') > 3 then
+      raise exception 'Invalid media gallery' using errcode = '22023';
+    end if;
+    if exists (
+      select 1 from jsonb_array_elements_text(target.content -> 'gallery_media_ids') as selected(id)
+      where not exists (
+        select 1 from public.os_site_media as media where media.id::text = selected.id
+        and media.status = 'approved' and media.usage_approved and media.permission_confirmed
+        and media.public_url is not null
+      )
+    ) then
+      raise exception 'Unapproved media gallery item' using errcode = '22023';
+    end if;
+  end if;
+  if target.content ? 'section_order' and (
+    jsonb_typeof(target.content -> 'section_order') <> 'array'
+    or jsonb_array_length(target.content -> 'section_order') > 6
+  ) then
+    raise exception 'Invalid section order' using errcode = '22023';
+  end if;
+  if target.content ? 'visible_sections' and (
+    jsonb_typeof(target.content -> 'visible_sections') <> 'array'
+    or jsonb_array_length(target.content -> 'visible_sections') > 6
+  ) then
+    raise exception 'Invalid visible sections' using errcode = '22023';
+  end if;
   update public.os_site_content_revisions set state = 'archived'
     where page_key = 'home' and state = 'published';
   update public.os_site_content_revisions set state = 'published' where id = target.id;
