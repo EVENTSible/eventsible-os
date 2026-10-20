@@ -29,6 +29,13 @@ const defaults = {
   portfolio_heading: "See EVENTSible in action",
   portfolio_body: "Real moments from real EVENTSible events.",
   hero_media_id: "",
+  event_types_heading: "Discover your kind of celebration",
+  services_heading: "What EVENTSible brings to the party",
+  services_body: "Explore DJs, hosted games, photo booths, wedding experiences, kids parties, and custom creations.",
+  featured_heading: "Original experiences worth getting excited about",
+  featured_body: "Mix and match services or build a completely custom celebration.",
+  final_cta_heading: "Ready to make it EVENTSible?",
+  final_cta_body: "Tell us what you're imagining. We'll help turn it into an experience.",
 };
 const textField = (value: unknown, fallback: string) =>
   typeof value === "string" ? value : fallback;
@@ -70,6 +77,18 @@ export default async function SiteStudioPage({
     hero_media_id: approvedMedia.some((media) => media.id === current.hero_media_id)
       ? String(current.hero_media_id)
       : defaults.hero_media_id,
+    event_types_heading: textField(current.event_types_heading, defaults.event_types_heading),
+    services_heading: textField(current.services_heading, defaults.services_heading),
+    services_body: textField(current.services_body, defaults.services_body),
+    featured_heading: textField(current.featured_heading, defaults.featured_heading),
+    featured_body: textField(current.featured_body, defaults.featured_body),
+    final_cta_heading: textField(current.final_cta_heading, defaults.final_cta_heading),
+    final_cta_body: textField(current.final_cta_body, defaults.final_cta_body),
+    section_order: Array.isArray(current.section_order) ? current.section_order.filter((id): id is string => typeof id === "string") : [],
+    visible_sections: Array.isArray(current.visible_sections) ? current.visible_sections.filter((id): id is string => typeof id === "string") : undefined,
+    gallery_media_ids: Array.isArray(current.gallery_media_ids)
+      ? current.gallery_media_ids.filter((id): id is string => typeof id === "string" && approvedMedia.some((m) => m.id === id)).slice(0,3)
+      : [],
   };
   const params = searchParams ? await searchParams : {};
   const notice = params.saved ? "Private draft saved. Public site unchanged." :
