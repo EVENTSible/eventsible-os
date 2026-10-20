@@ -17,6 +17,12 @@ export async function saveHomepageDraft(form: FormData) {
   const subheading = clean(form, "subheading", 600);
   const portfolioHeading = clean(form, "portfolio_heading", 140);
   const portfolioBody = clean(form, "portfolio_body", 600);
+  const powerWelcome = clean(form, "power_welcome", 32);
+  const powerSubtitles = Object.fromEntries(
+    (["hq", "fast-track", "builder", "stage", "workshop", "play-connect"] as const).map((id) => [
+      id, clean(form, `power_subtitle_${id}`, 52),
+    ]),
+  );
   const heroMediaId = clean(form, "hero_media_id", 40);
   const sectionFields = {
     event_types_heading: clean(form, "event_types_heading", 140),
@@ -56,6 +62,8 @@ export async function saveHomepageDraft(form: FormData) {
       portfolio_heading: portfolioHeading,
       portfolio_body: portfolioBody,
       hero_media_id: heroMediaId || null,
+      power_welcome: powerWelcome,
+      power_subtitles: powerSubtitles,
       gallery_media_ids: galleryIds,
       section_order: sectionOrder,
       visible_sections: visible,
