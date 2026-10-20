@@ -53,3 +53,36 @@ export async function publishHomepageRevision(form: FormData) {
   revalidatePath("/admin/site-studio");
   redirect("/admin/site-studio?published=1");
 }
+
+function driveFileId(value: string): string | null {
+  const raw = value.trim();
+  if (/^[A-Za-z0-9_-]{12,120}$/.test(raw)) return raw;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || url.hostname !== "drive.google.com") return null;
+    const match = /^\\/file\\/d\\/([A-Za-z0-9_-]{12,120})(?:\\/|$)/.exec(url.pathname);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function queueDriveMediaForReview(form: FormData) {
+  const auth = await authorizeHqCapability("system.manage");
+  if (!auth.ok || auth.user.app_metadata?.role !== "owner") redirect("/access-denied");
+  const id = driveFileId(String(form.get("drive_file") ?? ""));
+  const title = clean(form, "media_title", 180);
+  const altText = clean(form, "media_alt", 240);
+  if (!id || !title) redirect("/admin/site-studio?error=drive-candidate");
+
+  // This stores a private metadata-only candidate with both permission flags false.
+  // No Drive file is downloaded, shared, moved, approved or published.
+  const { error } = await auth.supabase.rpc("os_site_queue_drive_media", {
+    p_drive_file_id: id,
+    p_title: title,
+    p_alt_text: altText,
+  });
+  if (error) redirect("/admin/site-studio?error=drive-queue");
+  revalidatePath("/admin/site-studio");
+  redirect("/admin/site-studio?queued=1");
+}
