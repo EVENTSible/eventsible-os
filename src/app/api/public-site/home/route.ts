@@ -22,6 +22,13 @@ export async function GET() {
       portfolio_body: field("portfolio_body", 600),
       hero_media_url: null,
       hero_media_alt: null,
+      event_types_heading: field("event_types_heading", 140),
+      services_heading: field("services_heading", 140),
+      services_body: field("services_body", 600),
+      featured_heading: field("featured_heading", 140),
+      featured_body: field("featured_body", 600),
+      final_cta_heading: field("final_cta_heading", 140),
+      final_cta_body: field("final_cta_body", 600),
     };
     if (typeof raw.hero_media_id === "string") {
       const { data: media } = await supabase.from("os_site_media").select("public_url,alt_text")
@@ -32,7 +39,29 @@ export async function GET() {
         content.hero_media_alt = media.alt_text;
       }
     }
-    return NextResponse.json({ version: 1, revision: page.revision, content }, { headers: publicHeaders });
+    // The server returns safe, reviewed media renditions only; never Drive file URLs.
+    const allowedSectionIds = new Set(["home-event-types", "home-services", "home-trust", "home-featured-packages", "home-planning-tools", "home-faq"]);
+    const sectionOrder = Array.isArray(raw.section_order)
+      ? raw.section_order.filter((id): id is string => typeof id === "string" && allowedSectionIds.has(id)).slice(0, 6) : [];
+    const visibleSections = Array.isArray(raw.visible_sections)
+      ? raw.visible_sections.filter((id): id is string => typeof id === "string" && allowedSectionIds.has(id)).slice(0, 6) : null;
+    const rawGalleryIds = Array.isArray(raw.gallery_media_ids)
+      ? raw.gallery_media_ids.filter((id): id is string => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 3) : [];
+    let galleryMedia: Array<{ public_url: string; alt_text: string; title: string }> = [];
+    if (rawGalleryIds.length) {
+      const { data: approved } = await supabase.from("os_site_media")
+        .select("id,title,alt_text,public_url").in("id",rawGalleryIds)
+        .eq("status","approved").eq("usage_approved",true).eq("permission_confirmed",true);
+      const byId = new Map((approved ?? []).filter((m) => typeof m.public_url === "string" && m.public_url.startsWith("https://")).map((m) => [m.id,m]));
+      galleryMedia = rawGalleryIds.flatMap((id) => {
+        const media = byId.get(id);
+        return media ? [{ public_url:media.public_url, alt_text:media.alt_text, title:media.title }] : [];
+      });
+    }
+    return NextResponse.json({
+      version: 1, revision: page.revision,
+      content: { ...content, section_order:sectionOrder, visible_sections:visibleSections, gallery_media:galleryMedia },
+    }, { headers: publicHeaders });
   } catch {
     return NextResponse.json({ error: "content_unavailable" }, { status: 503, headers: { ...publicHeaders, "Cache-Control": "no-store" } });
   }
