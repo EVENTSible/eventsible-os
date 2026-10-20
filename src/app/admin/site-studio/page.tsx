@@ -29,6 +29,15 @@ const defaults = {
   portfolio_heading: "See EVENTSible in action",
   portfolio_body: "Real moments from real EVENTSible events.",
   hero_media_id: "",
+  power_welcome: "Welcome To",
+  power_subtitles: {
+    hq: "Explore EVENTSible",
+    "fast-track": "Quick Quote - Call - Text",
+    builder: "Package Builder",
+    stage: "Music - Artists - Shows",
+    workshop: "The Workshop",
+    "play-connect": "Join The Live Experience",
+  },
   event_types_heading: "Discover your kind of celebration",
   services_heading: "What EVENTSible brings to the party",
   services_body: "Explore DJs, hosted games, photo booths, wedding experiences, kids parties, and custom creations.",
@@ -74,6 +83,20 @@ export default async function SiteStudioPage({
     subheading: textField(current.subheading, defaults.subheading),
     portfolio_heading: textField(current.portfolio_heading, defaults.portfolio_heading),
     portfolio_body: textField(current.portfolio_body, defaults.portfolio_body),
+    power_welcome: textField(current.power_welcome, defaults.power_welcome),
+    power_subtitles: Object.fromEntries(
+      Object.entries(defaults.power_subtitles).map(([id, fallback]) => [
+        id,
+        textField(
+          current.power_subtitles &&
+            typeof current.power_subtitles === "object" &&
+            !Array.isArray(current.power_subtitles)
+            ? (current.power_subtitles as Record<string, unknown>)[id]
+            : undefined,
+          fallback,
+        ),
+      ]),
+    ),
     hero_media_id: approvedMedia.some((media) => media.id === current.hero_media_id)
       ? String(current.hero_media_id)
       : defaults.hero_media_id,
