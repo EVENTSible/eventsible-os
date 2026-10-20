@@ -201,6 +201,9 @@ jobs:
       - name: Verify outbox helper grants
         run: npm run test:outbox-helper-grants
 
+      - name: Verify Site Studio proposal on disposable local database
+        run: node scripts/site-studio-local-supabase-verify.mjs
+
       - name: Run contract tests
         run: npm run test
 
