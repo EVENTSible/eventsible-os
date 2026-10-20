@@ -63,7 +63,7 @@ try {
 
   const before = await fetch(`${appUrl}/api/public-site/home`);
   const firstContent = await before.json();
-  if (!before.ok || firstContent.content !== null) throw Error("Public reader should start empty.");
+  if (!before.ok || !firstContent.content) throw Error("Synthetic SQL verification must seed a published baseline.");
 
   await page.getByLabel("Headline", { exact: true }).fill("EVENTSible makes");
   await page.getByLabel("Highlighted words").fill("party magic");
@@ -90,7 +90,9 @@ try {
   await page.getByText("Private draft saved. Public site unchanged.").waitFor();
 
   const unpublished = await (await fetch(`${appUrl}/api/public-site/home`)).json();
-  if (unpublished.content !== null) throw Error("Saving a draft unexpectedly published content.");
+  if (JSON.stringify(unpublished) !== JSON.stringify(firstContent)) {
+    throw Error("Saving a draft unexpectedly changed the public revision.");
+  }
 
   await page.getByRole("button", { name: "Publish this revision" }).first().click();
   await page.getByText(/Selected revision published/).waitFor();
