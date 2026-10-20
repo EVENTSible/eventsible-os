@@ -67,7 +67,9 @@ export default async function SiteStudioPage({
     subheading: textField(current.subheading, defaults.subheading),
     portfolio_heading: textField(current.portfolio_heading, defaults.portfolio_heading),
     portfolio_body: textField(current.portfolio_body, defaults.portfolio_body),
-    hero_media_id: textField(current.hero_media_id, defaults.hero_media_id),
+    hero_media_id: approvedMedia.some((media) => media.id === current.hero_media_id)
+      ? String(current.hero_media_id)
+      : defaults.hero_media_id,
   };
   const params = searchParams ? await searchParams : {};
   const notice = params.saved ? "Private draft saved. Public site unchanged." :
