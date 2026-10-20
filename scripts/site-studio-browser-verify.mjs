@@ -67,6 +67,8 @@ try {
 
   await page.getByLabel("Headline", { exact: true }).fill("EVENTSible makes");
   await page.getByLabel("Highlighted words").fill("party magic");
+  await page.getByLabel("Power Mode welcome").fill("Supercharge Your");
+  await page.getByLabel("Discover panel description").fill("See us in action");
   const preview = page.getByRole("region", { name: "Live private draft preview" });
   await preview.getByText(/EVENTSible makes/).waitFor();
   await preview.getByText(/party magic/).waitFor();
@@ -102,6 +104,8 @@ try {
   if (!publishedResponse.ok ||
       published.content?.heading !== "EVENTSible makes" ||
       published.content?.highlight !== "party magic" ||
+      published.content?.power_welcome !== "Supercharge Your" ||
+      published.content?.power_subtitles?.hq !== "See us in action" ||
       published.content?.hero_media_url !== null) {
     throw Error("Published homepage contract did not reflect owner-approved synthetic copy.");
   }
