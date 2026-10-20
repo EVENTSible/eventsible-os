@@ -51,7 +51,7 @@ permissions:
 jobs:
   local-supabase-verification:
     name: Local Supabase integration verification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       EVENTSIBLE_PRODUCTION_SUPABASE_REF: cplpbzudjprzbnzocirc
