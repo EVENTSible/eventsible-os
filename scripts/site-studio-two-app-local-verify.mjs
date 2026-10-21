@@ -84,8 +84,13 @@ try {
   // A disconnected HQ must not break the public fallback and must not reveal private content.
   await page.route(publicApi, (route) => route.abort());
   await page.goto(websiteUrl, { waitUntil: "networkidle" });
+  // The previous Classic View choice is correctly persisted in localStorage.
+  // Check its offline static content, then deliberately switch back to Power Mode.
+  const classicFallback = await page.locator("h1").first().innerText();
+  assert(classicFallback.includes("We make more of your"), "Offline Classic content fallback missing");
+  await page.getByRole("button", { name: "Power Mode", exact: true }).click();
   const fallback = await page.locator(".power-home__welcome-card").innerText();
-  assert.equal(fallback.trim(), "Welcome To", "Offline static Power Mode fallback missing");
+  assert.equal(fallback.trim(), "Welcome To", "Offline Power Mode fallback missing");
 
   await context.close();
   console.log("PASS: loopback OS API -> real public website Power/Classic copy, Media photos, Builder gateway preservation and offline fallback");
