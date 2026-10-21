@@ -89,8 +89,8 @@ try {
   const classicFallback = await page.locator("h1").first().innerText();
   assert(classicFallback.includes("We make more of your"), "Offline Classic content fallback missing");
   await page.getByRole("button", { name: "Power Mode", exact: true }).click();
-  const fallback = await page.locator(".power-home__welcome-card").innerText();
-  assert.equal(fallback.trim(), "Welcome To", "Offline Power Mode fallback missing");
+  const fallback = await page.locator(".power-home__welcome-card").textContent();
+  assert.equal(fallback?.trim(), "Welcome To", "Offline Power Mode fallback missing");
 
   await context.close();
   console.log("PASS: loopback OS API -> real public website Power/Classic copy, Media photos, Builder gateway preservation and offline fallback");
