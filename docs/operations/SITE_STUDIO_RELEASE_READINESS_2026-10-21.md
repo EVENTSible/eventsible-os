@@ -32,6 +32,12 @@ This is a release assessment, not approval for any production changes.
 5. **Shared site/Builder main:** merging website PR #5 advances the source branch for *both* Vercel projects. Require independent Builder smoke tests for `/build` calculation and contact/lead submission, plus Wedding Hero links and public/Builder route separation. No duplicate CRM or pricing logic is permitted.
 6. **Content approval:** public photos are within the Owner's stated permission for the people depicted. Confirm appropriateness of background subjects, product/trademark exposure, and final placement before Production release; specific video footage/music usage remains NEEDS VERIFICATION.
 
+## Vercel plan compliance — additional release check
+
+Vercel's [current Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-guidelines) and [Hobby Plan documentation](https://vercel.com/docs/plans/hobby) restrict Hobby to **non-commercial personal use**. EVENTSible's sites and Builder support a commercial event-entertainment business. Current Vercel team billing tier could **not** be verified by the accessible `get_team` response (it omitted plan/billing). GitHub's Vercel status linked to `upgradeToPro=build-rate-limit` but that link alone does not authoritatively establish the active subscription.
+
+**NEEDS VERIFICATION before Production release:** have the authorized Owner inspect Vercel team Settings → Billing for the plan and its permitted use. If Hobby, obtain owner approval for a compliant commercial hosting solution or authorized plan change; no paid upgrade, subscription or domain move is preapproved. This is distinct from the owner's decision to remain on **Supabase Free**.
+
 ## Proposed sequence with independent approval gates
 
 1. **Preview QA only:** pin exact OS and site draft SHAs, recheck package names/remotes, `AGENTS.md`, Vercel project links, merge bases, worktree cleanliness, presence (not values) of required Preview env names, and source/Production diff. Do not modify unrelated local work.
