@@ -101,13 +101,17 @@ function driveFileId(value: string): string | null {
   }
 }
 
-export async function queueDriveMediaForReview(form: FormData) {
+export type DriveMediaIntakeState = { ok: boolean; message: string };
+export async function queueDriveMediaForReview(
+  _state: DriveMediaIntakeState,
+  form: FormData,
+): Promise<DriveMediaIntakeState> {
   const auth = await authorizeHqCapability("system.manage");
   if (!auth.ok || auth.user.app_metadata?.role !== "owner") redirect("/access-denied");
   const id = driveFileId(String(form.get("drive_file") ?? ""));
   const title = clean(form, "media_title", 180);
   const altText = clean(form, "media_alt", 240);
-  if (!id || !title) redirect("/admin/site-studio?error=drive-candidate");
+  if (!id || !title) return { ok: false, message: "Enter a valid Google Drive file link and a working title." };
 
   // This stores a private metadata-only candidate with both permission flags false.
   // No Drive file is downloaded, shared, moved, approved or published.
@@ -116,7 +120,7 @@ export async function queueDriveMediaForReview(form: FormData) {
     p_title: title,
     p_alt_text: altText,
   });
-  if (error) redirect("/admin/site-studio?error=drive-queue");
+  if (error) return { ok: false, message: "Unable to queue this file. Check its ID or try again." };
   revalidatePath("/admin/site-studio");
-  redirect("/admin/site-studio?queued=1");
+  return { ok: true, message: "Drive candidate queued for private review. Nothing was published." };
 }
