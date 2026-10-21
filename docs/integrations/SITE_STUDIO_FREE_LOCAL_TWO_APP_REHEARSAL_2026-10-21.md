@@ -16,7 +16,7 @@ Use the verified actual worktrees, **not** generic folders or replacement app ro
 
 ## Local-only run procedure
 
-1. Start the existing disposable **local** Supabase stack for OS; inspect its local URL and use **only** loopback credentials in a local untracked environment file. Never print/store key values in Git commits or artifacts. Do **not** point this process to `cplpbzudjprzbnzocirc` or any remote URL.
+1. Start the existing disposable **local** Supabase stack for OS; inspect its local URL and use **only** loopback credentials in a local untracked environment file. Never print/store key values in Git commits or artifacts. Do **not** point this process to `the Production EVENTSible OS Supabase project` or any remote URL.
 2. Confirm isolated database and run the existing `node scripts/site-studio-local-supabase-verify.mjs` against local `SUPABASE_LOCAL_DB_URL`. It applies the proposal to disposable local Postgres and uses synthetic Owner/Staff/Media and published-copy records. **Do not** run it against an existing business database.
 3. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SERVICE_ROLE_KEY` using **local disposable** values, then start HQ on `http://127.0.0.1:3100`. Service-role remains server-only. The `/api/public-site/home` reader should return only a published revision and approved media public URLs.
 4. In the separate public website worktree, set **local untracked development-only** values:
