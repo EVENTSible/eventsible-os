@@ -65,6 +65,8 @@ try {
     const loaded = await mediaImages.nth(i).evaluate((img) => img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0);
     assert(loaded, "Website image rendition failed to load");
   }
+  // Assert healthy-state browser errors before deliberately simulating a failed request.
+  assert.deepEqual(siteErrors, [], "Browser console/server errors found during healthy local integration");
   // A disconnected HQ must not break the public fallback and must not reveal private content.
   await page.route(publicApi, (route) => route.abort());
   await page.goto(websiteUrl, { waitUntil: "networkidle" });
@@ -72,7 +74,6 @@ try {
   assert.equal(fallback.trim(), "Welcome To", "Offline static Power Mode fallback missing");
 
   await context.close();
-  assert.deepEqual(siteErrors, [], "Browser console/server errors found during local integration");
   console.log("PASS: loopback OS API -> real public website Power/Classic copy, Media photos, Builder gateway preservation and offline fallback");
 } finally {
   await browser.close();
