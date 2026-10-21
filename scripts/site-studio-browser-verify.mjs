@@ -86,11 +86,13 @@ try {
   await page.getByText(/Drive candidate queued for private review/).waitFor();
   await page.getByText("Synthetic private photo").waitFor();
 
-  await page.getByLabel("Headline", { exact: true }).fill("EVENTSible makes");
-  await page.getByLabel("Highlighted words").fill("party magic");
-  // Queueing a media candidate navigates back to the editor; restore unsaved draft edits.
-  await page.getByLabel("Power Mode welcome").fill("Supercharge Your");
-  await page.getByLabel("Discover panel description").fill("See us in action");
+  // Adding media must NOT discard copy typed before the queue action.
+  if ((await page.getByLabel("Headline", { exact: true }).inputValue()) !== "EVENTSible makes" ||
+      (await page.getByLabel("Highlighted words").inputValue()) !== "party magic" ||
+      (await page.getByLabel("Power Mode welcome").inputValue()) !== "Supercharge Your" ||
+      (await page.getByLabel("Discover panel description").inputValue()) !== "See us in action") {
+    throw Error("Queueing media discarded unsaved Site Studio edits.");
+  }
   await page.getByRole("button", { name: "Save private draft" }).click();
   await page.getByText("Private draft saved. Public site unchanged.").waitFor();
 
