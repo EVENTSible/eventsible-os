@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { authorizeHqCapability } from "@/lib/hq-auth";
 import { SiteStudioHomeEditor, type SiteMediaOption } from "@/components/site-studio-home-editor";
+import { SiteStudioMediaIntake } from "@/components/site-studio-media-intake";
 import {
   publishHomepageRevision,
   queueDriveMediaForReview,
@@ -151,21 +152,7 @@ export default async function SiteStudioPage({
               Queue a Google Drive file for private review. This saves only the file ID, working title, and draft description.
               It does not download, move, share, approve, or publish the photo. Do not use identifiable guest images without consent.
             </p>
-            <form action={queueDriveMediaForReview} style={{ display: "grid", gap: "1rem", maxWidth: 800 }}>
-              <label style={{ display: "grid", gap: "0.4rem" }}>
-                Google Drive file link or ID
-                <input name="drive_file" required placeholder="Paste a Drive photo/video file link" />
-              </label>
-              <label style={{ display: "grid", gap: "0.4rem" }}>
-                Working title
-                <input name="media_title" required maxLength={180} placeholder="Example: EVENTSiBLE party crowd camera" />
-              </label>
-              <label style={{ display: "grid", gap: "0.4rem" }}>
-                Draft image description
-                <textarea name="media_alt" maxLength={240} rows={2} placeholder="Describe what is shown; subject permissions reviewed later" />
-              </label>
-              <button className="secondary-button" type="submit">Queue for private review</button>
-            </form>
+            <SiteStudioMediaIntake action={queueDriveMediaForReview} />
             <h3>Queued candidates ({candidates.length})</h3>
             {candidates.length ? (
               <ul>
