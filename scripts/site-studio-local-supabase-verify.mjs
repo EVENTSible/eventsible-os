@@ -89,4 +89,30 @@ assert.equal(psql(`select count(*) from public.os_site_media where drive_file_id
 asUser(owner,"owner",`update public.os_site_media set status='approved' where id='${queuedId}'`,true);
 psql(`update public.os_site_media set status='approved',permission_confirmed=true,usage_approved=true,public_url='https://drive.google.com/file/d/private' where id='${queuedId}'`,true);
 assert.equal(psql(`select status from public.os_site_media where id='${queuedId}'`),"candidate");
+
+ // Seed a clearly synthetic published revision for the separate website/browser
+ // local integration test. The first set above continues to test permissions,
+ // denial of unapproved media, and rollback independently.
+const websiteRevisionId = "55000000-0000-4000-8000-000000000008";
+const websiteCopy = {
+  heading: "EVENTSible Local",
+  highlight: "Connection Test",
+  subheading: "Synthetic published content in an isolated test database.",
+  power_welcome: "Local QA Welcome",
+  power_subtitles: {
+    hq: "Verified local content",
+    "fast-track": "Local fast track",
+    builder: "Builder route protected",
+    stage: "Music and shows",
+    workshop: "Custom creations",
+    "play-connect": "VINCE path protected",
+  },
+  hero_media_id: null,
+};
+asUser(owner, "owner", `insert into public.os_site_content_revisions(id,page_key,state,created_by,content)
+  values ('${websiteRevisionId}','home','draft','${owner}','${JSONtext(websiteCopy)}'::jsonb)`);
+asUser(owner, "owner", `select public.os_site_publish_revision('${websiteRevisionId}')`);
+assert.equal(psql("select count(*) from public.os_site_content_revisions where state='published'"), "1");
+assert.equal(psql(`select content ->> 'heading' from public.os_site_content_revisions where id='${websiteRevisionId}'`), "EVENTSible Local");
+
 console.log("PASS: isolated Site Studio DDL, owner/staff/anon RLS, media approval, single publication, rollback-by-republish, and denial of direct writes, and private Drive candidate intake.");
