@@ -25,7 +25,8 @@
     "test:builder-lead-notifications": "node scripts/verify-builder-lead-notifications.mjs",
     "test:wedding-companion:routes": "node scripts/verify-wedding-companion-routes.mjs",
     "test:migration-history": "node scripts/verify-migration-history.mjs",
-    "guard:local-supabase-ci": "node scripts/guard-local-supabase-ci.mjs"
+    "guard:local-supabase-ci": "node scripts/guard-local-supabase-ci.mjs",
+    "test:site-studio:two-app-local": "node scripts/site-studio-two-app-local-verify.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",
