@@ -204,6 +204,9 @@ jobs:
       - name: Verify Site Studio proposal on disposable local database
         run: node scripts/site-studio-local-supabase-verify.mjs
 
+      - name: Check optional no-cost two-app browser runner syntax
+        run: node --check scripts/site-studio-two-app-local-verify.mjs
+
       - name: Run contract tests
         run: npm run test
 
