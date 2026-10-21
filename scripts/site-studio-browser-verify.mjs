@@ -88,6 +88,9 @@ try {
 
   await page.getByLabel("Headline", { exact: true }).fill("EVENTSible makes");
   await page.getByLabel("Highlighted words").fill("party magic");
+  // Queueing a media candidate navigates back to the editor; restore unsaved draft edits.
+  await page.getByLabel("Power Mode welcome").fill("Supercharge Your");
+  await page.getByLabel("Discover panel description").fill("See us in action");
   await page.getByRole("button", { name: "Save private draft" }).click();
   await page.getByText("Private draft saved. Public site unchanged.").waitFor();
 
