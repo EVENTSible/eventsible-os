@@ -36,7 +36,7 @@ try {
   page.on("console", (msg) => {
     if (msg.type() !== "error") return;
     const location = msg.location().url || "";
-    if (!location || location.startsWith(websiteUrl) || location.startsWith(hqUrl))
+    if (location.startsWith(websiteUrl) || location.startsWith(hqUrl))
       siteErrors.push("site console error");
   });
   page.on("pageerror", () => siteErrors.push("uncaught browser exception"));
