@@ -33,9 +33,17 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   const siteErrors = [];
-  page.on("console", (msg) => { if (msg.type() === "error") siteErrors.push("console"); });
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+    const location = msg.location().url || "";
+    if (!location || location.startsWith(websiteUrl) || location.startsWith(hqUrl))
+      siteErrors.push("site console error");
+  });
+  page.on("pageerror", () => siteErrors.push("uncaught browser exception"));
   page.on("response", (res) => {
-    if (res.status() >= 500) siteErrors.push("server error");
+    const url = res.url();
+    if (res.status() >= 500 && (url.startsWith(websiteUrl) || url.startsWith(hqUrl)))
+      siteErrors.push("local server error");
   });
 
   await page.goto(websiteUrl, { waitUntil: "networkidle" });
@@ -45,6 +53,10 @@ try {
     { timeout: 10000 },
   );
   assert(await page.locator(".power-path-panel").count() === 6, "All six Power Mode routes must remain present");
+  const builderHref = await page.locator(".power-path-panel--builder").getAttribute("href");
+  const vinceHref = await page.locator(".power-path-panel--play-connect").getAttribute("href");
+  assert.equal(builderHref, "https://build.eventsible.info/build?start=choose", "Builder route changed");
+  assert.equal(vinceHref, "https://eventsible.app", "VINCE guest route changed");
   const siteHtml = await page.locator("body").innerText();
   for (const value of Object.values(copy.power_subtitles || {}).filter(Boolean)) {
     assert(siteHtml.includes(value), "One approved Power Mode panel description is missing");
@@ -58,8 +70,10 @@ try {
   );
   const realHomeImages = page.locator('img[src^="/media/real/"]');
   assert((await realHomeImages.count()) >= 3, "Missing approved real photo gallery from homepage");
-  await page.goto(`${websiteUrl}/media`, { waitUntil: "networkidle" });
+  // Instagram's third-party embeds are not part of this local integration.
+  await page.goto(`${websiteUrl}/media`, { waitUntil: "domcontentloaded" });
   const mediaImages = page.locator('img[src^="/media/real/"]');
+  await mediaImages.first().waitFor({ timeout: 15000 });
   assert((await mediaImages.count()) >= 4, "Missing verified photo assets from Media gallery");
   for (let i = 0; i < 4; i++) {
     const loaded = await mediaImages.nth(i).evaluate((img) => img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0);
