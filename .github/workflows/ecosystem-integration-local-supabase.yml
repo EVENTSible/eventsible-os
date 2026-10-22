@@ -272,7 +272,20 @@ jobs:
           retention-days: 14
 
       - name: Verify production dependency audit independently
-        run: npm audit --omit=dev --audit-level=high
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npm audit --omit=dev --audit-level=high --fetch-retries=2; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Production dependency audit failed or registry was unavailable. Release remains blocked."
+              exit 1
+            fi
+            echo "Audit attempt $attempt failed; retrying the exact strict command with no exemption."
+            sleep 8
+          done
 
       - name: Audit
         run: npm audit --audit-level=high
