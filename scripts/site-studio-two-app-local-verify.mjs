@@ -25,6 +25,19 @@ const response = await fetch(publicApi);
 assert(response.ok, "Start the local HQ app with disposable Site Studio schema and synthetic published revision");
 const body = await response.json();
 assert.equal(body.version, 1);
+// Public projection must never contain private Drive identifiers, unpublished
+// revisions, auth/user records, private media flags or server-only credentials.
+assert.equal(response.headers.get("access-control-allow-origin"), "*");
+assert(!("draft" in body) && !("revisions" in body) && !("media" in body));
+const publicPayload = JSON.stringify(body).toLowerCase();
+for (const forbidden of [
+  "drive_file_id", "synthetic-approved-drive-id", "synthetic-private-drive-id",
+  "service_role", "supabase_service_role", "created_by", "permission_confirmed",
+  "usage_approved", "os_site_media", "os_site_content_revisions",
+  "site-owner@example.invalid", "site-staff@example.invalid",
+]) {
+  assert(!publicPayload.includes(forbidden), "Private Site Studio metadata reached public response");
+}
 const copy = body.content;
 assert(copy?.heading && copy?.highlight && copy?.subheading, "No synthetic published homepage fixture");
 
