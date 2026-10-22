@@ -85,6 +85,12 @@ After public-site PR #5 advanced to `c044efb3857ce94690bb6c43d0dc0463efa0ded9`, 
 
 The new public API privacy assertion was added to the two-app harness in HQ PR #50 and pinned from site PR #5. Its exact latest CI result must be checked when available. Existing two-app CI PASS remains valid for the preceding regression scope.
 
+## Latest CI disposition — registry availability check (2026-10-22 UTC)
+
+Latest HQ head before documentation follow-up `fd78f699b77e32c83e543d7bad792d0b1fc9a7fa` completed [CI run 39713126473](https://github.com/EVENTSible/eventsible-os/actions/runs/39713126473): isolated Site Studio SQL/RLS, authenticated Owner browser, application build, and contract checks passed. The job's **production-only audit failed because the npm advisory endpoint returned HTTP 503** (`POST registry.npmjs.org/-/npm/v1/security/advisories/bulk`), not because new vulnerabilities were identified. This run cannot certify a current zero-vulnerability result. The prior successful production-only audit remains [run 39654465172](https://github.com/EVENTSible/eventsible-os/actions/runs/39654465172) with 0 findings. The full audit historically remains red on the single `braces` development dependency chain.
+
+Only the failed CI run was restarted using GitHub's rerun-failed-jobs action. Its new result must be inspected before updating the gate status. **Never treat an npm registry outage as an accepted audit result or downgrade the policy.**
+
 ## Current exclusions
 
 No Production database writes, DNS, domain routing, paid Supabase upgrades, Host PIN, active ECC rooms, contacts/leads/bookings, service-role disclosures, destructive Drive actions, or automated Production deployments.
