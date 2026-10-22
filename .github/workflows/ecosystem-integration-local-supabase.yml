@@ -271,24 +271,16 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Test audit outage recovery and fail-closed behavior
+        # Exercise outage recovery and fail-closed behavior before live requests.
+        run: node --test scripts/audit-dependencies.test.mjs
+
       - name: Verify production dependency audit independently
-        shell: bash
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if npm audit --omit=dev --audit-level=high --fetch-retries=2; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "Production dependency audit failed or registry was unavailable. Release remains blocked."
-              exit 1
-            fi
-            echo "Audit attempt $attempt failed; retrying the exact strict command with no exemption."
-            sleep 8
-          done
+        run: node scripts/audit-dependencies.mjs --omit=dev
 
       - name: Audit
-        run: npm audit --audit-level=high
+        if: ${{ !cancelled() }}
+        run: node scripts/audit-dependencies.mjs
 
       - name: Stop isolated application
         if: always()
