@@ -50,6 +50,13 @@ Vercel's [current Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-g
 
 **Decision required before Production:** whether to accept a time-limited, development-only `braces` security exception (only after runtime non-exposure proof) or wait for a patch; separately approve OS Production schema and each merge/deployment. These approvals are NOT implied by permission to continue preparation.
 
+## SQL publishing security review (source inspection, 2026-10-21)
+
+- **IMPLEMENTED:** `os_site_content_revisions` allows one published revision per `page_key`, with constrained `page_key='home'`. Publication serializes with an advisory transaction lock and archives the previous published record atomically.
+- **IMPLEMENTED:** Owner-only checks are applied in authenticated server actions and the publishing/candidate-intake RPCs. Authorization uses JWT `app_metadata.role` and `auth.uid()`, not client-editable `user_metadata`. No direct anonymous table grants; authenticated draft write has insert-only RLS, while media candidates cannot self-approve.
+- **IMPLEMENTED:** The public API uses server-side read-only projection from the published revision. Only approved media URLs and bounded public fields are emitted, with CORS response for cross-origin website consumption. Local CI now additionally asserts the absence of candidate Drive IDs, unpublished revisions, raw metadata flags, user identifiers and service-role field names in its exact API response.
+- **REVIEW REMAINING:** The SQL is a proposal, not a reviewed production migration. Confirm latest Production migration order, `search_path`/EXECUTE role grants for the SECURITY DEFINER functions, media URL policy (credentials, fragments, query tokens, subdomain spoofing), schema advisor results and safe revision rollback. Production approval cannot be inferred from local successful fixture tests.
+
 ## Current approval packet and decision boundaries (October 21, 2026)
 
 **The owner requested readiness preparation, not authorization to merge, write Production schema, or incur charges.** The release remains **NO GO** until checks explicitly marked NEEDS VERIFICATION are resolved.
