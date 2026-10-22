@@ -94,3 +94,10 @@ Only the failed CI run was restarted using GitHub's rerun-failed-jobs action. It
 ## Current exclusions
 
 No Production database writes, DNS, domain routing, paid Supabase upgrades, Host PIN, active ECC rooms, contacts/leads/bookings, service-role disclosures, destructive Drive actions, or automated Production deployments.
+
+## Exact-commit public Preview recovered — 2026-10-21
+
+- **VERCEL PREVIEW READY:** project `eventsible-info`, deployment `dpl_5i73QMaEJK9VfxFNSiTi7eM74DTC`, source SHA `c044efb3857ce94690bb6c43d0dc0463efa0ded9`, URL `https://eventsible-info-gxyilc0e1-firstfamdjs-5913s-projects.vercel.app`; Vercel deployment status confirmed `READY` with target `null` (Preview, **not Production**).
+- **PUBLIC/BUILDER shared source:** exact same SHA `c044efb3857ce94690bb6c43d0dc0463efa0ded9` had Builder Preview `dpl_DWoLcgvE2KgyFSaFK3iN8C3u1YVU` marked `READY`. Previous website public, security and two-app CI were all green on this SHA (runs `39712675057`, `39712675083`, `39712675100`).
+- **HOSTED BROWSER QA STILL NEEDS VERIFICATION:** an external web browser fetch could not access this protected Vercel Preview. `READY` proves a successful deployment/build, not Power/Classic navigation, cross-origin fetch, authenticated Owner journey, or Builder submission in that environment.
+- **HQ npm audit:** after replaying failed run `39713126473`, production-only audit again returned HTTP 503 from the npm advisory registry. This is an unavailable security service, not vulnerability data; do not describe this exact run as PASS. Previous independent audit `39654465172` reported 0 production vulnerabilities, and strict all-dependency audit identified the known unpatched development `braces` chain. Keep both findings and the approval gate.
