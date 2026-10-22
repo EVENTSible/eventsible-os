@@ -1,0 +1,12 @@
+{
+  "name": "@eventsible/next-lint-glob",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.mjs",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "dependencies": {
+    "tinyglobby": "0.2.17"
+  }
+}

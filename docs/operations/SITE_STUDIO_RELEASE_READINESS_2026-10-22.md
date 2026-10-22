@@ -1,5 +1,16 @@
 # Site Studio release readiness — 2026-10-22
 
+## Preview-only continuation — source blockers repaired
+
+This section supersedes the security, raw-lint and TypeScript blockers listed below. User explicitly approved Preview-only deployment; both PRs remain drafts and Production remains excluded.
+
+- HQ full AND production-only dependency audits now PASS with zero vulnerabilities. A scoped, pinned root-glob adapter removes the vulnerable dev dependency chain without changing Next lint rules or thresholds. Compatibility tests verify root discovery and actual rule enforcement; clean npm ci succeeds. See `tools/next-lint-glob/README.md` for the deliberately narrow API and upgrade limitation. No waiver or suppression.
+- Repaired the missing parenthesis in the inherited legacy CSV header mapper; raw HQ lint now PASS with ten warnings. Removed its old lint:ci parse-error exception. Added parser regression tests.
+- Website's 13 TypeScript errors repaired through runtime narrowing, nullable-record checks, unknown error handling and absent-loader metadata handling. Three focused auth tests prove missing/invalid token denial and forwarding of server-verified claims only. TypeScript and full lint are now blocking in Preview CI.
+- Targeted security patches remove the website's remaining moderate/low advisories. Full AND production-only audits now PASS with zero vulnerabilities. No application framework/major-version upgrade or audit fix used.
+- Local checks: HQ 265 tests; website 96 tests; both raw lint, TypeScript and builds PASS (ten warnings per repo). The final head pair still requires fresh isolated CI, Preview browser/console checks and a new exact-current public-site Preview.
+- Remaining scope gates: hosted authenticated Owner editing/publishing against an isolated backend, Builder submission persistence, commercial hosting plan confirmation; separate schema/data, merge, Production, media, DNS and billing approval. This approval authorizes Preview deployment only.
+
 Status: PARTIAL / NO GO for Production. Supersedes audit and hosted-browser assumptions in the October 21 assessment.
 
 ## Verified source and isolation

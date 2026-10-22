@@ -49,6 +49,9 @@
   "overrides": {
     "sharp": "0.35.5",
     "source-map-js": "1.2.2",
-    "brace-expansion": "1.1.21"
+    "brace-expansion": "1.1.21",
+    "@next/eslint-plugin-next": {
+      "fast-glob": "file:../../../tools/next-lint-glob"
+    }
   }
 }
