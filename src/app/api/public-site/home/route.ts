@@ -31,7 +31,8 @@ export async function GET() {
       final_cta_heading: field("final_cta_heading", 140),
       final_cta_body: field("final_cta_body", 600),
     };
-    if (typeof raw.hero_media_id === "string") {
+    const allowMedia = process.env.NEXT_PUBLIC_EVENTSIBLE_MEDIA_FREE_RELEASE !== "true";
+    if (allowMedia && typeof raw.hero_media_id === "string") {
       const { data: media } = await supabase.from("os_site_media").select("public_url,alt_text")
         .eq("id", raw.hero_media_id).eq("status", "approved")
         .eq("usage_approved", true).eq("permission_confirmed", true).maybeSingle();
@@ -46,7 +47,7 @@ export async function GET() {
       ? raw.section_order.filter((id): id is string => typeof id === "string" && allowedSectionIds.has(id)).slice(0, 6) : [];
     const visibleSections = Array.isArray(raw.visible_sections)
       ? raw.visible_sections.filter((id): id is string => typeof id === "string" && allowedSectionIds.has(id)).slice(0, 6) : null;
-    const rawGalleryIds = Array.isArray(raw.gallery_media_ids)
+    const rawGalleryIds = allowMedia && Array.isArray(raw.gallery_media_ids)
       ? raw.gallery_media_ids.filter((id): id is string => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 3) : [];
     let galleryMedia: Array<{ public_url: string; alt_text: string; title: string }> = [];
     if (rawGalleryIds.length) {

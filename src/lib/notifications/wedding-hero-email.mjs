@@ -4,6 +4,7 @@ import {
   sendWithResend,
 } from "./builder-lead-email.mjs";
 import { DEFAULT_WEDDING_HERO_SUPPORT_EMAIL } from "../wedding-hero-contact.mjs";
+import { isProductionDeployment, isNetlifyPreview } from "../reliability/deployment-context.mjs";
 
 export const WEDDING_HERO_CALLBACK_NOTIFICATION = "wedding_hero_callback_request";
 export const WEDDING_HERO_SUBMITTED_NOTIFICATION = "wedding_hero_submitted";
@@ -18,9 +19,10 @@ function configuredEmail(value, fallback) {
 function siteUrl(env) {
   const configured = String(env.WEDDING_HERO_SITE_URL || "").trim().replace(/\/$/, "");
   if (configured) return configured;
-  if (env.VERCEL_ENV === "production") {
+  if (isProductionDeployment(env)) {
     return String(env.NEXT_PUBLIC_SITE_URL || DEFAULT_WEDDING_HERO_SITE_URL).trim().replace(/\/$/, "");
   }
+  if (isNetlifyPreview(env)) return env.EVENTSIBLE_NETLIFY_DEPLOY_URL || env.DEPLOY_URL || env.DEPLOY_PRIME_URL || "";
   if (env.VERCEL_URL) return `https://${String(env.VERCEL_URL).replace(/\/$/, "")}`;
   return String(env.NEXT_PUBLIC_SITE_URL || DEFAULT_WEDDING_HERO_SITE_URL).trim().replace(/\/$/, "");
 }
@@ -38,7 +40,7 @@ export function resolveWeddingHeroNotificationConfig(env = process.env) {
     from: String(env.WEDDING_HERO_NOTIFICATION_FROM || env.EVENTSIBLE_LEAD_NOTIFICATION_FROM || DEFAULT_WEDDING_HERO_SENDER).trim(),
     siteUrl: siteUrl(env),
     resendApiKey: env.RESEND_API_KEY,
-    dryRun: env.WEDDING_HERO_NOTIFICATION_DRY_RUN === "true" || !env.RESEND_API_KEY || !isValidEmail(configuredRecipient),
+    dryRun: isNetlifyPreview(env) || env.WEDDING_HERO_NOTIFICATION_DRY_RUN === "true" || !env.RESEND_API_KEY || !isValidEmail(configuredRecipient),
   };
 }
 

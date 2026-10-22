@@ -1,0 +1,22 @@
+# Media-free release variant and Netlify parity
+
+Status: IMPLEMENTED, isolated validation required at each new head. Production is unchanged; PRs remain drafts.
+
+From a verified feature checkout, run `npm run release:prepare`. This creates a new `.media-free-release` directory from tracked working-tree inputs (including staged reviewed changes). It never deletes or edits source assets. Choose another `.media-free-release-<label>` argument if the destination already exists. Review/commit first for a final source-head manifest. The manifest records source head/tree, input hashes and excluded media hashes.
+
+Install the lockfile dependencies and build **inside that new directory**, then deploy only that directory using the reviewed native API/adapter workflow. Do not link original-source node_modules across filesystem roots for HQ; build with an isolated Linux dependency volume or install inside the prepared root. Ordinary provider builds reject raw source or any binary-media-contaminated prepared input. Both Netlify and Vercel Production builds are guarded; the two draft Vercel Preview branches also remain skipped.
+
+The deterministic variant removes raster/audio/video input, substitutes a bundled generic SVG illustration, disables the public theme audio and photo catalog, ignores remote published hero/gallery URLs in the public parser and suppresses those URLs in the HQ public reader. No ad hoc source overlay is required. Original asset checksums remain unchanged. Source unit tests run in the original checkout; variant builds and browser tests run against the prepared input. Never relabel original-source tests as variant-browser evidence.
+
+Netlify parity changes:
+
+- Public `www.eventsible.info` HTTP/HTTPS 301 canonical rules preserve path/query; an SSR guard also enforces the canonical host. Preview/Builder/other hosts stay unchanged. Actual custom-domain/TLS behavior still requires approved cutover tests; no DNS was changed.
+- Recovery selects canonical `URL` for Netlify Production and immutable `DEPLOY_URL` (then `DEPLOY_PRIME_URL`) for Preview. Missing Preview origin fails rather than using Production. Origins reject credentials, paths, queries and nonlocal insecure HTTP.
+- Notification provider context uses Netlify `CONTEXT`, preserving Vercel behavior without spoofing Vercel variables. Netlify Previews always dry-run. Missing Builder mail credentials in Production remain a visible send failure; Wedding Hero keeps its existing missing-configuration dry-run behavior, which must be observed before cutover.
+- `netlify/functions/supabase-keepalive.mjs` declares the same `20 10 * * *` UTC schedule. It performs the existing read-only three-table checks only when Netlify context is Production AND `EVENTSIBLE_NETLIFY_KEEPALIVE_ENABLED=true`. Default and Preview invocations do nothing, even with credentials. Failed checks fail the job and attempt the existing alert; request timeout is bounded. No paid scheduler is introduced. Failure-alert copy now refers to hosting logs rather than Vercel only.
+
+Keep the Netlify flag absent/false through QA. Before any live switch, separately approve pausing the old Vercel caller, function-only credentials, alert behavior and enabling the Netlify flag. Confirm one active scheduler; never enable two. Published schedule execution is not proven by a draft or local invocation. No Production mail, Auth allowlist, worker, schema, data, DNS or media-publication change is included.
+
+Runtime configuration: Netlify's build-only `NETLIFY`, `CONTEXT` and `DEPLOY_URL` are not sufficient for functions. Set nonsecret `EVENTSIBLE_NETLIFY_CONTEXT` to the exact deploy context and `EVENTSIBLE_NETLIFY_DEPLOY_URL` to that immutable Preview origin through the functions-scoped deployment environment. Production recovery uses the provider's canonical `URL`; notifications use the explicit context. Missing context on a Netlify function fails safe as unknown/Preview. The scheduled handler uses the platform `context.deploy.context` and `context.deploy.published`, plus the separate enable flag. These new nonsecret settings belong in the Production environment approval matrix; they are not credential transfers.
+
+This supersedes the earlier ad hoc media overlay and source-level parity blockers. It does not satisfy fresh Production-configured fallback baselines, backup/restore, host/project identity, environment transfer, live scheduler/notification/canonical-domain acceptance or atomic rollback gates. A revised exact-head approval packet is required after validation.

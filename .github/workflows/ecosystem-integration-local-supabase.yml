@@ -6,6 +6,8 @@ on:
     branches:
       - main
     paths:
+      - "netlify/**"
+      - "next.config.ts"
       - "netlify.toml"
       - "vercel.json"
       - "eslint.config.mjs"
@@ -239,6 +241,17 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build prepared media-free Netlify input
+        env:
+          NETLIFY: "true"
+          SUPABASE_SERVICE_ROLE_KEY: ""
+          RESEND_API_KEY: ""
+        run: |
+          npm run release:prepare
+          cd .media-free-release
+          npm ci --no-audit --no-fund
+          npm run build
 
       - name: Install isolated browser runtime
         run: |

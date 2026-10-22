@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/check-release-input.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "lint:ci": "node scripts/check-lint-known-issues.mjs",
@@ -26,7 +26,8 @@
     "test:wedding-companion:routes": "node scripts/verify-wedding-companion-routes.mjs",
     "test:migration-history": "node scripts/verify-migration-history.mjs",
     "guard:local-supabase-ci": "node scripts/guard-local-supabase-ci.mjs",
-    "test:site-studio:two-app-local": "node scripts/site-studio-two-app-local-verify.mjs"
+    "test:site-studio:two-app-local": "node scripts/site-studio-two-app-local-verify.mjs",
+    "release:prepare": "node scripts/prepare-media-free-release.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",

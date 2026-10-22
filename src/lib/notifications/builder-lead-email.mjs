@@ -1,3 +1,4 @@
+import { isProductionDeployment, isNetlifyPreview } from "../reliability/deployment-context.mjs";
 export const BUILDER_LEAD_NOTIFICATION_TYPE = "builder_lead_internal_email";
 export const BUILDER_SUBMISSION_EVENT_TYPE = "builder.submission_received";
 export const DEFAULT_NOTIFICATION_RECIPIENT = "firstfamdjs@gmail.com";
@@ -15,7 +16,8 @@ export function createNotificationKey(builderSubmissionId) {
 export function resolveNotificationConfig(env = process.env) {
   const dryRun =
     env.EVENTSIBLE_LEAD_NOTIFICATION_DRY_RUN === "true" ||
-    (!env.RESEND_API_KEY && env.VERCEL_ENV !== "production");
+    isNetlifyPreview(env) ||
+    (!env.RESEND_API_KEY && !isProductionDeployment(env));
 
   return {
     recipient: env.EVENTSIBLE_LEAD_NOTIFICATION_TO || DEFAULT_NOTIFICATION_RECIPIENT,
