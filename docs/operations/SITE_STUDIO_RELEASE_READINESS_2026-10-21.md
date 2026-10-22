@@ -79,6 +79,12 @@ Vercel's [current Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-g
 
 **No new account, paid plan, DNS change, production DB write, PR merge, or customer/real event testing is part of this readiness step.**
 
+## Most recent draft Preview evidence
+
+After public-site PR #5 advanced to `c044efb3857ce94690bb6c43d0dc0463efa0ded9`, Vercel reported a **READY** deployment for the **Builder** project `eventsible-event-builder` at `dpl_DWoLcgvE2KgyFSaFK3iN8C3u1YVU`. This is **deployment status only**, not a browser-proven quote/submit result; do not treat it as Production. The `eventsible-info` public project still lists older Preview HEAD as its latest READY; newest website SHA remains **NOT VERIFIED** on that project. Source CI at newest website SHA is running as of this checkpoint.
+
+The new public API privacy assertion was added to the two-app harness in HQ PR #50 and pinned from site PR #5. Its exact latest CI result must be checked when available. Existing two-app CI PASS remains valid for the preceding regression scope.
+
 ## Current exclusions
 
 No Production database writes, DNS, domain routing, paid Supabase upgrades, Host PIN, active ECC rooms, contacts/leads/bookings, service-role disclosures, destructive Drive actions, or automated Production deployments.
