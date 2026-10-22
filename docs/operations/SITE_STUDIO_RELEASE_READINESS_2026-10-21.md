@@ -50,6 +50,28 @@ Vercel's [current Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-g
 
 **Decision required before Production:** whether to accept a time-limited, development-only `braces` security exception (only after runtime non-exposure proof) or wait for a patch; separately approve OS Production schema and each merge/deployment. These approvals are NOT implied by permission to continue preparation.
 
+## Current approval packet and decision boundaries (October 21, 2026)
+
+**The owner requested readiness preparation, not authorization to merge, write Production schema, or incur charges.** The release remains **NO GO** until checks explicitly marked NEEDS VERIFICATION are resolved.
+
+| Gate | Status | Release authority |
+|---|---|---|
+| Exact public/HQ local two-app synthetic DB/browser connection | **PASS** on run 39554501627; additional public-projection privacy regression run pending | none |
+| Website unit/integration/security tests | **PASS** on run 39554501555 / 39554501671; newest source run pending | none |
+| HQ production-only `npm audit --omit=dev --audit-level=high` | **PASS**, 0 vulnerabilities, run 39654465172 | none |
+| HQ full dependency `npm audit --audit-level=high` | **FAIL**, 5 high findings in one dev-tool chain | explicit scoped exception or fixed upstream and green rerun |
+| Authenticated Owner editor / Staff forbidden / RLS / publish rollback | **PASS** isolated local CI; still needs hosted verification | none |
+| Exact latest website commit hosted Vercel Preview | **BLOCKED** by `build-rate-limit`, no verified READY deployment at that SHA | no implicit approval to upgrade |
+| Event Builder from shared website repository | Contract/navigation tests **PASS** locally; full hosted Builder booking/quote smoke **NEEDS VERIFICATION** | none |
+| Live Site Studio database proposal | **NOT APPLIED**; normal migration review and rollback rehearsal need final approval | separate Owner schema approval |
+| Site Studio content and imagery | four real photo derivatives owner-cleared for pictured people; hosted publication/placement **NEEDS VERIFICATION** | separate Owner media release approval |
+| Vercel commercial hosting | **Owner confirmed team Hobby**; commercial-use restriction requires separate compliant hosting decision | owner hosting decision, no auto-upgrade |
+| Production merge / deploy | **NOT APPROVED**, both PRs drafts | explicit Owner merge/deploy approval |
+
+**Candidate release sequence:** (1) keep both PRs draft while resolving blockers, (2) security disposition, (3) exact-HEAD website + Builder Preview QA, (4) reviewed schema migration for explicit approval, (5) separately approved HQ deploy + safe verification, (6) separately approved website and Builder release + smoke tests, (7) report actual rollout/rollback evidence.
+
+**No new account, paid plan, DNS change, production DB write, PR merge, or customer/real event testing is part of this readiness step.**
+
 ## Current exclusions
 
 No Production database writes, DNS, domain routing, paid Supabase upgrades, Host PIN, active ECC rooms, contacts/leads/bookings, service-role disclosures, destructive Drive actions, or automated Production deployments.
