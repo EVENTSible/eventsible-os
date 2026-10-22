@@ -12,6 +12,8 @@ This folder is the source of truth for cross-system EVENTSible documentation. Ap
 
 ## Current Production Release Evidence
 
+Current Site Studio Preview work: [Netlify Free integration and approval gates](integrations/SITE_STUDIO_NETLIFY_PREVIEW_2026-10-22.md). This does not change Production status.
+
 - Status: LIVE / PRODUCTION VERIFIED
 - Verified at: 2026-08-24
 - `eventsible.biz/weddinghero`: LIVE / PRODUCTION VERIFIED

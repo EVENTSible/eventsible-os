@@ -6,6 +6,9 @@ on:
     branches:
       - main
     paths:
+      - "netlify.toml"
+      - "vercel.json"
+      - "eslint.config.mjs"
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
       - "scripts/**"

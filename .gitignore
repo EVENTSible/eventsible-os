@@ -41,3 +41,6 @@ dry-run-worker.ps1
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated Netlify artifacts
+.netlify/
