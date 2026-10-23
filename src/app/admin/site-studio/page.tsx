@@ -80,13 +80,22 @@ export default async function SiteStudioPage({
       .eq("status", "candidate").order("created_at", { ascending: false }).limit(40),
   ]);
 
-  const unavailable = Boolean(revisionsResult.error || mediaResult.error || candidatesResult.error);
+  let unavailable = Boolean(revisionsResult.error || mediaResult.error || candidatesResult.error);
   const hasOlder = (revisionsResult.data?.length ?? 0) > 20;
   const revisions = (revisionsResult.data ?? []).slice(0, 20) as Revision[];
   const approvedMedia = (mediaResult.data ?? []) as SiteMediaOption[];
   const candidates = (candidatesResult.data ?? []) as MediaCandidate[];
-  const current = (revisions.find((r) => r.state === "draft") ??
-    revisions.find((r) => r.state === "published"))?.content ?? {};
+  let currentRevision = revisions.find((r) => r.state === "draft") ??
+    revisions.find((r) => r.state === "published");
+  // Restoring an old publication can put it outside the recent history window.
+  // Never substitute default copy for that live revision merely due to paging.
+  if (!before && !currentRevision && revisions.length) {
+    const published = await auth.supabase.from("os_site_content_revisions")
+      .select("content").eq("page_key", "home").eq("state", "published").maybeSingle();
+    unavailable ||= Boolean(published.error);
+    currentRevision = published.data ? { content: published.data.content } as Revision : undefined;
+  }
+  const current = currentRevision?.content ?? {};
   const initial = {
     heading: textField(current.heading, defaults.heading),
     highlight: textField(current.highlight, defaults.highlight),
