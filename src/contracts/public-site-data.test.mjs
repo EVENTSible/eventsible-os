@@ -20,13 +20,13 @@ test("published REST reads are bounded, uncached and do not redirect server cred
   assert.equal(calls[0].url.pathname,"/rest/v1/os_site_content_revisions");
   assert.equal(calls[0].url.searchParams.get("state"),"eq.published");
   assert.equal(calls[0].options.cache,"no-store");
-  assert.equal(calls[0].options.redirect,"error");
+  assert.equal(calls[0].options.redirect,"manual");
   assert.equal(calls[0].options.headers.Authorization,"Bearer synthetic-test-key");
   assert.ok(calls[0].options.signal instanceof AbortSignal);
 });
 
 test("backend failures and malformed envelopes fail closed without leaking backend messages", async () => {
-  for(const response of [new Response("private backend diagnostic",{status:503}),Response.json({content:"wrong envelope"}),Response.json([null])]){
+  for(const response of [new Response(null,{status:302,headers:{location:"https://unapproved.example"}}),new Response("private backend diagnostic",{status:503}),Response.json({content:"wrong envelope"}),Response.json([null])]){
     await assert.rejects(readSiteRows("http://127.0.0.1:55421","synthetic-test-key","os_site_media",{},async()=>response),e=>!e.message.includes("private backend diagnostic")&&!e.message.includes("synthetic-test-key"));
   }
 });

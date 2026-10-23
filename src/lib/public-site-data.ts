@@ -10,7 +10,9 @@ export async function readSiteRows(
   url.search = new URLSearchParams(query).toString();
   const response = await fetcher(url, {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-    cache: "no-store", redirect: "error", signal: AbortSignal.timeout(5000),
+    // Workers supports manual/follow, not error. Reject every non-2xx below
+    // without following a redirect carrying the server credential.
+    cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(5000),
   });
   if (!response.ok) throw new Error("site content unavailable");
   const rows: unknown = await response.json();
