@@ -61,20 +61,28 @@ export default async function SiteStudioPage({
     redirect(auth.ok ? "/access-denied" : auth.reason === "unauthenticated" ? "/login" : "/access-denied");
   }
 
+  const params = searchParams ? await searchParams : {};
+  const cursor = typeof params.before === "string" && /^[1-9]\d*$/.test(params.before)
+    ? Number(params.before) : undefined;
+  const before = cursor && Number.isSafeInteger(cursor) ? cursor : undefined;
+  let history = auth.supabase.from("os_site_content_revisions")
+    .select("id,revision,state,content,created_at").eq("page_key", "home")
+    .order("revision", { ascending: false }).limit(21);
+  if (before) history = history.lt("revision", before);
+
   const [revisionsResult, mediaResult, candidatesResult] = await Promise.all([
-    auth.supabase.from("os_site_content_revisions")
-      .select("id,revision,state,content,created_at").eq("page_key", "home")
-      .order("revision", { ascending: false }).limit(20),
-    auth.supabase.from("os_site_media")
+    history,
+    before ? Promise.resolve({ data: [], error: null }) : auth.supabase.from("os_site_media")
       .select("id,title,alt_text,public_url").eq("status", "approved")
       .eq("usage_approved", true).eq("permission_confirmed", true).order("title"),
-    auth.supabase.from("os_site_media")
+    before ? Promise.resolve({ data: [], error: null }) : auth.supabase.from("os_site_media")
       .select("id,drive_file_id,title,status")
       .eq("status", "candidate").order("created_at", { ascending: false }).limit(40),
   ]);
 
   const unavailable = Boolean(revisionsResult.error || mediaResult.error || candidatesResult.error);
-  const revisions = (revisionsResult.data ?? []) as Revision[];
+  const hasOlder = (revisionsResult.data?.length ?? 0) > 20;
+  const revisions = (revisionsResult.data ?? []).slice(0, 20) as Revision[];
   const approvedMedia = (mediaResult.data ?? []) as SiteMediaOption[];
   const candidates = (candidatesResult.data ?? []) as MediaCandidate[];
   const current = (revisions.find((r) => r.state === "draft") ??
@@ -115,7 +123,6 @@ export default async function SiteStudioPage({
       ? current.gallery_media_ids.filter((id): id is string => typeof id === "string" && approvedMedia.some((m) => m.id === id)).slice(0,3)
       : [],
   };
-  const params = searchParams ? await searchParams : {};
   const notice = params.saved ? "Private draft saved. Public site unchanged." :
     params.published ? "Selected revision published to the OS public-content reader." :
     params.queued ? "Drive candidate queued for private review. Nothing was published." :
@@ -141,6 +148,7 @@ export default async function SiteStudioPage({
       ) : (
         <>
           {notice && <div className="alert" role="status">{notice}</div>}
+          {before ? <p><a href="/admin/site-studio">Back to current editor</a></p> : <>
           <SiteStudioHomeEditor
             key={String(revisions[0]?.id ?? "initial")}
             initial={initial}
@@ -170,6 +178,7 @@ export default async function SiteStudioPage({
               </ul>
             ) : <p>No media has been queued. The original Drive media library remains untouched.</p>}
           </section>
+          </>}
           <section className="panel">
             <h2>Revision history and intentional publishing</h2>
             <p className="panel-note">
@@ -190,6 +199,7 @@ export default async function SiteStudioPage({
                 ))}
               </ul>
             ) : <p>No revisions saved yet.</p>}
+            {hasOlder && <a href={`/admin/site-studio?before=${revisions.at(-1)!.revision}`}>Older revisions</a>}
           </section>
         </>
       )}
