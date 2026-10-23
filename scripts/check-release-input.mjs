@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 const marker='media-free-release.json';
-const provider=process.env.NETLIFY==='true'||process.env.VERCEL_ENV==='production';
+const provider=process.env.EVENTSIBLE_CLOUDFLARE_CONTEXT==='qa'||process.env.NETLIFY==='true'||process.env.VERCEL_ENV==='production';
 if(!fs.existsSync(marker)){
  if(provider)throw Error('Provider release requires a prepared media-free input; run release:prepare and deploy that directory');
 }else{

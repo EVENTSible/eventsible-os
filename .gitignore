@@ -47,3 +47,10 @@ next-env.d.ts
 
 .media-free-release*/
 .release-guard-test-*/
+
+# Generated Cloudflare QA artifacts
+.open-next/
+.wrangler/
+wrangler.qa.json
+open-next.config.ts
+tools/cloudflare/node_modules/

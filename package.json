@@ -27,7 +27,11 @@
     "test:migration-history": "node scripts/verify-migration-history.mjs",
     "guard:local-supabase-ci": "node scripts/guard-local-supabase-ci.mjs",
     "test:site-studio:two-app-local": "node scripts/site-studio-two-app-local-verify.mjs",
-    "release:prepare": "node scripts/prepare-media-free-release.mjs"
+    "release:prepare": "node scripts/prepare-media-free-release.mjs",
+    "cf:build": "node scripts/cloudflare-qa.mjs build",
+    "cf:dry-run": "node scripts/cloudflare-qa.mjs dry-run",
+    "cf:deploy:qa": "node scripts/cloudflare-qa.mjs deploy",
+    "cf:disable:qa": "node scripts/cloudflare-qa.mjs disable"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",

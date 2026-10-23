@@ -1,4 +1,4 @@
-import { isProductionDeployment, isNetlifyPreview } from "../reliability/deployment-context.mjs";
+import { isProductionDeployment, isPreviewDeployment, cloudflareQaOrigin } from "../reliability/deployment-context.mjs";
 export const BUILDER_LEAD_NOTIFICATION_TYPE = "builder_lead_internal_email";
 export const BUILDER_SUBMISSION_EVENT_TYPE = "builder.submission_received";
 export const DEFAULT_NOTIFICATION_RECIPIENT = "firstfamdjs@gmail.com";
@@ -16,13 +16,13 @@ export function createNotificationKey(builderSubmissionId) {
 export function resolveNotificationConfig(env = process.env) {
   const dryRun =
     env.EVENTSIBLE_LEAD_NOTIFICATION_DRY_RUN === "true" ||
-    isNetlifyPreview(env) ||
+    isPreviewDeployment(env) ||
     (!env.RESEND_API_KEY && !isProductionDeployment(env));
 
   return {
     recipient: env.EVENTSIBLE_LEAD_NOTIFICATION_TO || DEFAULT_NOTIFICATION_RECIPIENT,
     from: env.EVENTSIBLE_LEAD_NOTIFICATION_FROM || DEFAULT_TEMPORARY_SENDER,
-    adminUrl: env.EVENTSIBLE_ADMIN_LEADS_URL || DEFAULT_ADMIN_LEADS_URL,
+    adminUrl: env.EVENTSIBLE_CLOUDFLARE_CONTEXT ? (cloudflareQaOrigin(env) ? cloudflareQaOrigin(env) + "/admin/leads" : "") : env.EVENTSIBLE_ADMIN_LEADS_URL || DEFAULT_ADMIN_LEADS_URL,
     maxAttempts: Number.parseInt(env.EVENTSIBLE_LEAD_NOTIFICATION_MAX_ATTEMPTS || "5", 10),
     dryRun,
     resendApiKey: env.RESEND_API_KEY,

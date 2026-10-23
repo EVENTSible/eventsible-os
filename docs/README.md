@@ -124,3 +124,5 @@ A Preview or manual request is not scheduled Production proof. The mechanism rem
 Use these labels consistently: LIVE, PRODUCTION VERIFIED, IMPLEMENTED, PARTIAL, PLANNED, DEFERRED, HISTORICAL, SUPERSEDED, NEEDS VERIFICATION.
 
 Only mark a feature PRODUCTION VERIFIED when current source, deployment metadata, and safe route or workflow evidence support it.
+
+Cloudflare QA build/configuration: [media-free Workers QA runbook](../cloudflare/README.md). Production host selection remains approval-gated.
