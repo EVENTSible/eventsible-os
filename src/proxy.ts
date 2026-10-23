@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { requestAuthFetch } from "@/lib/request-auth-scope";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
@@ -11,6 +12,7 @@ export async function proxy(request: NextRequest) {
   }
   let response = NextResponse.next({ request });
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: { fetch: requestAuthFetch(SUPABASE_URL) },
     cookies: {
       getAll() {
         return request.cookies.getAll();

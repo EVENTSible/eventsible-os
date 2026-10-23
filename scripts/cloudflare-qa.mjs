@@ -8,6 +8,7 @@ if(!fs.existsSync("media-free-release.json"))throw Error("Cloudflare QA requires
 const marker=JSON.parse(fs.readFileSync("media-free-release.json"));
 if(marker.packageName!==JSON.parse(fs.readFileSync("package.json")).name||marker.version!==1)throw Error("Release identity mismatch");
 const config=JSON.parse(fs.readFileSync("cloudflare/"+lane+".json"));
+if(hq)config.main=".open-next/qa-worker.js";
 if(config.name!=="eventsible-qa-"+lane+"-20261023"||config.account_id!=="bdc9488066b01f9898727dfdfac8fb74"||config.routes||config.triggers)throw Error("QA target mismatch");
 config.workers_dev=action!=="disable"&&flags.includes("--expose-qa");config.preview_urls=config.workers_dev;
 fs.writeFileSync("wrangler.qa.json",JSON.stringify(config,null,2)+"\n");
@@ -21,6 +22,19 @@ if(action==="build"){
   fs.writeFileSync("open-next.config.ts",fs.readFileSync("cloudflare/open-next.config.template"));
   const link=path.resolve("node_modules/@opennextjs");if(!fs.existsSync(link))fs.symlinkSync(path.join(tools,"@opennextjs"),link,process.platform==="win32"?"junction":"dir");
   run(path.join(tools,"@opennextjs/cloudflare/dist/cli/index.js"),["build","--config","wrangler.qa.json"],env);
+  fs.writeFileSync(".open-next/qa-worker.js",`import worker from "./worker.js";
+import { withRequestAuthScope, requestAuthVerificationCount } from "../src/lib/request-auth-scope.ts";
+export * from "./worker.js";
+export default { ...worker, fetch(request, env, ctx) {
+  if (env.EVENTSIBLE_CLOUDFLARE_CONTEXT !== "qa") throw new Error("QA context required");
+  return withRequestAuthScope(async () => {
+    const response = await worker.fetch(request, env, ctx);
+    const result = new Response(response.body, response);
+    result.headers.set("x-eventsible-qa-auth-verifications", String(requestAuthVerificationCount()));
+    return result;
+  });
+}};
+`);
  }else{
   Object.assign(env,{VITE_EVENTSIBLE_SITE_MODE:lane,VITE_EVENTSIBLE_CLOUDFLARE_CONTEXT:"qa",VITE_EVENTSIBLE_QA_PUBLIC_ORIGIN:"https://eventsible-qa-public-20261023.firstfamdjs.workers.dev",VITE_EVENTSIBLE_QA_BUILDER_ORIGIN:"https://eventsible-qa-builder-20261023.firstfamdjs.workers.dev",VITE_EVENTSIBLE_SITE_STUDIO_QA_ORIGIN:"https://eventsible-qa-hq-20261023.firstfamdjs.workers.dev",VITE_EVENTSIBLE_SITE_CONTENT_URL:"https://eventsible-qa-hq-20261023.firstfamdjs.workers.dev/api/public-site/home"});
   run("scripts/check-release-input.mjs",[],env);run("node_modules/vite/bin/vite.js",["build"],env);
