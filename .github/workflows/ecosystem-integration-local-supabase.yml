@@ -255,8 +255,11 @@ jobs:
 
       - name: Install isolated browser runtime
         run: |
-          npm install --no-save --no-package-lock playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npm install --prefix /tmp/eventsible-browser-runner --ignore-scripts --no-fund --save-exact playwright@1.56.1
+          npm audit --prefix /tmp/eventsible-browser-runner --audit-level=low
+          test ! -e node_modules/playwright
+          ln -s /tmp/eventsible-browser-runner/node_modules/playwright node_modules/playwright
+          node /tmp/eventsible-browser-runner/node_modules/playwright/cli.js install --with-deps chromium
 
       - name: Start isolated application
         shell: bash
