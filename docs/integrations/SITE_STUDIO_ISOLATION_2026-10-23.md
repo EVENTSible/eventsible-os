@@ -1,0 +1,11 @@
+# Site Studio secret isolation and lane boundaries — 2026-10-23
+
+Status: IMPLEMENTED / isolated QA; Production remains unchanged. Both release PRs stay unmerged drafts. Supersedes earlier ambiguity about supported Netlify Free credential scopes.
+
+Current Netlify documentation reserves selectable variable scopes for Pro/Enterprise. Historical Free QA deploy API acceptance of functions-scoped settings is evidence of that disposable execution only, not a supported Production entitlement. Netlify Free is therefore NOT ACCEPTED for HQ/Builder under the current functions-only credential requirement. No all-scope secret waiver, paid upgrade or undocumented entitlement workaround is authorized. A supported no-paid hosting architecture must be separately tested before host/environment gates can close. Public with no server credentials can be evaluated independently; this does not authorize any Production target.
+
+The Public/Builder draft adds server-side Builder-function lane enforcement, Public HTTP redirects/MCP denial and Auth-independent Public middleware. The OAuth consent module defers Auth initialization so importing Public routes works with no Supabase settings. Builder Auth/admin clients reject missing, unsafe or mismatched compiled browser/runtime backend origins before accessing credentials. Existing OS Owner/Staff identities and OS intake are the intended accepted contract; no users, schema, credentials or business records are migrated in Production. Legacy quote/MCP contracts are not silently repointed to a second CRM or declared OS-compatible.
+
+Canonical release prerequisites remain: exact-head source and current-scope review; media-free input/asset hashes; full tests/lint/types/build/audit; no-secret scans; isolated direct-RPC, browser/runtime and data-invariant evidence; supported host/configuration and fresh rollback artifacts; backup/restore proof and separate M50/M5/S/E/F/D/C/R/J authorities. Earlier exact-head packets and artifacts remain historical for their source heads and must not be promoted after this change.
+
+References: https://docs.netlify.com/build/environment-variables/overview/#scopes and https://docs.netlify.com/build/functions/environment-variables/ . Cloudflare Workers secret bindings are research only; no worker/account/deployment was created or credential transmitted.

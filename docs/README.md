@@ -10,6 +10,8 @@
 
 This folder is the source of truth for cross-system EVENTSible documentation. App repositories may keep app-specific setup, status, and implementation docs, but ecosystem ownership, domain routing, roadmap order, and system-of-record decisions belong here.
 
+Current isolation gate: [supported Free secret handling and Public/Builder boundaries](integrations/SITE_STUDIO_ISOLATION_2026-10-23.md). Netlify Free is not accepted for functions-only Production secrets.
+
 ## Current Production Release Evidence
 
 Current Site Studio Preview work: [Netlify Free integration and approval gates](integrations/SITE_STUDIO_NETLIFY_PREVIEW_2026-10-22.md). This does not change Production status.
