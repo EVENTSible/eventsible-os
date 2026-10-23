@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { authorizeHqCapability } from "@/lib/hq-auth";
+import { formatRevisionTime } from "@/lib/revision-time";
 import { SiteStudioHomeEditor, type SiteMediaOption } from "@/components/site-studio-home-editor";
 import { SiteStudioMediaIntake } from "@/components/site-studio-media-intake";
 import {
@@ -178,7 +179,7 @@ export default async function SiteStudioPage({
               <ul>
                 {revisions.map((revision) => (
                   <li key={revision.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid #bbb" }}>
-                    Revision {revision.revision} • {revision.state} • {new Date(revision.created_at).toLocaleString("en-US")}
+                    Revision {revision.revision} • {revision.state} • {formatRevisionTime(revision.created_at)}
                     {revision.state !== "published" && (
                       <form action={publishHomepageRevision} style={{ display: "inline", marginLeft: "1rem" }}>
                         <input type="hidden" name="revision_id" value={revision.id}/>

@@ -2,6 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { readSiteRows } from "../lib/public-site-data.ts";
+import { formatRevisionTime } from "../lib/revision-time.ts";
+
+test("revision formatting preserves local en-US output without retaining record data",()=>{
+  for(const value of ["2026-10-23T17:00:00.000Z","2026-01-01T00:01:02.000Z"]){
+    assert.equal(formatRevisionTime(value),new Date(value).toLocaleString("en-US"));
+  }
+  assert.equal(formatRevisionTime("not a date"),"Unknown time");
+});
 
 test("published REST reads are bounded, uncached and do not redirect server credentials", async () => {
   const calls=[];
