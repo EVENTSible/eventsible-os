@@ -58,6 +58,7 @@
     "brace-expansion": "1.1.21",
     "@next/eslint-plugin-next": {
       "fast-glob": "file:../../../tools/next-lint-glob"
-    }
+    },
+    "zod": "4.6.7"
   }
 }
