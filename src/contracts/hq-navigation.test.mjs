@@ -47,7 +47,7 @@ test("shared shell owns protected landmarks, mobile navigation, and accessible d
   const layout = fs.readFileSync(fileURLToPath(new URL("../app/admin/layout.tsx", import.meta.url)), "utf8");
   const shell = fs.readFileSync(fileURLToPath(new URL("../components/hq-shell.tsx", import.meta.url)), "utf8");
   const styles = fs.readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
-  assert.match(layout, /auth\.getUser\(\)/);
+  assert.match(layout, /await verifiedHqSession\(\)/);
   assert.match(layout, /isStaffRole\(role\)/);
   assert.match(layout, /<HqShell role=/);
   assert.match(shell, /href="#hq-main-content"/);

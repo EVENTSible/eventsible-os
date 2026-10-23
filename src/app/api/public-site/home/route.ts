@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
-import { createAdminSupabase } from "@/lib/supabase/admin";
+import { SUPABASE_URL } from "@/lib/supabase/config";
+import { readSiteRows } from "@/lib/public-site-data";
 
 export const dynamic = "force-dynamic";
-const publicHeaders = { "Access-Control-Allow-Origin": "*", "Cache-Control": "public, s-maxage=60", "X-Content-Type-Options": "nosniff" };
+const publicHeaders = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 
 export async function GET() {
   try {
-    const supabase = createAdminSupabase();
-    const { data: page, error } = await supabase.from("os_site_content_revisions")
-      .select("revision,content").eq("page_key", "home").eq("state", "published").maybeSingle();
-    if (error) throw new Error("site content unavailable");
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) throw new Error("site content unavailable");
+    const read = (table: "os_site_content_revisions" | "os_site_media", query: Record<string, string>) =>
+      readSiteRows(SUPABASE_URL, key, table, query);
+    const pages = await read("os_site_content_revisions", {
+      select: "revision,content", page_key: "eq.home", state: "eq.published", limit: "2",
+    });
+    if (pages.length > 1) throw new Error("ambiguous published content");
+    const page = pages[0];
     if (!page) return NextResponse.json({ version: 1, content: null }, { headers: publicHeaders });
 
     const raw = page.content as Record<string, unknown>;
@@ -33,12 +39,13 @@ export async function GET() {
     };
     const allowMedia = process.env.NEXT_PUBLIC_EVENTSIBLE_MEDIA_FREE_RELEASE !== "true";
     if (allowMedia && typeof raw.hero_media_id === "string") {
-      const { data: media } = await supabase.from("os_site_media").select("public_url,alt_text")
-        .eq("id", raw.hero_media_id).eq("status", "approved")
-        .eq("usage_approved", true).eq("permission_confirmed", true).maybeSingle();
-      if (media?.public_url?.startsWith("https://")) {
+      const [media] = await read("os_site_media", {
+        select: "public_url,alt_text", id: `eq.${raw.hero_media_id}`, status: "eq.approved",
+        usage_approved: "eq.true", permission_confirmed: "eq.true", limit: "1",
+      });
+      if (typeof media?.public_url === "string" && media.public_url.startsWith("https://")) {
         content.hero_media_url = media.public_url;
-        content.hero_media_alt = media.alt_text;
+        content.hero_media_alt = typeof media.alt_text === "string" ? media.alt_text : "";
       }
     }
     // The server returns safe, reviewed media renditions only; never Drive file URLs.
@@ -51,13 +58,16 @@ export async function GET() {
       ? raw.gallery_media_ids.filter((id): id is string => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 3) : [];
     let galleryMedia: Array<{ public_url: string; alt_text: string; title: string }> = [];
     if (rawGalleryIds.length) {
-      const { data: approved } = await supabase.from("os_site_media")
-        .select("id,title,alt_text,public_url").in("id",rawGalleryIds)
-        .eq("status","approved").eq("usage_approved",true).eq("permission_confirmed",true);
+      const approved = await read("os_site_media", {
+        select: "id,title,alt_text,public_url", id: `in.(${rawGalleryIds.join(",")})`,
+        status: "eq.approved", usage_approved: "eq.true", permission_confirmed: "eq.true", limit: "3",
+      });
       const byId = new Map((approved ?? []).filter((m) => typeof m.public_url === "string" && m.public_url.startsWith("https://")).map((m) => [m.id,m]));
       galleryMedia = rawGalleryIds.flatMap((id) => {
         const media = byId.get(id);
-        return media ? [{ public_url:media.public_url, alt_text:media.alt_text, title:media.title }] : [];
+        return media && typeof media.public_url === "string" ? [{ public_url:media.public_url,
+          alt_text:typeof media.alt_text === "string" ? media.alt_text : "",
+          title:typeof media.title === "string" ? media.title : "" }] : [];
       });
     }
     const allowedPowerIds = [

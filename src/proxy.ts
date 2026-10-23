@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
+  // Only this existing public projection is independent of caller identity.
+  // All protected routes keep the Auth refresh/verification path below.
+  if (request.nextUrl.pathname === "/api/public-site/home" &&
+      ["GET", "HEAD"].includes(request.method)) {
+    return NextResponse.next({ request });
+  }
   let response = NextResponse.next({ request });
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
