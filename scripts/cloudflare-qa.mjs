@@ -21,7 +21,19 @@ if(action==="build"){
  if(hq){
   fs.writeFileSync("open-next.config.ts",fs.readFileSync("cloudflare/open-next.config.template"));
   const link=path.resolve("node_modules/@opennextjs");if(!fs.existsSync(link))fs.symlinkSync(path.join(tools,"@opennextjs"),link,process.platform==="win32"?"junction":"dir");
-  run(path.join(tools,"@opennextjs/cloudflare/dist/cli/index.js"),["build","--config","wrangler.qa.json"],env);
+  // Next 16 proxy always uses Node middleware, experimental in this adapter.
+  // Only the prepared QA build uses the supported Edge middleware convention.
+  // Keep the complete Auth implementation; change only its entry-point name.
+  const proxy=fs.readFileSync("src/proxy.ts","utf8");
+  if(fs.existsSync("src/middleware.ts")||!proxy.includes("export async function proxy("))throw Error("Unexpected QA middleware source");
+  fs.renameSync("src/proxy.ts","src/proxy.qa-reference");
+  try{
+   fs.writeFileSync("src/middleware.ts",proxy.replace("export async function proxy(","export async function middleware("));
+   run(path.join(tools,"@opennextjs/cloudflare/dist/cli/index.js"),["build","--config","wrangler.qa.json"],env);
+  }finally{
+   fs.rmSync("src/middleware.ts",{force:true});
+   fs.renameSync("src/proxy.qa-reference","src/proxy.ts");
+  }
   fs.writeFileSync(".open-next/qa-worker.js",`import worker from "./worker.js";
 import { withRequestAuthScope, requestAuthVerificationCount } from "../src/lib/request-auth-scope.ts";
 export * from "./worker.js";
