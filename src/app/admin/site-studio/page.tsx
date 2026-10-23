@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { authorizeHqCapability } from "@/lib/hq-auth";
 import { formatRevisionTime } from "@/lib/revision-time";
-import { SiteStudioHomeEditor, type SiteMediaOption } from "@/components/site-studio-home-editor";
+import type { SiteMediaOption } from "@/components/site-studio-home-editor";
+import { SiteStudioEditor } from "@/components/site-studio-editor";
 import { SiteStudioMediaIntake } from "@/components/site-studio-media-intake";
 import {
   publishHomepageRevision,
@@ -158,7 +159,7 @@ export default async function SiteStudioPage({
         <>
           {notice && <div className="alert" role="status">{notice}</div>}
           {before ? <p><a href="/admin/site-studio">Back to current editor</a></p> : <>
-          <SiteStudioHomeEditor
+          <SiteStudioEditor
             key={String(revisions[0]?.id ?? "initial")}
             initial={initial}
             approvedMedia={approvedMedia}
