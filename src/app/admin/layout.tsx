@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { HqShell } from "@/components/hq-shell";
+import { HqShell } from "@/components/site-studio-shell";
 import { verifiedHqSession } from "@/lib/hq-session";
 import { isStaffRole } from "@/lib/types";
 

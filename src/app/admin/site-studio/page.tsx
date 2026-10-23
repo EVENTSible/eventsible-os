@@ -195,19 +195,19 @@ export default async function SiteStudioPage({
               Save a private draft first. Publishing requires explicit owner action; an older revision can be republished to restore it.
             </p>
             {revisions.length ? (
+              <form action={publishHomepageRevision}>
               <ul>
                 {revisions.map((revision) => (
                   <li key={revision.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid #bbb" }}>
                     Revision {revision.revision} • {revision.state} • {formatRevisionTime(revision.created_at)}
                     {revision.state !== "published" && (
-                      <form action={publishHomepageRevision} style={{ display: "inline", marginLeft: "1rem" }}>
-                        <input type="hidden" name="revision_id" value={revision.id}/>
-                        <button className="secondary-button" type="submit">Publish this revision</button>
-                      </form>
+                      <button className="secondary-button" type="submit" name="revision_id" value={revision.id}
+                        style={{ marginLeft: "1rem" }}>Publish this revision</button>
                     )}
                   </li>
                 ))}
               </ul>
+              </form>
             ) : <p>No revisions saved yet.</p>}
             {hasOlder && <a href={`/admin/site-studio?before=${revisions.at(-1)!.revision}`}>Older revisions</a>}
           </section>
