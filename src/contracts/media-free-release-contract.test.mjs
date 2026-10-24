@@ -12,10 +12,12 @@ test("provider builds reject raw source and contaminated media-free input", () =
     fs.writeFileSync(path.join(fixture,"package.json"),JSON.stringify({name:"eventsible-release-test"}));
     assert.notEqual(check({NETLIFY:"true"}),0);
     assert.notEqual(check({NETLIFY:"",VERCEL_ENV:"production"}),0);
+    assert.notEqual(check({NETLIFY:"",VERCEL_ENV:"preview"}),0);
     fs.writeFileSync(path.join(fixture,"media-free-release.json"),JSON.stringify({version:1,packageName:"eventsible-release-test"}));
     fs.mkdirSync(path.join(fixture,"public"));
     fs.writeFileSync(path.join(fixture,"public/illustration.svg"),'<svg xmlns="http://www.w3.org/2000/svg"/>');
     assert.equal(check({NETLIFY:"true"}),0);
+    assert.equal(check({NETLIFY:"",VERCEL_ENV:"preview"}),0);
     fs.writeFileSync(path.join(fixture,"public/unapproved.jpg"),"synthetic contaminated fixture");
     assert.notEqual(check({NETLIFY:"true"}),0);
   } finally {

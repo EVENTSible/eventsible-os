@@ -10,11 +10,11 @@
 
 This folder is the source of truth for cross-system EVENTSible documentation. App repositories may keep app-specific setup, status, and implementation docs, but ecosystem ownership, domain routing, roadmap order, and system-of-record decisions belong here.
 
-Current isolation gate: [supported Free secret handling and Public/Builder boundaries](integrations/SITE_STUDIO_ISOLATION_2026-10-23.md). Netlify Free is not accepted for functions-only Production secrets.
+Current Site Studio release target: [existing Vercel Pro projects, Preview verification and approval gates](integrations/SITE_STUDIO_VERCEL_PRO_2026-10-23.md). Earlier [Free hosting isolation evidence](integrations/SITE_STUDIO_ISOLATION_2026-10-23.md) remains historical; it is not the selected release host.
 
 ## Current Production Release Evidence
 
-Current Site Studio Preview work: [Netlify Free integration and approval gates](integrations/SITE_STUDIO_NETLIFY_PREVIEW_2026-10-22.md). This does not change Production status.
+Current Site Studio Preview work: [Vercel Pro release verification](integrations/SITE_STUDIO_VERCEL_PRO_2026-10-23.md). This does not change Production status.
 
 Current release variant: [media-free builds and Netlify parity](integrations/SITE_STUDIO_MEDIA_FREE_RELEASE_2026-10-22.md). Original media stays preserved and is excluded from prepared release artifacts.
 
