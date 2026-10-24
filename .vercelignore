@@ -1,0 +1,3 @@
+# Historical alternative-host tooling remains audited in Git, outside Vercel input.
+tools/cloudflare/
+.github/
