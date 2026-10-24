@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
-import { HqShell } from "@/components/hq-shell";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { HqShell } from "@/components/site-studio-shell";
+import { verifiedHqSession } from "@/lib/hq-session";
 import { isStaffRole } from "@/lib/types";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabase();
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
+  const { user } = await verifiedHqSession();
   if (!user) redirect("/login");
   const role = user.app_metadata?.role;
   if (!isStaffRole(role)) redirect("/access-denied");

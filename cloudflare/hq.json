@@ -1,0 +1,29 @@
+{
+  "name": "eventsible-qa-hq-20261023",
+  "account_id": "bdc9488066b01f9898727dfdfac8fb74",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-23",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": false
+  },
+  "vars": {
+    "EVENTSIBLE_CLOUDFLARE_CONTEXT": "qa",
+    "EVENTSIBLE_CLOUDFLARE_APP_ORIGIN": "https://eventsible-qa-hq-20261023.firstfamdjs.workers.dev"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "eventsible-qa-hq-20261023"
+    }
+  ]
+}

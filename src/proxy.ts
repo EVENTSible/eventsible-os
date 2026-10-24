@@ -1,10 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { requestAuthFetch } from "@/lib/request-auth-scope";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
+  // Only this existing public projection is independent of caller identity.
+  // All protected routes keep the Auth refresh/verification path below.
+  if (request.nextUrl.pathname === "/api/public-site/home" &&
+      ["GET", "HEAD"].includes(request.method)) {
+    return NextResponse.next({ request });
+  }
   let response = NextResponse.next({ request });
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: { fetch: requestAuthFetch(SUPABASE_URL) },
     cookies: {
       getAll() {
         return request.cookies.getAll();

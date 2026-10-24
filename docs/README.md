@@ -10,7 +10,13 @@
 
 This folder is the source of truth for cross-system EVENTSible documentation. App repositories may keep app-specific setup, status, and implementation docs, but ecosystem ownership, domain routing, roadmap order, and system-of-record decisions belong here.
 
+Current Site Studio release target: [existing Vercel Pro projects, Preview verification and approval gates](integrations/SITE_STUDIO_VERCEL_PRO_2026-10-23.md). Earlier [Free hosting isolation evidence](integrations/SITE_STUDIO_ISOLATION_2026-10-23.md) remains historical; it is not the selected release host.
+
 ## Current Production Release Evidence
+
+Current Site Studio Preview work: [Vercel Pro release verification](integrations/SITE_STUDIO_VERCEL_PRO_2026-10-23.md). This does not change Production status.
+
+Current release variant: [media-free builds and Netlify parity](integrations/SITE_STUDIO_MEDIA_FREE_RELEASE_2026-10-22.md). Original media stays preserved and is excluded from prepared release artifacts.
 
 - Status: LIVE / PRODUCTION VERIFIED
 - Verified at: 2026-08-24
@@ -118,3 +124,5 @@ A Preview or manual request is not scheduled Production proof. The mechanism rem
 Use these labels consistently: LIVE, PRODUCTION VERIFIED, IMPLEMENTED, PARTIAL, PLANNED, DEFERRED, HISTORICAL, SUPERSEDED, NEEDS VERIFICATION.
 
 Only mark a feature PRODUCTION VERIFIED when current source, deployment metadata, and safe route or workflow evidence support it.
+
+Cloudflare QA build/configuration: [media-free Workers QA runbook](../cloudflare/README.md). Production host selection remains approval-gated.

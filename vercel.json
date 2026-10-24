@@ -4,5 +4,6 @@
       "path": "/api/cron/supabase-keepalive",
       "schedule": "20 10 * * *"
     }
-  ]
+  ],
+  "ignoreCommand": "node scripts/skip-isolated-preview.cjs"
 }
