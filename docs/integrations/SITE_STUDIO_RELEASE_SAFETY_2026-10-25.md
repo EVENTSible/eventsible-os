@@ -16,7 +16,9 @@ The existing Vercel Pro infrastructure remains selected. October 23 hosted funct
 
 Previous reviewed proposal SHA-256: `c8cbfb89dc02606cfeaacdb683a8a0b6b59dc763d1dd5fc63ea3c8ae4bfaa222`.
 
-Corrected proposal SHA-256: `4eb2e19f2dd7a2fb11f002dc2bdf1951acd90d5e38d34e48b93b93bdc0af4c93`.
+Corrected canonical Git/LF proposal SHA-256: `113125346d7d5d99ff7c22f6ea8454513f32e06d633266357ef977a6ff993c09`.
+
+The Windows CRLF working copy used for the local SQL rehearsal hashes to `4eb2e19f2dd7a2fb11f002dc2bdf1951acd90d5e38d34e48b93b93bdc0af4c93`; its SQL is byte-identical after newline normalization. The previous Windows hash above corresponds to prior Git/LF hash `aaf523a7412c008915bcda3316c06df2c77f273a3ea7b87093b992a111b4dbf0`. Future approval must pin the exact packaged artifact bytes and must not silently mix newline-dependent checksums.
 
 Read-only Production catalog inspection showed broad default sequence privileges. A new synthetic local database reproduced anonymous USAGE/SELECT/UPDATE and authenticated UPDATE on the identity sequence after applying the old proposal. The sole SQL correction revokes inherited sequence grants from PUBLIC, anon and authenticated before granting authenticated USAGE/SELECT. It does not alter business tables, authorization roles or publication behavior. Fresh local checks confirm Owner draft creation/publication still work; anonymous sequence use and authenticated sequence UPDATE are denied.
 
