@@ -10,7 +10,7 @@
 
 This folder is the source of truth for cross-system EVENTSible documentation. App repositories may keep app-specific setup, status, and implementation docs, but ecosystem ownership, domain routing, roadmap order, and system-of-record decisions belong here.
 
-Current Site Studio release target: [existing Vercel Pro projects, Preview verification and approval gates](integrations/SITE_STUDIO_VERCEL_PRO_2026-10-23.md). Earlier [Free hosting isolation evidence](integrations/SITE_STUDIO_ISOLATION_2026-10-23.md) remains historical; it is not the selected release host.
+Current Site Studio release-safety gate: [October 25 backup, deployment-control and schema-grant audit](integrations/SITE_STUDIO_RELEASE_SAFETY_2026-10-25.md). The selected target remains [existing Vercel Pro projects](integrations/SITE_STUDIO_VERCEL_PRO_2026-10-23.md). Earlier [Free hosting isolation evidence](integrations/SITE_STUDIO_ISOLATION_2026-10-23.md) remains historical.
 
 ## Current Production Release Evidence
 

@@ -41,6 +41,9 @@ revoke all on public.os_site_media from public, anon, authenticated;
 revoke all on public.os_site_content_revisions from public, anon, authenticated;
 grant select on public.os_site_media to authenticated;
 grant select, insert on public.os_site_content_revisions to authenticated;
+-- Supabase defaults can grant sequence UPDATE/USAGE to anon/authenticated.
+-- Revoke inherited grants before granting only the draft-insert needs.
+revoke all on sequence public.os_site_content_revisions_revision_seq from public, anon, authenticated;
 grant usage, select on sequence public.os_site_content_revisions_revision_seq to authenticated;
 
 create policy os_site_media_owner_select on public.os_site_media for select to authenticated
