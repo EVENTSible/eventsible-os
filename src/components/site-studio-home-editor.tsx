@@ -18,6 +18,10 @@ const SECTIONS = [
   { id: "home-faq", label: "Frequently asked questions" },
 ] as const;
 const ALL_IDS = SECTIONS.map((s) => s.id);
+const POWER_PANELS = [
+  ["hq", "Discover"], ["fast-track", "Fast Track"], ["builder", "Build"],
+  ["stage", "Stage"], ["workshop", "Custom Creations"], ["play-connect", "Play / Connect"],
+] as const;
 
 type Copy = {
   heading: string;
@@ -100,16 +104,10 @@ export function SiteStudioHomeEditor({
               Power Mode only: the welcome banner above the logo and short descriptions on our six comic-book panels.
               Panel titles, destinations, Builder entry, and color scheme stay protected.
               These controls do not change Classic View. Blank Power text uses the existing wording.
+              The welcome banner displays uppercase, so changing letter case alone does not change its appearance.
             </p>
             {textField("power_welcome", "Power Mode welcome", 32)}
-            {[
-              ["hq", "Discover"],
-              ["fast-track", "Fast Track"],
-              ["builder", "Build"],
-              ["stage", "Stage"],
-              ["workshop", "Custom Creations"],
-              ["play-connect", "Play / Connect"],
-            ].map(([id, label]) => (
+            {POWER_PANELS.map(([id, label]) => (
               <label key={id} style={{ display: "grid", gap: "0.4rem" }}>
                 {label} panel description
                 <input name={`power_subtitle_${id}`} maxLength={52}
@@ -217,10 +215,10 @@ export function SiteStudioHomeEditor({
         <div style={{ border: "1px solid currentColor", borderRadius: "0.75rem", padding: "1rem" }}>
           <strong>Power Mode preview</strong>
           <p className="panel-note">The welcome appears above the logo. The six descriptions appear below their fixed panel titles; the Classic headline is not shown here.</p>
-          <p>{copy.power_welcome || "Welcome To"} EVENTSible</p>
+          <p><span style={{ textTransform: "uppercase" }}>{copy.power_welcome || "Welcome To"}</span> EVENTSible</p>
           <ul style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "0.75rem" }}>
-            {Object.entries(powerSubtitles).map(([id, subtitle]) => (
-              <li key={id}><strong>{id}</strong>: {subtitle}</li>
+            {POWER_PANELS.map(([id, label]) => (
+              <li key={id}><strong>{label}</strong>: {powerSubtitles[id]}</li>
             ))}
           </ul>
         </div>
