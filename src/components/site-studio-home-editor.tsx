@@ -1,6 +1,17 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
+import { formatRevisionTime } from "@/lib/revision-time";
+import {
+  STUDIO_SECTIONS,
+  STUDIO_POWER,
+  OPTIONAL_SECTIONS,
+  normalizeStudioCopy,
+  studioDraftForm,
+  studioPreviewCopy,
+} from "@/lib/site-studio-workspace.mjs";
+import { SiteStudioVisualPreview } from "./site-studio-visual-preview";
+import "./site-studio-workspace.css";
 
 export type SiteMediaOption = {
   id: string;
@@ -8,22 +19,7 @@ export type SiteMediaOption = {
   alt_text: string;
   public_url: string;
 };
-
-const SECTIONS = [
-  { id: "home-event-types", label: "Event types" },
-  { id: "home-services", label: "Services" },
-  { id: "home-trust", label: "Why EVENTSible" },
-  { id: "home-featured-packages", label: "Featured packages" },
-  { id: "home-planning-tools", label: "Planning tools" },
-  { id: "home-faq", label: "Frequently asked questions" },
-] as const;
-const ALL_IDS = SECTIONS.map((s) => s.id);
-const POWER_PANELS = [
-  ["hq", "Discover"], ["fast-track", "Fast Track"], ["builder", "Build"],
-  ["stage", "Stage"], ["workshop", "Custom Creations"], ["play-connect", "Play / Connect"],
-] as const;
-
-type Copy = {
+export type SiteStudioCopy = {
   heading: string;
   highlight: string;
   subheading: string;
@@ -43,202 +39,676 @@ type Copy = {
   visible_sections?: string[];
   gallery_media_ids: string[];
 };
+export type SiteStudioRevision = {
+  id: string;
+  revision: number;
+  state: string;
+  created_at: string;
+  summary: string;
+  power: string;
+};
+function SaveControl({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      className="studio-save"
+      aria-label={pending ? "Saving…" : "Save private draft"}
+      type="submit"
+      disabled={disabled || pending}
+    >
+      {pending ? (
+        "Saving…"
+      ) : (
+        <>
+          <span className="studio-save-full">Save private draft</span>
+          <span className="studio-save-short" aria-hidden="true">
+            Save draft
+          </span>
+        </>
+      )}
+    </button>
+  );
+}
+function ConfirmPublish() {
+  const { pending } = useFormStatus();
+  return (
+    <button className="studio-publish" type="submit" disabled={pending}>
+      {pending ? "Publishing…" : "Confirm publication"}
+    </button>
+  );
+}
 
 export function SiteStudioHomeEditor({
   initial,
   approvedMedia,
   saveAction,
+  publishAction,
+  currentRevision,
+  publishedRevision,
+  revisions,
+  publicLink,
+  mediaPanel,
+  hasOlder,
+  before,
+  notice,
+  visualPreviewEnabled,
 }: {
-  initial: Copy;
+  initial: SiteStudioCopy;
   approvedMedia: SiteMediaOption[];
-  saveAction: (formData: FormData) => Promise<void>;
+  saveAction: (data: FormData) => Promise<void>;
+  publishAction: (data: FormData) => Promise<void>;
+  currentRevision: SiteStudioRevision | null;
+  publishedRevision: number | null;
+  revisions: SiteStudioRevision[];
+  publicLink: { href: string; label: string };
+  mediaPanel: ReactNode;
+  hasOlder: boolean;
+  before?: number;
+  notice: string;
+  visualPreviewEnabled: boolean;
 }) {
-  const [copy, setCopy] = useState(initial);
-  const [order, setOrder] = useState<string[]>(() => [
-    ...new Set([...initial.section_order.filter((x) => ALL_IDS.includes(x as typeof ALL_IDS[number])), ...ALL_IDS]),
-  ]);
-  const [visible, setVisible] = useState<string[]>(initial.visible_sections ?? ALL_IDS);
-  const [gallery, setGallery] = useState<string[]>([...initial.gallery_media_ids, "", "", ""].slice(0, 3));
-  const [powerSubtitles, setPowerSubtitles] = useState<Record<string, string>>(initial.power_subtitles);
-  const photo = approvedMedia.find((media) => media.id === copy.hero_media_id);
-  const update = (key: keyof Copy, value: string) =>
+  const [copy, setCopy] = useState(
+    () =>
+      normalizeStudioCopy(initial) as SiteStudioCopy & {
+        visible_sections: string[];
+      },
+  );
+  const [mode, setMode] = useState<"classic" | "power">("classic"),
+    [section, setSection] = useState("hero"),
+    [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
+  const [target, setTarget] = useState<SiteStudioRevision | null>(null);
+  const history = useRef<HTMLDialogElement>(null),
+    media = useRef<HTMLDialogElement>(null),
+    confirmation = useRef<HTMLDialogElement>(null),
+    allowNavigation = useRef(false);
+  const dirty =
+    JSON.stringify(copy) !== JSON.stringify(normalizeStudioCopy(initial));
+  const valid =
+    !!copy.heading.trim() &&
+    !!copy.highlight.trim() &&
+    !!copy.subheading.trim();
+  const active =
+      STUDIO_SECTIONS.find((s) => s.id === section) ?? STUDIO_SECTIONS[0],
+    powerLabel =
+      STUDIO_POWER.find(([id]) => id === section)?.[1] ?? "Welcome Banner";
+  const previewContent = studioPreviewCopy(
+    copy,
+    approvedMedia,
+    process.env.NEXT_PUBLIC_EVENTSIBLE_MEDIA_FREE_RELEASE === "true",
+  );
+  const previewTarget =
+    mode === "classic"
+      ? active.target
+      : section === "welcome"
+        ? ""
+        : `power:${section}`;
+  const status = dirty
+    ? "Unsaved changes"
+    : currentRevision
+      ? `${currentRevision.state === "published" ? "Published" : "Saved"} revision ${currentRevision.revision}`
+      : "Not yet saved";
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (dirty && !allowNavigation.current) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    const guard = (e: MouseEvent) => {
+      const anchor = (e.target as Element).closest?.("a[href]");
+      if (
+        !dirty ||
+        !anchor ||
+        anchor.getAttribute("target") === "_blank" ||
+        (anchor as HTMLAnchorElement).origin !== location.origin
+      )
+        return;
+      if (
+        !window.confirm("You have unsaved edits. Leave without saving them?")
+      ) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      } else allowNavigation.current = true;
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", guard, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guard, true);
+    };
+  }, [dirty]);
+  function update(key: string, value: string) {
     setCopy((current) => ({ ...current, [key]: value }));
-
-  function textField(key: keyof Copy, label: string, maxLength: number, multiline = false) {
-    const val = String(copy[key] ?? "");
+  }
+  function chooseMode(next: "classic" | "power") {
+    setMode(next);
+    setSection(next === "classic" ? "hero" : "welcome");
+  }
+  function requestPublish(revision: SiteStudioRevision) {
+    if (dirty) return;
+    setTarget(revision);
+    confirmation.current?.showModal();
+  }
+  function move(id: string, delta: number) {
+    setCopy((current) => {
+      const order = [...current.section_order],
+        at = order.indexOf(id),
+        next = at + delta;
+      if (next < 0 || next >= order.length) return current;
+      [order[at], order[next]] = [order[next], order[at]];
+      return { ...current, section_order: order };
+    });
+  }
+  function field(key: string, label: string, max: number, multiline = false) {
+    const value = String(copy[key as keyof SiteStudioCopy] ?? "");
     return (
-      <label style={{ display: "grid", gap: "0.4rem" }}>
+      <label key={key} className="studio-field">
         {label}
         {multiline ? (
-          <textarea name={key} value={val} maxLength={maxLength} rows={3}
-            onChange={(event) => update(key, event.target.value)} />
+          <textarea
+            aria-label={label}
+            name={key}
+            value={value}
+            maxLength={max}
+            rows={4}
+            onChange={(e) => update(key, e.target.value)}
+          />
         ) : (
-          <input name={key} value={val} maxLength={maxLength}
-            required={key === "heading" || key === "highlight"}
-            onChange={(event) => update(key, event.target.value)} />
+          <input
+            aria-label={label}
+            name={key}
+            value={value}
+            maxLength={max}
+            onChange={(e) => update(key, e.target.value)}
+          />
         )}
+        <span className="studio-field-meta">
+          {value.length} / {max}
+        </span>
       </label>
     );
   }
-
-  function moveSection(id: string, delta: number) {
-    setOrder((current) => {
-      const at = current.indexOf(id);
-      const next = at + delta;
-      if (at < 0 || next < 0 || next >= current.length) return current;
-      const changed = [...current];
-      [changed[at], changed[next]] = [changed[next], changed[at]];
-      return changed;
-    });
+  function mediaSelect(key: "hero_media_id" | "gallery_media_ids", index = 0) {
+    return (
+      <label className="studio-field">
+        {key === "hero_media_id"
+          ? "Approved homepage photo"
+          : `Approved gallery photo ${index + 1}`}
+        <select
+          name={key}
+          value={
+            key === "hero_media_id"
+              ? copy.hero_media_id
+              : copy.gallery_media_ids[index]
+          }
+          onChange={(e) =>
+            key === "hero_media_id"
+              ? update(key, e.target.value)
+              : setCopy((c) => ({
+                  ...c,
+                  gallery_media_ids: c.gallery_media_ids.map((id, i) =>
+                    i === index ? e.target.value : id,
+                  ),
+                }))
+          }
+        >
+          <option value="">
+            {key === "hero_media_id"
+              ? "Keep existing public image"
+              : "No replacement photo"}
+          </option>
+          {approvedMedia.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.title}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
   }
-
   return (
-    <div style={{ display: "grid", gap: "1.25rem" }}>
-      <section className="panel">
-        <h2>Homepage editor</h2>
-        <p className="panel-note">Live preview is private. Saving creates a draft; publishing is a separate owner action. The Event Builder and booking links are locked for safety.</p>
-        <form action={saveAction} className="site-studio-form" style={{ display: "grid", gap: "1.2rem", maxWidth: 860 }}>
-          <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Power Mode front door</strong></legend>
-            <p className="panel-note">
-              Power Mode only: the welcome banner above the logo and short descriptions on our six comic-book panels.
-              Panel titles, destinations, Builder entry, and color scheme stay protected.
-              These controls do not change Classic View. Blank Power text uses the existing wording.
-              The welcome banner displays uppercase, so changing letter case alone does not change its appearance.
-            </p>
-            {textField("power_welcome", "Power Mode welcome", 32)}
-            {POWER_PANELS.map(([id, label]) => (
-              <label key={id} style={{ display: "grid", gap: "0.4rem" }}>
-                {label} panel description
-                <input name={`power_subtitle_${id}`} maxLength={52}
-                  value={powerSubtitles[id] ?? ""}
-                  onChange={(event) => setPowerSubtitles((current) => ({
-                    ...current, [id]: event.target.value,
-                  }))}
-                />
-              </label>
-            ))}
-          </fieldset>
-          <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Classic View — welcome & hero</strong></legend>
-            <p className="panel-note">Headline, Highlighted words and Introduction appear in the Classic hero. They do not change the Power welcome banner, logo or panel titles.</p>
-            {textField("heading", "Headline", 110)}
-            {textField("highlight", "Highlighted words", 70)}
-            <label style={{ display: "grid", gap: "0.4rem" }}>
-              Introduction
-              <textarea name="subheading" required value={copy.subheading} maxLength={600} rows={4}
-                onChange={(event) => update("subheading", event.target.value)} />
-            </label>
-            <label style={{ display: "grid", gap: "0.4rem" }}>
-              Approved homepage photo
-              <select name="hero_media_id" value={copy.hero_media_id}
-                onChange={(event) => update("hero_media_id", event.target.value)}>
-                <option value="">Keep existing public image</option>
-                {approvedMedia.map((media) => <option key={media.id} value={media.id}>{media.title}</option>)}
-              </select>
-            </label>
-          </fieldset>
-          <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Classic View — event & service copy</strong></legend>
-            <p className="panel-note">These headings and introductions appear in the corresponding visible Classic sections, not the Power panels. Blank optional text uses existing copy.</p>
-            {textField("event_types_heading", "Event types heading", 140)}
-            {textField("services_heading", "Services heading", 140)}
-            {textField("services_body", "Services introduction", 600, true)}
-            {textField("featured_heading", "Featured experiences heading", 140)}
-            {textField("featured_body", "Featured experiences introduction", 600, true)}
-          </fieldset>
-          <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Classic View — portfolio & gallery</strong></legend>
-            {textField("portfolio_heading", "Portfolio heading", 140)}
-            {textField("portfolio_body", "Portfolio description", 600, true)}
-            {[0, 1, 2].map((index) => (
-              <label key={index} style={{ display: "grid", gap: "0.4rem" }}>
-                Approved gallery photo {index + 1}
-                <select name="gallery_media_ids" value={gallery[index] ?? ""}
-                  onChange={(event) => setGallery((current) => current.map((id, pos) => pos === index ? event.target.value : id))}>
-                  <option value="">No photo selected</option>
-                  {approvedMedia.map((media) => <option key={media.id} value={media.id}>{media.title}</option>)}
-                </select>
-              </label>
-            ))}
-            <p className="panel-note">Portfolio copy changes the Classic gallery heading and description. Existing gallery cards remain when no replacement photos are selected. Photos require approved public renditions; media-free previews use generic illustrations. These fields do not change Power Mode. Unverified reviews remain hidden.</p>
-          </fieldset>
-          <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Classic View — page sections & order</strong></legend>
-            <p className="panel-note">Move or show/hide optional Classic sections; this does not rearrange Power panels. Welcome, Event Builder, and the final call-to-action cannot be removed.</p>
-            <input type="hidden" name="section_order" value={order.join(",")} />
-            {order.map((id, index) => {
-              const item = SECTIONS.find((section) => section.id === id);
-              if (!item) return null;
-              return (
-                <div key={id} style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: "1 1 220px" }}>
-                    <input type="checkbox" name="visible_sections" value={id}
-                      checked={visible.includes(id)}
-                      onChange={(event) => setVisible((current) => event.target.checked ? [...current, id] : current.filter((x) => x !== id))} />
-                    {item.label}
-                  </label>
-                  <button type="button" className="secondary-button" disabled={index === 0}
-                    onClick={() => moveSection(id, -1)} aria-label={`Move ${item.label} up`}>Up</button>
-                  <button type="button" className="secondary-button" disabled={index === order.length - 1}
-                    onClick={() => moveSection(id, 1)} aria-label={`Move ${item.label} down`}>Down</button>
-                </div>
-              );
-            })}
-          </fieldset>
-          <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Classic View — final call-to-action</strong></legend>
-            {textField("final_cta_heading", "Call-to-action heading", 140)}
-            {textField("final_cta_body", "Call-to-action message", 600, true)}
-            <p className="panel-note">This is the final Classic section. Navigation destinations, button labels and verified Event Builder links cannot be edited here.</p>
-          </fieldset>
-          <button className="primary-button" type="submit">Save private draft</button>
-        </form>
-      </section>
-      <section className="panel" aria-label="Live private draft preview" aria-live="polite">
-        <p className="eyebrow">LIVE DRAFT PREVIEW • NOT PUBLIC</p>
-        <h2>Classic View draft preview</h2>
-        <p className="panel-note">A copy preview of supported Classic fields; hidden sections and media-free settings still apply on the public website.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 270px), 1fr))", gap: "1.25rem" }}>
+    <div className="studio-workspace" data-mobile-panel={mobileTab}>
+      <form
+        id="studio-draft-form"
+        className="studio-command"
+        action={async () => {
+          allowNavigation.current = true;
+          try {
+            await saveAction(studioDraftForm(copy));
+          } finally {
+            allowNavigation.current = false;
+          }
+        }}
+      >
+        <div className="studio-command-heading">
           <div>
-            <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", lineHeight: 1.2 }}>
-              {copy.heading || "Your headline"} <span>{copy.highlight || "Highlight"}</span>
-            </h2>
-            <p>{copy.subheading || "Your introduction"}</p>
+            <span className="eyebrow">WEBSITE WORKSPACE</span>
+            <h1>
+              Site Studio <span>Home</span>
+            </h1>
           </div>
-          <div style={{ border: "1px solid currentColor", borderRadius: "0.75rem", overflow: "hidden" }}>
-            {photo ? (
-              <img src={photo.public_url} alt={photo.alt_text} style={{ width: "100%", height: "auto", objectFit: "cover" }} />
-            ) : <p style={{ padding: "1rem" }}>The existing hero photo stays until an approved replacement is selected.</p>}
+          <div className="studio-segment" aria-label="Editing layout">
+            <button
+              type="button"
+              aria-pressed={mode === "classic"}
+              onClick={() => chooseMode("classic")}
+            >
+              Classic View
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode === "power"}
+              onClick={() => chooseMode("power")}
+            >
+              Power Mode
+            </button>
           </div>
         </div>
-        <div style={{ border: "1px solid currentColor", borderRadius: "0.75rem", padding: "1rem" }}>
-          <strong>Power Mode preview</strong>
-          <p className="panel-note">The welcome appears above the logo. The six descriptions appear below their fixed panel titles; the Classic headline is not shown here.</p>
-          <p><span style={{ textTransform: "uppercase" }}>{copy.power_welcome || "Welcome To"}</span> EVENTSible</p>
-          <ul style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "0.75rem" }}>
-            {POWER_PANELS.map(([id, label]) => (
-              <li key={id}><strong>{label}</strong>: {powerSubtitles[id]}</li>
+        <div className="studio-command-actions">
+          <div
+            className="studio-revision-status"
+            aria-label="Editor and publication status"
+          >
+            <strong className={dirty ? "studio-dirty" : ""}>
+              {dirty ? "● Unsaved changes" : status}
+            </strong>
+            <span>
+              {currentRevision
+                ? `Editing ${currentRevision.state} revision ${currentRevision.revision}`
+                : "New homepage"}{" "}
+              · Public website:{" "}
+              {publishedRevision
+                ? `revision ${publishedRevision}`
+                : "static fallback"}
+            </span>
+          </div>
+          <div className="studio-actions">
+            <SaveControl disabled={!dirty || !valid} />
+            <button
+              type="button"
+              className="studio-publish"
+              disabled={
+                dirty ||
+                !currentRevision ||
+                currentRevision.state === "published"
+              }
+              onClick={() => currentRevision && requestPublish(currentRevision)}
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              aria-controls="studio-private-preview"
+              onClick={() => {
+                setMobileTab("preview");
+                requestAnimationFrame(() => {
+                  const node = document.getElementById(
+                    "studio-private-preview",
+                  );
+                  node?.focus({ preventScroll: true });
+                  node?.scrollIntoView({ block: "nearest" });
+                });
+              }}
+            >
+              Preview
+            </button>
+            <button type="button" onClick={() => history.current?.showModal()}>
+              History
+            </button>
+            <a href={publicLink.href} target="_blank" rel="noopener noreferrer">
+              {publicLink.label} ↗
+            </a>
+          </div>
+        </div>
+        {dirty && (
+          <p className="studio-toolbar-note">
+            Save a new private draft before publishing. Existing saved revisions
+            stay intact.
+          </p>
+        )}
+        {!valid && (
+          <p role="alert" className="studio-toolbar-note">
+            Headline, highlighted words and introduction are required. Preview
+            holds the last valid content until these are filled.
+          </p>
+        )}
+      </form>
+      {notice && (
+        <p className="studio-notice" role="status">
+          {notice}
+        </p>
+      )}
+      <div className="studio-mobile-tabs" aria-label="Workspace panel">
+        <button
+          aria-pressed={mobileTab === "edit"}
+          onClick={() => setMobileTab("edit")}
+        >
+          Edit
+        </button>
+        <button
+          aria-pressed={mobileTab === "preview"}
+          onClick={() => setMobileTab("preview")}
+        >
+          Preview
+        </button>
+      </div>
+      <div className="studio-split">
+        <section className="studio-edit" aria-label="Homepage editing controls">
+          <div className="studio-section-heading">
+            <span className="eyebrow">
+              {mode === "classic" ? "CLASSIC VIEW" : "POWER MODE"}
+            </span>
+            <button type="button" onClick={() => media.current?.showModal()}>
+              Media review
+            </button>
+          </div>
+          <nav
+            className="studio-section-nav"
+            aria-label={`${mode === "classic" ? "Classic" : "Power"} sections`}
+          >
+            {(mode === "classic"
+              ? STUDIO_SECTIONS.map((s) => [s.id, s.label])
+              : STUDIO_POWER
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={section === id ? "true" : undefined}
+                onClick={() => setSection(id)}
+              >
+                <span>{label}</span>
+                <span aria-hidden="true">{section === id ? "●" : "›"}</span>
+              </button>
             ))}
-          </ul>
-        </div>
-        <h3>{copy.event_types_heading}</h3>
-        <h3>{copy.services_heading}</h3>
-        <p>{copy.services_body}</p>
-        <h3>{copy.featured_heading}</h3>
-        <p>{copy.featured_body}</p>
-        <h3>{copy.portfolio_heading}</h3>
-        <p>{copy.portfolio_body}</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "0.5rem" }}>
-          {gallery.filter(Boolean).map((id,index) => {
-            const m = approvedMedia.find((item) => item.id === id);
-            return m ? <img key={index} src={m.public_url} alt={m.alt_text} style={{ width: "100%", objectFit: "cover", aspectRatio: "4/3" }} /> : null;
-          })}
-        </div>
-        <p className="panel-note">Optional section sequence: {order.filter((id) => visible.includes(id)).map((id) => SECTIONS.find((s) => s.id === id)?.label).join(" → ")}</p>
-        <h3>{copy.final_cta_heading}</h3>
-        <p>{copy.final_cta_body}</p>
-      </section>
+          </nav>
+          <div className="studio-controls">
+            <div className="studio-controls-title">
+              <h2>{mode === "classic" ? active.label : powerLabel}</h2>
+              <span className="studio-chip">
+                {mode === "classic" ? "Classic" : "Power"} only
+              </span>
+            </div>
+            {mode === "power" ? (
+              <>
+                {section === "welcome" ? (
+                  field("power_welcome", "Power Mode welcome", 32)
+                ) : (
+                  <label className="studio-field">
+                    {powerLabel}
+                    <input
+                      aria-label={powerLabel}
+                      name={`power_subtitle_${section}`}
+                      value={copy.power_subtitles[section] ?? ""}
+                      maxLength={52}
+                      onChange={(e) =>
+                        setCopy((c) => ({
+                          ...c,
+                          power_subtitles: {
+                            ...c.power_subtitles,
+                            [section]: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                    <span className="studio-field-meta">
+                      {(copy.power_subtitles[section] ?? "").length} / 52
+                    </span>
+                  </label>
+                )}
+                <p className="studio-protected">
+                  {section === "welcome"
+                    ? "The welcome sits above the logo and displays uppercase."
+                    : "Edit the subtitle beneath the fixed panel title."}{" "}
+                  Panel titles, artwork, colors and destinations are protected.
+                  Blank optional text uses the existing wording.
+                </p>
+              </>
+            ) : (
+              <>
+                {active.fields.map(([key, label, max, multiline]) =>
+                  field(key, label, max, Boolean(multiline)),
+                )}
+                {section === "hero" && (
+                  <>
+                    {mediaSelect("hero_media_id")}
+                    <p className="studio-protected">
+                      These fields appear in the Classic hero. Power has its own
+                      welcome banner.
+                    </p>
+                  </>
+                )}
+                {section === "portfolio" && (
+                  <>
+                    {[0, 1, 2].map((index) => (
+                      <div key={index}>
+                        {mediaSelect("gallery_media_ids", index)}
+                      </div>
+                    ))}
+                    <p className="studio-protected">
+                      Approved public renditions only. This media-free demo uses
+                      generic illustrations; original Drive files stay private.
+                    </p>
+                  </>
+                )}
+                {(section === "trust" || section === "planning") && (
+                  <div className="studio-protected">
+                    <strong>Protected content</strong>
+                    <p>
+                      There are no copy controls for this section in Site Studio
+                      v1. Use Section Visibility and Ordering to show, hide or
+                      move it.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSection("sections")}
+                    >
+                      Manage visibility and order
+                    </button>
+                  </div>
+                )}
+                {section === "sections" && (
+                  <>
+                    <p className="studio-protected">
+                      Only optional Classic sections can move or hide. Hero,
+                      Builder and final call-to-action stay fixed. Power panels
+                      are separate.
+                    </p>
+                    {copy.section_order.map((id, index) => {
+                      const label =
+                        OPTIONAL_SECTIONS.find(([key]) => key === id)?.[1] ??
+                        id;
+                      return (
+                        <div className="studio-order-row" key={id}>
+                          <label>
+                            <input
+                              type="checkbox"
+                              name="visible_sections"
+                              value={id}
+                              checked={copy.visible_sections.includes(id)}
+                              onChange={(e) =>
+                                setCopy((c) => ({
+                                  ...c,
+                                  visible_sections: e.target.checked
+                                    ? [...c.visible_sections, id]
+                                    : c.visible_sections.filter(
+                                        (x) => x !== id,
+                                      ),
+                                }))
+                              }
+                            />
+                            {label}
+                          </label>
+                          <button
+                            type="button"
+                            aria-label={`Move ${label} up`}
+                            disabled={!index}
+                            onClick={() => move(id, -1)}
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Move ${label} down`}
+                            disabled={index === copy.section_order.length - 1}
+                            onClick={() => move(id, 1)}
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                {section === "cta" && (
+                  <p className="studio-protected">
+                    The final Classic heading and message are editable. Button
+                    labels and navigation destinations are protected.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+        <SiteStudioVisualPreview
+          content={previewContent}
+          mode={mode}
+          section={previewTarget}
+          status={status}
+          enabled={visualPreviewEnabled}
+        />
+      </div>
+      <dialog
+        ref={history}
+        className="studio-drawer"
+        aria-labelledby="studio-history-title"
+      >
+        <header>
+          <div>
+            <span className="eyebrow">SAVED VERSIONS</span>
+            <h2 id="studio-history-title">Revision history</h2>
+          </div>
+          <button
+            autoFocus
+            type="button"
+            onClick={() => history.current?.close()}
+            aria-label="Close revision history"
+          >
+            ✕
+          </button>
+        </header>
+        <p>
+          Preview a saved version, then deliberately publish or restore it. No
+          revisions are deleted.
+        </p>
+        {dirty && (
+          <p className="studio-notice">
+            Save your unsaved edits before publishing another revision.
+          </p>
+        )}
+        <ol className="studio-revisions">
+          {revisions.map((revision) => (
+            <li key={revision.id}>
+              <div className="studio-revision-heading">
+                <strong>Revision {revision.revision}</strong>
+                <span className={`studio-chip studio-chip--${revision.state}`}>
+                  {revision.state === "published"
+                    ? "Currently published"
+                    : revision.state}
+                </span>
+              </div>
+              <time>{formatRevisionTime(revision.created_at)}</time>
+              <p>{revision.summary}</p>
+              <small>Power: {revision.power || "Welcome To"}</small>
+              <div className="studio-revision-actions">
+                <a
+                  href={`/admin/site-studio?revision=${revision.id}${before ? `&before=${before}` : ""}`}
+                >
+                  Preview revision {revision.revision}
+                </a>
+                {revision.state !== "published" && (
+                  <button
+                    type="button"
+                    disabled={dirty}
+                    onClick={() => requestPublish(revision)}
+                  >
+                    {revision.state === "archived" ? "Restore" : "Publish"}{" "}
+                    revision {revision.revision}
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+        {hasOlder && (
+          <a href={`/admin/site-studio?before=${revisions.at(-1)!.revision}`}>
+            Older revisions
+          </a>
+        )}
+        {before && <a href="/admin/site-studio">Newest revisions</a>}
+      </dialog>
+      <dialog
+        ref={confirmation}
+        className="studio-confirm"
+        aria-labelledby="studio-confirm-title"
+      >
+        <h2 id="studio-confirm-title">
+          {target?.state === "archived" ? "Restore" : "Publish"} revision{" "}
+          {target?.revision}?
+        </h2>
+        <p>
+          This replaces{" "}
+          {publishedRevision
+            ? `public revision ${publishedRevision}`
+            : "the static fallback"}{" "}
+          on the matching website. It publishes the saved revision only.
+          Existing drafts and revision history remain available.
+        </p>
+        <p className="studio-confirm-summary">
+          {target?.summary}
+          <br />
+          Power: {target?.power || "Welcome To"}
+        </p>
+        <form
+          action={publishAction}
+          onSubmit={() => {
+            allowNavigation.current = true;
+          }}
+        >
+          <input type="hidden" name="revision_id" value={target?.id ?? ""} />
+          <div className="studio-actions">
+            <button
+              autoFocus
+              type="button"
+              onClick={() => confirmation.current?.close()}
+            >
+              Cancel
+            </button>
+            <ConfirmPublish />
+          </div>
+        </form>
+      </dialog>
+      <dialog
+        ref={media}
+        className="studio-drawer"
+        aria-labelledby="studio-media-title"
+      >
+        <header>
+          <h2 id="studio-media-title">Private media review</h2>
+          <button
+            autoFocus
+            type="button"
+            onClick={() => media.current?.close()}
+            aria-label="Close media review"
+          >
+            ✕
+          </button>
+        </header>
+        <p>
+          Queue existing Drive file references for private review. This does not
+          approve, download, share or publish a file.
+        </p>
+        {mediaPanel}
+      </dialog>
     </div>
   );
 }

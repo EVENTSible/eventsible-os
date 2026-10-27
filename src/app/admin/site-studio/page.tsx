@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { authorizeHqCapability } from "@/lib/hq-auth";
-import { formatRevisionTime } from "@/lib/revision-time";
 import { siteStudioPublicLink } from "@/lib/site-studio-public-link.mjs";
 import { siteStudioEditorRevision } from "@/lib/site-studio-editor-revision.mjs";
 import type { SiteMediaOption } from "@/components/site-studio-home-editor";
@@ -30,7 +29,8 @@ type MediaCandidate = {
 const defaults = {
   heading: "We make more of your",
   highlight: "event possible.",
-  subheading: "DJ, karaoke, interactive games, photo booths, and original experiences that make your event unforgettable.",
+  subheading:
+    "DJ, karaoke, interactive games, photo booths, and original experiences that make your event unforgettable.",
   portfolio_heading: "See EVENTSible in action",
   portfolio_body: "Real moments from real EVENTSible events.",
   hero_media_id: "",
@@ -45,11 +45,14 @@ const defaults = {
   },
   event_types_heading: "Discover your kind of celebration",
   services_heading: "What EVENTSible brings to the party",
-  services_body: "Explore DJs, hosted games, photo booths, wedding experiences, kids parties, and custom creations.",
+  services_body:
+    "Explore DJs, hosted games, photo booths, wedding experiences, kids parties, and custom creations.",
   featured_heading: "Original experiences worth getting excited about",
-  featured_body: "Mix and match services or build a completely custom celebration.",
+  featured_body:
+    "Mix and match services or build a completely custom celebration.",
   final_cta_heading: "Ready to make it EVENTSible?",
-  final_cta_body: "Tell us what you're imagining. We'll help turn it into an experience.",
+  final_cta_body:
+    "Tell us what you're imagining. We'll help turn it into an experience.",
 };
 const textField = (value: unknown, fallback: string) =>
   typeof value === "string" ? value : fallback;
@@ -61,45 +64,109 @@ export default async function SiteStudioPage({
 }) {
   const auth = await authorizeHqCapability("system.manage");
   if (!auth.ok || auth.user.app_metadata?.role !== "owner") {
-    redirect(auth.ok ? "/access-denied" : auth.reason === "unauthenticated" ? "/login" : "/access-denied");
+    redirect(
+      auth.ok
+        ? "/access-denied"
+        : auth.reason === "unauthenticated"
+          ? "/login"
+          : "/access-denied",
+    );
   }
 
   const params = searchParams ? await searchParams : {};
-  const cursor = typeof params.before === "string" && /^[1-9]\d*$/.test(params.before)
-    ? Number(params.before) : undefined;
+  const cursor =
+    typeof params.before === "string" && /^[1-9]\d*$/.test(params.before)
+      ? Number(params.before)
+      : undefined;
   const before = cursor && Number.isSafeInteger(cursor) ? cursor : undefined;
-  let history = auth.supabase.from("os_site_content_revisions")
-    .select("id,revision,state,content,created_at").eq("page_key", "home")
-    .order("revision", { ascending: false }).limit(21);
+  let history = auth.supabase
+    .from("os_site_content_revisions")
+    .select("id,revision,state,content,created_at")
+    .eq("page_key", "home")
+    .order("revision", { ascending: false })
+    .limit(21);
   if (before) history = history.lt("revision", before);
 
-  const [revisionsResult, mediaResult, candidatesResult, publishedResult] = await Promise.all([
+  const selectedId =
+    typeof params.revision === "string" &&
+    /^[0-9a-f-]{36}$/i.test(params.revision)
+      ? params.revision
+      : undefined;
+  const [
+    revisionsResult,
+    mediaResult,
+    candidatesResult,
+    publishedResult,
+    draftResult,
+    selectedResult,
+  ] = await Promise.all([
     history,
-    before ? Promise.resolve({ data: [], error: null }) : auth.supabase.from("os_site_media")
-      .select("id,title,alt_text,public_url").eq("status", "approved")
-      .eq("usage_approved", true).eq("permission_confirmed", true).order("title"),
-    before ? Promise.resolve({ data: [], error: null }) : auth.supabase.from("os_site_media")
+    auth.supabase
+      .from("os_site_media")
+      .select("id,title,alt_text,public_url")
+      .eq("status", "approved")
+      .eq("usage_approved", true)
+      .eq("permission_confirmed", true)
+      .order("title"),
+    auth.supabase
+      .from("os_site_media")
       .select("id,drive_file_id,title,status")
-      .eq("status", "candidate").order("created_at", { ascending: false }).limit(40),
-    auth.supabase.from("os_site_content_revisions")
-      .select("id,revision,state,content,created_at").eq("page_key", "home").eq("state", "published").maybeSingle(),
+      .eq("status", "candidate")
+      .order("created_at", { ascending: false })
+      .limit(40),
+    auth.supabase
+      .from("os_site_content_revisions")
+      .select("id,revision,state,content,created_at")
+      .eq("page_key", "home")
+      .eq("state", "published")
+      .maybeSingle(),
+    auth.supabase
+      .from("os_site_content_revisions")
+      .select("id,revision,state,content,created_at")
+      .eq("page_key", "home")
+      .eq("state", "draft")
+      .order("revision", { ascending: false })
+      .limit(1),
+    selectedId
+      ? auth.supabase
+          .from("os_site_content_revisions")
+          .select("id,revision,state,content,created_at")
+          .eq("page_key", "home")
+          .eq("id", selectedId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
-  const unavailable = Boolean(revisionsResult.error || mediaResult.error || candidatesResult.error || publishedResult.error);
+  const unavailable = Boolean(
+    revisionsResult.error ||
+    mediaResult.error ||
+    candidatesResult.error ||
+    publishedResult.error ||
+    draftResult.error ||
+    selectedResult.error,
+  );
   const hasOlder = (revisionsResult.data?.length ?? 0) > 20;
   const revisions = (revisionsResult.data ?? []).slice(0, 20) as Revision[];
   const approvedMedia = (mediaResult.data ?? []) as SiteMediaOption[];
   const candidates = (candidatesResult.data ?? []) as MediaCandidate[];
   const publishedRevision = publishedResult.data as Revision | null;
   // Fetch publication independently: old restored revisions can lie outside history.
-  const currentRevision = siteStudioEditorRevision(revisions, publishedRevision, !before && Boolean(params.published)) as Revision | null;
+  const currentRevision = (selectedResult.data ??
+    siteStudioEditorRevision(
+      draftResult.data ?? [],
+      publishedRevision,
+      Boolean(params.published),
+    )) as Revision | null;
   const publicLink = siteStudioPublicLink();
   const current = currentRevision?.content ?? {};
   const initial = {
     heading: textField(current.heading, defaults.heading),
     highlight: textField(current.highlight, defaults.highlight),
     subheading: textField(current.subheading, defaults.subheading),
-    portfolio_heading: textField(current.portfolio_heading, defaults.portfolio_heading),
+    portfolio_heading: textField(
+      current.portfolio_heading,
+      defaults.portfolio_heading,
+    ),
     portfolio_body: textField(current.portfolio_body, defaults.portfolio_body),
     power_welcome: textField(current.power_welcome, defaults.power_welcome),
     power_subtitles: Object.fromEntries(
@@ -115,108 +182,122 @@ export default async function SiteStudioPage({
         ),
       ]),
     ),
-    hero_media_id: approvedMedia.some((media) => media.id === current.hero_media_id)
+    hero_media_id: approvedMedia.some(
+      (media) => media.id === current.hero_media_id,
+    )
       ? String(current.hero_media_id)
       : defaults.hero_media_id,
-    event_types_heading: textField(current.event_types_heading, defaults.event_types_heading),
-    services_heading: textField(current.services_heading, defaults.services_heading),
+    event_types_heading: textField(
+      current.event_types_heading,
+      defaults.event_types_heading,
+    ),
+    services_heading: textField(
+      current.services_heading,
+      defaults.services_heading,
+    ),
     services_body: textField(current.services_body, defaults.services_body),
-    featured_heading: textField(current.featured_heading, defaults.featured_heading),
+    featured_heading: textField(
+      current.featured_heading,
+      defaults.featured_heading,
+    ),
     featured_body: textField(current.featured_body, defaults.featured_body),
-    final_cta_heading: textField(current.final_cta_heading, defaults.final_cta_heading),
+    final_cta_heading: textField(
+      current.final_cta_heading,
+      defaults.final_cta_heading,
+    ),
     final_cta_body: textField(current.final_cta_body, defaults.final_cta_body),
-    section_order: Array.isArray(current.section_order) ? current.section_order.filter((id): id is string => typeof id === "string") : [],
-    visible_sections: Array.isArray(current.visible_sections) ? current.visible_sections.filter((id): id is string => typeof id === "string") : undefined,
+    section_order: Array.isArray(current.section_order)
+      ? current.section_order.filter(
+          (id): id is string => typeof id === "string",
+        )
+      : [],
+    visible_sections: Array.isArray(current.visible_sections)
+      ? current.visible_sections.filter(
+          (id): id is string => typeof id === "string",
+        )
+      : undefined,
     gallery_media_ids: Array.isArray(current.gallery_media_ids)
-      ? current.gallery_media_ids.filter((id): id is string => typeof id === "string" && approvedMedia.some((m) => m.id === id)).slice(0,3)
+      ? current.gallery_media_ids
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && approvedMedia.some((m) => m.id === id),
+          )
+          .slice(0, 3)
       : [],
   };
-  const notice = params.saved ? "Private draft saved. Public site unchanged." :
-    params.published ? "Selected revision published to the OS public-content reader." :
-    params.queued ? "Drive candidate queued for private review. Nothing was published." :
-    params.error ? "Unable to complete the request. Check input, permissions, and local database readiness." : "";
+  const notice = params.saved
+    ? "Private draft saved. Public site unchanged."
+    : params.published
+      ? "Selected revision published to the OS public-content reader."
+      : params.queued
+        ? "Drive candidate queued for private review. Nothing was published."
+        : params.error
+          ? "Unable to complete the request. Check input, permissions, and local database readiness."
+          : "";
 
+  const summary = (revision: Revision) => ({
+    id: revision.id,
+    revision: revision.revision,
+    state: revision.state,
+    created_at: revision.created_at,
+    summary:
+      String(revision.content.heading ?? "") +
+      " " +
+      String(revision.content.highlight ?? ""),
+    power: String(revision.content.power_welcome ?? ""),
+  });
   return (
-    <div className="admin-main">
-      <header className="admin-header">
-        <div>
-          <span className="eyebrow">Website Manager</span>
-          <h1>Site Studio</h1>
-          <p>Edit homepage copy, preview changes instantly, and review real media without publishing unfinished work.</p>
-        </div>
-        <a className="secondary-button" href={publicLink.href} target="_blank" rel="noopener noreferrer">
-          {publicLink.label}
-        </a>
-      </header>
+    <div className="admin-main studio-main">
       {unavailable ? (
         <div role="alert" className="alert warning">
-          <b>Site Studio requires its approved content schema.</b>
-          <p>The Preview application is safe to visit, but editing stays disabled until the isolated database has the reviewed tables and functions.</p>
+          <b>Site Studio is unavailable.</b>
+          <p>
+            Check the isolated backend connection and approved schema. No
+            content has been changed.
+          </p>
         </div>
       ) : (
-        <>
-          {notice && <div className="alert" role="status">{notice}</div>}
-          {!before && <p className="panel-note" aria-label="Editor and publication status">
-            {currentRevision ? `Editing ${currentRevision.state} revision ${currentRevision.revision}. ` : "No saved revision yet. "}
-            {publishedRevision ? `Public website: revision ${publishedRevision.revision}. ` : "Public website: static fallback (nothing published). "}
-            Saving creates a separate private draft. Publish the intended revision below, then refresh the matching public website.
-          </p>}
-          {before ? <p><a href="/admin/site-studio">Back to current editor</a></p> : <>
-          <SiteStudioEditor
-            key={String(currentRevision?.id ?? "initial")}
-            initial={initial}
-            approvedMedia={approvedMedia}
-            saveAction={saveHomepageDraft}
-          />
-          <section className="panel">
-            <h2>Real media from Google Drive</h2>
-            <p className="panel-note">
-              Queue a Google Drive file for private review. This saves only the file ID, working title, and draft description.
-              It does not download, move, share, approve, or publish the photo. Do not use identifiable guest images without consent.
-            </p>
-            <SiteStudioMediaIntake action={queueDriveMediaForReview} />
-            <h3>Queued candidates ({candidates.length})</h3>
-            {candidates.length ? (
-              <ul>
-                {candidates.map((candidate) => (
-                  <li key={candidate.id}>
-                    <a
-                      href={`https://drive.google.com/file/d/${encodeURIComponent(candidate.drive_file_id)}/view`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >{candidate.title}</a>
-                    {" • "}Not approved for public use
-                  </li>
-                ))}
-              </ul>
-            ) : <p>No media has been queued. The original Drive media library remains untouched.</p>}
-          </section>
-          </>}
-          <section className="panel">
-            <h2>Revision history and intentional publishing</h2>
-            <p className="panel-note">
-              Save a private draft first. Publishing requires explicit owner action; an older revision can be republished to restore it.
-            </p>
-            {revisions.length ? (
-              <form action={publishHomepageRevision}>
-              <ul>
-                {revisions.map((revision) => (
-                  <li key={revision.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid #bbb" }}>
-                    Revision {revision.revision} • {revision.state} • {formatRevisionTime(revision.created_at)}
-                    <div className="panel-note">Classic headline: {String(revision.content.heading ?? "")}{" "}{String(revision.content.highlight ?? "")}</div>
-                    <div className="panel-note">Power welcome: {String(revision.content.power_welcome || "Welcome To")}</div>
-                    {revision.state !== "published" && (
-                      <button className="secondary-button" type="submit" name="revision_id" value={revision.id}
-                        style={{ marginLeft: "1rem" }}>Publish this revision</button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              </form>
-            ) : <p>No revisions saved yet.</p>}
-            {hasOlder && <a href={`/admin/site-studio?before=${revisions.at(-1)!.revision}`}>Older revisions</a>}
-          </section>
-        </>
+        <SiteStudioEditor
+          key={String(currentRevision?.id ?? "initial")}
+          initial={initial}
+          approvedMedia={approvedMedia}
+          saveAction={saveHomepageDraft}
+          publishAction={publishHomepageRevision}
+          currentRevision={currentRevision ? summary(currentRevision) : null}
+          publishedRevision={publishedRevision?.revision ?? null}
+          revisions={revisions.map(summary)}
+          publicLink={publicLink}
+          hasOlder={hasOlder}
+          before={before}
+          notice={notice}
+          visualPreviewEnabled={publicLink.href === "http://127.0.0.1:5173/"}
+          mediaPanel={
+            <>
+              <SiteStudioMediaIntake action={queueDriveMediaForReview} />
+              <h3>Queued candidates ({candidates.length})</h3>
+              {candidates.length ? (
+                <ul>
+                  {candidates.map((candidate) => (
+                    <li key={candidate.id}>
+                      <a
+                        href={`https://drive.google.com/file/d/${encodeURIComponent(candidate.drive_file_id)}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {candidate.title}
+                      </a>{" "}
+                      · Not approved for public use
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>
+                  No media queued. The original Drive library remains untouched.
+                </p>
+              )}
+            </>
+          }
+        />
       )}
     </div>
   );
