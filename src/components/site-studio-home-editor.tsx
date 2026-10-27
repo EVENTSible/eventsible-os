@@ -163,7 +163,7 @@ export function SiteStudioHomeEditor({
                 </select>
               </label>
             ))}
-            <p className="panel-note">Portfolio copy appears only with a visible Classic gallery. Photos require approved public renditions; media-free previews suppress photos. These fields do not change Power Mode. Unverified reviews remain hidden.</p>
+            <p className="panel-note">Portfolio copy changes the Classic gallery heading and description. Existing gallery cards remain when no replacement photos are selected. Photos require approved public renditions; media-free previews use generic illustrations. These fields do not change Power Mode. Unverified reviews remain hidden.</p>
           </fieldset>
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
             <legend><strong>Classic View — page sections & order</strong></legend>

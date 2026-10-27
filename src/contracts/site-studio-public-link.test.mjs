@@ -7,7 +7,7 @@ test('local Site Studio opens the matching isolated website without changing liv
   assert.equal(siteStudioPublicLink(local).href, 'http://127.0.0.1:5173/');
   assert.equal(siteStudioPublicLink({}).href, 'https://eventsible.info');
   for (const override of [{ VERCEL_ENV: 'production' }, { VERCEL_ENV: 'preview' }, { NETLIFY: 'true' },
-    { NEXT_PUBLIC_SUPABASE_URL: 'https://cplpbzudjprzbnzocirc.supabase.co' }]) {
+    { NEXT_PUBLIC_SUPABASE_URL: 'https://production.example.invalid' }]) {
     assert.equal(siteStudioPublicLink({ ...local, ...override }).href, 'https://eventsible.info');
   }
 });

@@ -14,13 +14,13 @@ Site Studio Preview only; no Production change is authorized. This reconciles th
 | Event types heading / `event_types_heading` | Event types section heading, when visible | Not used |
 | Services heading/introduction / `services_heading`, `services_body` | Services section heading/paragraph, when visible | Not used |
 | Featured experiences heading/introduction / `featured_heading`, `featured_body` | Featured section heading/paragraph, when visible | Not used |
-| Portfolio heading/description / `portfolio_heading`, `portfolio_body` | Gallery heading/paragraph, only when gallery is visible | Not used |
+| Portfolio heading/description / `portfolio_heading`, `portfolio_body` | Gallery heading/paragraph, including the existing gallery cards | Not used |
 | Approved homepage photo / `hero_media_id` | Approved public hero rendition | Not used |
 | Approved gallery photos / `gallery_media_ids` | Up to three approved public renditions | Not used |
 | Section visibility/order / `visible_sections`, `section_order` | Six optional Classic sections only | Does not hide, reorder or rename Power panels |
 | Call-to-action heading/message / `final_cta_heading`, `final_cta_body` | Final Classic section | Not used |
 
-Media-free Preview suppresses media. A gallery without approved visible media can remain hidden even when its portfolio copy is saved. Blank optional text falls back to existing wording. Required hero fields cannot be blank. These conditions must not be described as failed publication.
+Media-free Preview suppresses real media but keeps generic gallery illustrations and its editable portfolio text. Without replacement photos, existing gallery cards remain. Blank optional text falls back to existing wording. Required hero fields cannot be blank. These conditions must not be described as failed publication.
 
 ## Corrections
 
