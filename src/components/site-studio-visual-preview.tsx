@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function SiteStudioVisualPreview({
   content,
@@ -23,6 +23,12 @@ export function SiteStudioVisualPreview({
   const [connected, setConnected] = useState(false),
     [epoch, setEpoch] = useState(0),
     [expanded, setExpanded] = useState(false);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!enabled || connected) return;
+    const timer = window.setTimeout(() => setSlow(true), 12000);
+    return () => window.clearTimeout(timer);
+  }, [enabled, connected, epoch]);
   const [fullScreen, setFullScreen] = useState(false);
   useEffect(() => {
     const update = () =>
@@ -48,18 +54,25 @@ export function SiteStudioVisualPreview({
   useEffect(() => {
     latest.current = { content, mode, section };
   }, [content, mode, section]);
+  const sendDraft = useCallback(() => {
+    if (!enabled || window.location.origin !== "http://127.0.0.1:3100") return;
+    frame.current?.contentWindow?.postMessage(
+      {
+        type: "eventsible:studio-draft",
+        version: 1,
+        channel,
+        ...latest.current,
+      },
+      "http://127.0.0.1:5173",
+    );
+  }, [enabled, channel]);
+  function refresh() {
+    setConnected(false);
+    setSlow(false);
+    setEpoch((e) => e + 1);
+  }
   useEffect(() => {
     if (!enabled || window.location.origin !== "http://127.0.0.1:3100") return;
-    const send = () =>
-      frame.current?.contentWindow?.postMessage(
-        {
-          type: "eventsible:studio-draft",
-          version: 1,
-          channel,
-          ...latest.current,
-        },
-        "http://127.0.0.1:5173",
-      );
     const onMessage = (e: MessageEvent) => {
       if (
         e.origin !== "http://127.0.0.1:5173" ||
@@ -68,7 +81,7 @@ export function SiteStudioVisualPreview({
         e.data.version !== 1
       )
         return;
-      if (e.data.type === "eventsible:studio-ready") send();
+      if (e.data.type === "eventsible:studio-ready") sendDraft();
       if (
         e.data.type === "eventsible:studio-rendered" &&
         e.data.channel === channel
@@ -77,27 +90,16 @@ export function SiteStudioVisualPreview({
     };
     window.addEventListener("message", onMessage);
     // A bounded heartbeat reconnects after a local server restart; drafts stay in memory.
-    const heartbeat = window.setInterval(send, 1500);
-    send();
+    const heartbeat = window.setInterval(sendDraft, 1500);
+    sendDraft();
     return () => {
       window.removeEventListener("message", onMessage);
       window.clearInterval(heartbeat);
     };
-  }, [enabled, channel, epoch]);
+  }, [enabled, channel, epoch, sendDraft]);
   useEffect(() => {
-    if (enabled && window.location.origin === "http://127.0.0.1:3100")
-      frame.current?.contentWindow?.postMessage(
-        {
-          type: "eventsible:studio-draft",
-          version: 1,
-          channel,
-          content,
-          mode,
-          section,
-        },
-        "http://127.0.0.1:5173",
-      );
-  }, [content, mode, section, enabled, channel]);
+    sendDraft();
+  }, [content, mode, section, sendDraft]);
   function fullscreen() {
     if (expanded) {
       setExpanded(false);
@@ -137,10 +139,7 @@ export function SiteStudioVisualPreview({
         <button
           type="button"
           className="studio-icon-button"
-          onClick={() => {
-            setConnected(false);
-            setEpoch((e) => e + 1);
-          }}
+          onClick={refresh}
           aria-label="Refresh private preview"
         >
           ↻
@@ -166,6 +165,25 @@ export function SiteStudioVisualPreview({
               : "Connecting to the local website renderer…"}
           </p>
           <div ref={stage} className="studio-preview-stage">
+            {!connected && (
+              <div className="studio-preview-loading" role="status">
+                <strong>
+                  {slow
+                    ? "The website preview has not connected yet"
+                    : "Loading your private website preview…"}
+                </strong>
+                <p>
+                  {slow
+                    ? "Your edits are safe in this editor. Nothing has been published. Retry when the local website is available."
+                    : "Opening the actual website renderer. Your draft remains private."}
+                </p>
+                {slow && (
+                  <button type="button" onClick={refresh}>
+                    Retry private preview
+                  </button>
+                )}
+              </div>
+            )}
             <div
               className="studio-device-shell"
               style={{
@@ -189,7 +207,7 @@ export function SiteStudioVisualPreview({
                   src="http://127.0.0.1:5173/?studio-preview=1"
                   sandbox="allow-scripts allow-same-origin"
                   referrerPolicy="no-referrer"
-                  onLoad={() => setConnected(false)}
+                  onLoad={sendDraft}
                 />
               </div>
             </div>

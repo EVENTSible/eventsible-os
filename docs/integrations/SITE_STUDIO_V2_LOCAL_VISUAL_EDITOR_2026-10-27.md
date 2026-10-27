@@ -31,3 +31,9 @@ Run the HQ and consumer focused/full suites, lint, types, media-free Production 
 The existing local prepared source is updated in place. Prior source and a private synthetic database backup remain retained locally. Application rollback uses those prior source files and rebuilds the same apps; it does not reset the database. Content restoration independently republishes an existing saved revision. No Production migration, deployment, DNS, environment, media or data action is authorized.
 
 Hosted private visual preview is outside this approval. A future hosted bridge needs an independently reviewed target/origin/authentication contract; do not broaden the local allowlist implicitly.
+
+## Chrome connection and short-window correction
+
+The iframe's load event can arrive after its ready/acknowledgement handshake. It now resends the allowlisted draft instead of resetting an acknowledged connection. A visible loading panel covers the initial empty frame; after 12 seconds it offers an explicit retry without saving or publishing. Exact origins, window-source checks and the existing channel remain enforced.
+
+Desktop preview positioning uses the measured command-toolbar height, and the preview viewport and compact command spacing fit shorter windows. The consumer's section navigation scrolls only its own window rather than scrolling ancestor frames. This keeps preview controls accessible at the Owner's 1263×627 Chrome viewport. A browser fixture verifies acknowledgement-before-load ordering, stalled-frame feedback/retry and recovery to the real renderer without database mutations. Initial background-tab paint timing cannot be reconstructed from the earlier screenshot alone; it is not evidence of a publishing or data failure.

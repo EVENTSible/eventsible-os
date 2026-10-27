@@ -121,6 +121,20 @@ export function SiteStudioHomeEditor({
     media = useRef<HTMLDialogElement>(null),
     confirmation = useRef<HTMLDialogElement>(null),
     allowNavigation = useRef(false);
+  const command = useRef<HTMLFormElement>(null),
+    workspace = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!command.current) return;
+    const observer = new ResizeObserver(() => {
+      if (command.current)
+        workspace.current?.style.setProperty(
+          "--studio-command-height",
+          `${Math.ceil(command.current.getBoundingClientRect().height)}px`,
+        );
+    });
+    observer.observe(command.current);
+    return () => observer.disconnect();
+  }, []);
   const dirty =
     JSON.stringify(copy) !== JSON.stringify(normalizeStudioCopy(initial));
   const valid =
@@ -267,9 +281,14 @@ export function SiteStudioHomeEditor({
     );
   }
   return (
-    <div className="studio-workspace" data-mobile-panel={mobileTab}>
+    <div
+      ref={workspace}
+      className="studio-workspace"
+      data-mobile-panel={mobileTab}
+    >
       <form
         id="studio-draft-form"
+        ref={command}
         className="studio-command"
         action={async () => {
           allowNavigation.current = true;
