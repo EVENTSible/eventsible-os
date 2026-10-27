@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { authorizeHqCapability } from "@/lib/hq-auth";
 import { formatRevisionTime } from "@/lib/revision-time";
+import { siteStudioPublicLink } from "@/lib/site-studio-public-link.mjs";
+import { siteStudioEditorRevision } from "@/lib/site-studio-editor-revision.mjs";
 import type { SiteMediaOption } from "@/components/site-studio-home-editor";
 import { SiteStudioEditor } from "@/components/site-studio-editor";
 import { SiteStudioMediaIntake } from "@/components/site-studio-media-intake";
@@ -71,7 +73,7 @@ export default async function SiteStudioPage({
     .order("revision", { ascending: false }).limit(21);
   if (before) history = history.lt("revision", before);
 
-  const [revisionsResult, mediaResult, candidatesResult] = await Promise.all([
+  const [revisionsResult, mediaResult, candidatesResult, publishedResult] = await Promise.all([
     history,
     before ? Promise.resolve({ data: [], error: null }) : auth.supabase.from("os_site_media")
       .select("id,title,alt_text,public_url").eq("status", "approved")
@@ -79,23 +81,19 @@ export default async function SiteStudioPage({
     before ? Promise.resolve({ data: [], error: null }) : auth.supabase.from("os_site_media")
       .select("id,drive_file_id,title,status")
       .eq("status", "candidate").order("created_at", { ascending: false }).limit(40),
+    auth.supabase.from("os_site_content_revisions")
+      .select("id,revision,state,content,created_at").eq("page_key", "home").eq("state", "published").maybeSingle(),
   ]);
 
-  let unavailable = Boolean(revisionsResult.error || mediaResult.error || candidatesResult.error);
+  const unavailable = Boolean(revisionsResult.error || mediaResult.error || candidatesResult.error || publishedResult.error);
   const hasOlder = (revisionsResult.data?.length ?? 0) > 20;
   const revisions = (revisionsResult.data ?? []).slice(0, 20) as Revision[];
   const approvedMedia = (mediaResult.data ?? []) as SiteMediaOption[];
   const candidates = (candidatesResult.data ?? []) as MediaCandidate[];
-  let currentRevision = revisions.find((r) => r.state === "draft") ??
-    revisions.find((r) => r.state === "published");
-  // Restoring an old publication can put it outside the recent history window.
-  // Never substitute default copy for that live revision merely due to paging.
-  if (!before && !currentRevision && revisions.length) {
-    const published = await auth.supabase.from("os_site_content_revisions")
-      .select("content").eq("page_key", "home").eq("state", "published").maybeSingle();
-    unavailable ||= Boolean(published.error);
-    currentRevision = published.data ? { content: published.data.content } as Revision : undefined;
-  }
+  const publishedRevision = publishedResult.data as Revision | null;
+  // Fetch publication independently: old restored revisions can lie outside history.
+  const currentRevision = siteStudioEditorRevision(revisions, publishedRevision, !before && Boolean(params.published)) as Revision | null;
+  const publicLink = siteStudioPublicLink();
   const current = currentRevision?.content ?? {};
   const initial = {
     heading: textField(current.heading, defaults.heading),
@@ -146,8 +144,8 @@ export default async function SiteStudioPage({
           <h1>Site Studio</h1>
           <p>Edit homepage copy, preview changes instantly, and review real media without publishing unfinished work.</p>
         </div>
-        <a className="secondary-button" href="https://eventsible.info" target="_blank" rel="noopener noreferrer">
-          View public website
+        <a className="secondary-button" href={publicLink.href} target="_blank" rel="noopener noreferrer">
+          {publicLink.label}
         </a>
       </header>
       {unavailable ? (
@@ -158,9 +156,14 @@ export default async function SiteStudioPage({
       ) : (
         <>
           {notice && <div className="alert" role="status">{notice}</div>}
+          {!before && <p className="panel-note" aria-label="Editor and publication status">
+            {currentRevision ? `Editing ${currentRevision.state} revision ${currentRevision.revision}. ` : "No saved revision yet. "}
+            {publishedRevision ? `Public website: revision ${publishedRevision.revision}. ` : "Public website: static fallback (nothing published). "}
+            Saving creates a separate private draft. Publish the intended revision below, then refresh the matching public website.
+          </p>}
           {before ? <p><a href="/admin/site-studio">Back to current editor</a></p> : <>
           <SiteStudioEditor
-            key={String(revisions[0]?.id ?? "initial")}
+            key={String(currentRevision?.id ?? "initial")}
             initial={initial}
             approvedMedia={approvedMedia}
             saveAction={saveHomepageDraft}
@@ -200,6 +203,8 @@ export default async function SiteStudioPage({
                 {revisions.map((revision) => (
                   <li key={revision.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid #bbb" }}>
                     Revision {revision.revision} • {revision.state} • {formatRevisionTime(revision.created_at)}
+                    <div className="panel-note">Classic headline: {String(revision.content.heading ?? "")}{" "}{String(revision.content.highlight ?? "")}</div>
+                    <div className="panel-note">Power welcome: {String(revision.content.power_welcome || "Welcome To")}</div>
                     {revision.state !== "published" && (
                       <button className="secondary-button" type="submit" name="revision_id" value={revision.id}
                         style={{ marginLeft: "1rem" }}>Publish this revision</button>

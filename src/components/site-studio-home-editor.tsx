@@ -97,8 +97,9 @@ export function SiteStudioHomeEditor({
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
             <legend><strong>Power Mode front door</strong></legend>
             <p className="panel-note">
-              Edit the welcome and short descriptions on our six comic-book panels.
+              Power Mode only: the welcome banner above the logo and short descriptions on our six comic-book panels.
               Panel titles, destinations, Builder entry, and color scheme stay protected.
+              These controls do not change Classic View. Blank Power text uses the existing wording.
             </p>
             {textField("power_welcome", "Power Mode welcome", 32)}
             {[
@@ -121,7 +122,8 @@ export function SiteStudioHomeEditor({
             ))}
           </fieldset>
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Welcome & hero</strong></legend>
+            <legend><strong>Classic View — welcome & hero</strong></legend>
+            <p className="panel-note">Headline, Highlighted words and Introduction appear in the Classic hero. They do not change the Power welcome banner, logo or panel titles.</p>
             {textField("heading", "Headline", 110)}
             {textField("highlight", "Highlighted words", 70)}
             <label style={{ display: "grid", gap: "0.4rem" }}>
@@ -139,7 +141,8 @@ export function SiteStudioHomeEditor({
             </label>
           </fieldset>
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Event & service copy</strong></legend>
+            <legend><strong>Classic View — event & service copy</strong></legend>
+            <p className="panel-note">These headings and introductions appear in the corresponding visible Classic sections, not the Power panels. Blank optional text uses existing copy.</p>
             {textField("event_types_heading", "Event types heading", 140)}
             {textField("services_heading", "Services heading", 140)}
             {textField("services_body", "Services introduction", 600, true)}
@@ -147,7 +150,7 @@ export function SiteStudioHomeEditor({
             {textField("featured_body", "Featured experiences introduction", 600, true)}
           </fieldset>
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Portfolio & real-media gallery</strong></legend>
+            <legend><strong>Classic View — portfolio & gallery</strong></legend>
             {textField("portfolio_heading", "Portfolio heading", 140)}
             {textField("portfolio_body", "Portfolio description", 600, true)}
             {[0, 1, 2].map((index) => (
@@ -160,11 +163,11 @@ export function SiteStudioHomeEditor({
                 </select>
               </label>
             ))}
-            <p className="panel-note">A real-photo gallery appears only when its selected media is approved and has a public rendition. Unverified reviews remain hidden.</p>
+            <p className="panel-note">Portfolio copy appears only with a visible Classic gallery. Photos require approved public renditions; media-free previews suppress photos. These fields do not change Power Mode. Unverified reviews remain hidden.</p>
           </fieldset>
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Page sections & order</strong></legend>
-            <p className="panel-note">Move sections, or show/hide optional sections. Welcome, Event Builder, and the final call-to-action cannot be removed.</p>
+            <legend><strong>Classic View — page sections & order</strong></legend>
+            <p className="panel-note">Move or show/hide optional Classic sections; this does not rearrange Power panels. Welcome, Event Builder, and the final call-to-action cannot be removed.</p>
             <input type="hidden" name="section_order" value={order.join(",")} />
             {order.map((id, index) => {
               const item = SECTIONS.find((section) => section.id === id);
@@ -186,16 +189,18 @@ export function SiteStudioHomeEditor({
             })}
           </fieldset>
           <fieldset style={{ display: "grid", gap: "0.8rem" }}>
-            <legend><strong>Final call-to-action</strong></legend>
+            <legend><strong>Classic View — final call-to-action</strong></legend>
             {textField("final_cta_heading", "Call-to-action heading", 140)}
             {textField("final_cta_body", "Call-to-action message", 600, true)}
-            <p className="panel-note">Navigation destinations and verified Event Builder links cannot be edited here.</p>
+            <p className="panel-note">This is the final Classic section. Navigation destinations, button labels and verified Event Builder links cannot be edited here.</p>
           </fieldset>
           <button className="primary-button" type="submit">Save private draft</button>
         </form>
       </section>
       <section className="panel" aria-label="Live private draft preview" aria-live="polite">
         <p className="eyebrow">LIVE DRAFT PREVIEW • NOT PUBLIC</p>
+        <h2>Classic View draft preview</h2>
+        <p className="panel-note">A copy preview of supported Classic fields; hidden sections and media-free settings still apply on the public website.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 270px), 1fr))", gap: "1.25rem" }}>
           <div>
             <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", lineHeight: 1.2 }}>
@@ -211,6 +216,7 @@ export function SiteStudioHomeEditor({
         </div>
         <div style={{ border: "1px solid currentColor", borderRadius: "0.75rem", padding: "1rem" }}>
           <strong>Power Mode preview</strong>
+          <p className="panel-note">The welcome appears above the logo. The six descriptions appear below their fixed panel titles; the Classic headline is not shown here.</p>
           <p>{copy.power_welcome || "Welcome To"} EVENTSible</p>
           <ul style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "0.75rem" }}>
             {Object.entries(powerSubtitles).map(([id, subtitle]) => (

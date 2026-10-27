@@ -2,6 +2,8 @@
 
 Status: IMPLEMENTED IN ISOLATED SOURCE BRANCH / NOT DEPLOYED / SCHEMA PROPOSAL NOT APPLIED
 
+Current Preview field coverage and Owner feedback corrections: [Classic/Power field destinations, October 27](SITE_STUDIO_FIELD_MAPPING_2026-10-27.md). The Power editing limitations below describe the original October 20 slice; the linked matrix reconciles the later bounded welcome/subtitle controls without making the entire cover editable.
+
 ## Ownership and content path
 
 1. Google Drive keeps original media; Drive sharing URLs are not public website image URLs.
