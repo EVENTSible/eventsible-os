@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type CSSProperties,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { formatRevisionTime } from "@/lib/revision-time";
 import {
@@ -121,20 +127,8 @@ export function SiteStudioHomeEditor({
     media = useRef<HTMLDialogElement>(null),
     confirmation = useRef<HTMLDialogElement>(null),
     allowNavigation = useRef(false);
-  const command = useRef<HTMLFormElement>(null),
-    workspace = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!command.current) return;
-    const observer = new ResizeObserver(() => {
-      if (command.current)
-        workspace.current?.style.setProperty(
-          "--studio-command-height",
-          `${Math.ceil(command.current.getBoundingClientRect().height)}px`,
-        );
-    });
-    observer.observe(command.current);
-    return () => observer.disconnect();
-  }, []);
+  const controls = useRef<HTMLDivElement>(null);
+  const [editorWidth, setEditorWidth] = useState(300);
   const dirty =
     JSON.stringify(copy) !== JSON.stringify(normalizeStudioCopy(initial));
   const valid =
@@ -197,6 +191,11 @@ export function SiteStudioHomeEditor({
   function chooseMode(next: "classic" | "power") {
     setMode(next);
     setSection(next === "classic" ? "hero" : "welcome");
+    controls.current?.scrollTo({ top: 0 });
+  }
+  function chooseSection(id: string) {
+    setSection(id);
+    controls.current?.scrollTo({ top: 0 });
   }
   function requestPublish(revision: SiteStudioRevision) {
     if (dirty) return;
@@ -282,13 +281,12 @@ export function SiteStudioHomeEditor({
   }
   return (
     <div
-      ref={workspace}
       className="studio-workspace"
       data-mobile-panel={mobileTab}
+      style={{ "--studio-editor-width": `${editorWidth}px` } as CSSProperties}
     >
       <form
         id="studio-draft-form"
-        ref={command}
         className="studio-command"
         action={async () => {
           allowNavigation.current = true;
@@ -306,6 +304,18 @@ export function SiteStudioHomeEditor({
               Site Studio <span>Home</span>
             </h1>
           </div>
+          <label className="studio-panel-size">
+            Editor width
+            <input
+              type="range"
+              min={260}
+              max={420}
+              step={10}
+              value={editorWidth}
+              onChange={(e) => setEditorWidth(Number(e.target.value))}
+              aria-valuetext={`${editorWidth} pixels`}
+            />
+          </label>
           <div className="studio-segment" aria-label="Editing layout">
             <button
               type="button"
@@ -365,7 +375,6 @@ export function SiteStudioHomeEditor({
                     "studio-private-preview",
                   );
                   node?.focus({ preventScroll: true });
-                  node?.scrollIntoView({ block: "nearest" });
                 });
               }}
             >
@@ -374,13 +383,22 @@ export function SiteStudioHomeEditor({
             <button type="button" onClick={() => history.current?.showModal()}>
               History
             </button>
-            <a href={publicLink.href} target="_blank" rel="noopener noreferrer">
-              {publicLink.label} ↗
+            <a
+              href={publicLink.href}
+              aria-label={publicLink.label}
+              title={publicLink.label}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="studio-public-link-label">
+                {publicLink.label}
+              </span>
+              <span aria-hidden="true">↗</span>
             </a>
           </div>
         </div>
         {dirty && (
-          <p className="studio-toolbar-note">
+          <p className="studio-sr-only">
             Save a new private draft before publishing. Existing saved revisions
             stay intact.
           </p>
@@ -414,35 +432,39 @@ export function SiteStudioHomeEditor({
       <div className="studio-split">
         <section className="studio-edit" aria-label="Homepage editing controls">
           <div className="studio-section-heading">
-            <span className="eyebrow">
-              {mode === "classic" ? "CLASSIC VIEW" : "POWER MODE"}
-            </span>
+            <label className="studio-section-picker">
+              <span>
+                {mode === "classic" ? "Classic section" : "Power section"}
+              </span>
+              <select
+                value={section}
+                onChange={(e) => chooseSection(e.target.value)}
+              >
+                {(mode === "classic"
+                  ? STUDIO_SECTIONS.map((s) => [s.id, s.label])
+                  : STUDIO_POWER
+                ).map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="button" onClick={() => media.current?.showModal()}>
               Media review
             </button>
           </div>
-          <nav
-            className="studio-section-nav"
-            aria-label={`${mode === "classic" ? "Classic" : "Power"} sections`}
+          <div
+            ref={controls}
+            className="studio-controls"
+            role="region"
+            aria-labelledby="studio-section-title"
+            tabIndex={0}
           >
-            {(mode === "classic"
-              ? STUDIO_SECTIONS.map((s) => [s.id, s.label])
-              : STUDIO_POWER
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-current={section === id ? "true" : undefined}
-                onClick={() => setSection(id)}
-              >
-                <span>{label}</span>
-                <span aria-hidden="true">{section === id ? "●" : "›"}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="studio-controls">
             <div className="studio-controls-title">
-              <h2>{mode === "classic" ? active.label : powerLabel}</h2>
+              <h2 id="studio-section-title">
+                {mode === "classic" ? active.label : powerLabel}
+              </h2>
               <span className="studio-chip">
                 {mode === "classic" ? "Classic" : "Power"} only
               </span>
@@ -519,7 +541,7 @@ export function SiteStudioHomeEditor({
                     </p>
                     <button
                       type="button"
-                      onClick={() => setSection("sections")}
+                      onClick={() => chooseSection("sections")}
                     >
                       Manage visibility and order
                     </button>

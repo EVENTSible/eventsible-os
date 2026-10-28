@@ -38,7 +38,7 @@ export function SiteStudioVisualPreview({
   }, []);
   const [channel] = useState(() => crypto.randomUUID());
   const width = size === "desktop" ? 1280 : size === "tablet" ? 768 : 390;
-  const scale = Math.min(1, Math.max(1, space.width - 32) / width);
+  const scale = Math.min(1, Math.max(1, space.width) / width);
   useEffect(() => {
     if (!stage.current) return;
     const observer = new ResizeObserver(([entry]) =>
@@ -148,8 +148,16 @@ export function SiteStudioVisualPreview({
           type="button"
           className="studio-icon-button"
           onClick={fullscreen}
+          aria-label={
+            fullScreen || expanded ? "Exit full screen" : "Full screen"
+          }
         >
-          {fullScreen || expanded ? "Exit full screen" : "Full screen"}
+          <span className="studio-fullscreen-text">
+            {fullScreen || expanded ? "Exit full screen" : "Full screen"}
+          </span>
+          <span className="studio-fullscreen-icon" aria-hidden="true">
+            ⛶
+          </span>
         </button>
         {expanded && (
           <button type="button" onClick={() => setExpanded(false)}>
@@ -188,14 +196,14 @@ export function SiteStudioVisualPreview({
               className="studio-device-shell"
               style={{
                 width: width * scale,
-                height: Math.max(400, space.height - 32),
+                height: Math.max(1, space.height),
               }}
             >
               <div
                 className={`studio-device studio-device--${size}`}
                 style={{
                   width,
-                  height: Math.max(650, (space.height - 32) / scale),
+                  height: Math.max(1, space.height / scale),
                   transform: `scale(${scale})`,
                   transformOrigin: "top left",
                 }}

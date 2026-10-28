@@ -103,7 +103,7 @@ export function HqShell({ children, role }: { children: ReactNode; role: string 
   };
 
   return (
-    <div className="hq-shell">
+    <div className="hq-shell" data-workspace={pathname === '/admin/site-studio' ? 'site-studio' : undefined}>
       <a className="hq-skip-link" href="#hq-main-content">Skip to content</a>
 
       <aside className="hq-sidebar" aria-label="EVENTSible HQ">
