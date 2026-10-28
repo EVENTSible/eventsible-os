@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 
 // Absolutely no remote database is permitted by this synthetic QA harness.
 const databaseUrl = process.env.SUPABASE_LOCAL_DB_URL || "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
@@ -34,9 +33,9 @@ const asUser = (id, role, statement, expectFailure = false) => psql(
 const JSONtext = (object) => JSON.stringify(object).replaceAll("'","''");
 
 assert.equal(psql("select current_database()"), "postgres");
-assert.equal(psql("select to_regclass('public.os_site_content_revisions') is null"), "t", "Do not reapply over an existing schema");
-const proposal = resolve("supabase/proposals/20261020_site_studio_v1.sql");
-execFileSync("psql", [databaseUrl, "--no-password", "--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--file", proposal], { encoding: "utf8", env, stdio: "pipe" });
+assert.equal(psql("select to_regclass('public.os_site_content_revisions') is not null and to_regclass('public.os_site_media') is not null"), "t", "Apply the canonical migration through the isolated local reset first");
+assert.equal(psql("select count(*) from supabase_migrations.schema_migrations where version='20261028213219' and name='site_studio_v1'"), "1", "Canonical Site Studio migration must already be registered exactly once");
+assert.equal(psql("select (select count(*) from public.os_site_content_revisions)+(select count(*) from public.os_site_media)"), "0", "Only a freshly reconstructed disposable database is allowed; preserve existing revisions and media");
 assert.equal(psql("select relrowsecurity from pg_class where oid='public.os_site_content_revisions'::regclass"), "t");
 assert.equal(psql("select relrowsecurity from pg_class where oid='public.os_site_media'::regclass"), "t");
 assert.equal(psql("select not has_table_privilege('anon','public.os_site_media','SELECT')"), "t");

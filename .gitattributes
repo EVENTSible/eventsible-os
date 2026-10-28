@@ -1,1 +1,2 @@
 supabase/migrations/*.sql -text whitespace=-blank-at-eol,-blank-at-eof
+supabase/releases/site-studio/20261028213219/* -text

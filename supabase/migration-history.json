@@ -268,6 +268,11 @@
       "version": "20260917210520",
       "name": "hq_owner_quick_add",
       "sha256": "b747fe0beeb1ebed8775998bbc805cdd5d61f8f486bb2f6c60cea77b11a92538"
+    },
+    {
+      "version": "20261028213219",
+      "name": "site_studio_v1",
+      "sha256": "5fd24f1e4e5af3091def5897fd4fa5a7b0524b0a46c0d6ffa84ea6ff4022a809"
     }
   ]
 }

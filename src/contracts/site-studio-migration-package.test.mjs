@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+
+test('Site Studio canonical migration supports isolated replay while the controlled runner pins release history', () => {
+  const release='supabase/releases/site-studio/20261028213219';
+  const manifest=JSON.parse(fs.readFileSync(`${release}/MANIFEST.json`,'utf8'));
+  const migration=fs.readFileSync(manifest.migration.path,'utf8');
+  const runner=fs.readFileSync(manifest.runner.path,'utf8');
+  const proposal=fs.readFileSync('supabase/proposals/20261020_site_studio_v1.sql','utf8').replaceAll('\r\n','\n');
+  const hash=value=>createHash('sha256').update(value).digest('hex');
+  assert.equal(hash(migration),manifest.migration.sha256);
+  assert.equal(hash(runner),manifest.runner.sha256);
+  assert.equal(hash(proposal),manifest.proposalSha256);
+  assert.equal(migration.split(proposal).length,2,'Reviewed RLS and schema proposal must remain unchanged');
+  assert.doesNotMatch(migration,/supabase_migrations\.schema_migrations|0891190aab404ca7f80bb58e00424f57/);
+  assert.match(runner,/0891190aab404ca7f80bb58e00424f57/);
+  assert.match(runner,/ON_ERROR_STOP on/);
+  assert.match(runner,/ON_ERROR_ROLLBACK off/);
+  const payload=runner.split('$canonical_migration$');
+  assert.equal(payload.length,3);
+  assert.equal(payload[1],migration,'The ledger must retain the exact canonical migration, not a divergent copy');
+  const include=runner.match(/^\\ir (.+)$/m)?.[1];
+  assert.equal(path.resolve(release,include),path.resolve(manifest.migration.path));
+  const control=payload[0]+payload[2];
+  assert.equal((control.match(/^begin;/gm)||[]).length,1);
+  assert.equal((control.match(/^commit;/gm)||[]).length,1);
+  assert.ok(control.indexOf('insert into supabase_migrations.schema_migrations')<control.indexOf('commit;'));
+  const history=JSON.parse(fs.readFileSync('supabase/migration-history.json','utf8'));
+  assert.equal(history.pendingMigrations.filter(m=>m.version===manifest.version&&m.sha256===manifest.migration.sha256).length,1);
+  const verifier=fs.readFileSync('scripts/site-studio-local-supabase-verify.mjs','utf8');
+  assert.doesNotMatch(verifier,/execFileSync|--file/,'CI must verify the already applied migration instead of reapplying the proposal');
+  assert.match(verifier,/version='20261028213219' and name='site_studio_v1'/);
+  assert.match(verifier,/preserve existing revisions and media/);
+});
