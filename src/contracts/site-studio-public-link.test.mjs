@@ -11,3 +11,18 @@ test('local Site Studio opens the matching isolated website without changing liv
     assert.equal(siteStudioPublicLink({ ...local, ...override }).href, 'https://eventsible.info');
   }
 });
+
+test('hosted matching Preview navigation cannot change Production or enable local draft rendering', () => {
+  const preview = { VERCEL_ENV: 'preview', EVENTSIBLE_SITE_STUDIO_PUBLIC_PREVIEW_URL: 'https://eventsible-info-synthetic.vercel.app/' };
+  assert.deepEqual(siteStudioPublicLink(preview), { href: preview.EVENTSIBLE_SITE_STUDIO_PUBLIC_PREVIEW_URL, label: 'Open matching public Preview' });
+  for (const VERCEL_ENV of ['production', 'development', undefined]) {
+    assert.equal(siteStudioPublicLink({ ...preview, VERCEL_ENV }).href, 'https://eventsible.info');
+  }
+  for (const url of ['http://eventsible-info-synthetic.vercel.app/', 'https://eventsible.info/',
+    'https://fake.vercel.app.example.invalid/', 'https://private@eventsible-info-synthetic.vercel.app/',
+    'https://eventsible-info-synthetic.vercel.app:444/', 'https://eventsible-info-synthetic.vercel.app/private',
+    'https://eventsible-info-synthetic.vercel.app/?token=secret', 'https://eventsible-info-synthetic.vercel.app/#draft', 'invalid']) {
+    assert.equal(siteStudioPublicLink({ ...preview, EVENTSIBLE_SITE_STUDIO_PUBLIC_PREVIEW_URL: url }).href, 'https://eventsible.info');
+  }
+  assert.notEqual(siteStudioPublicLink(preview).href, 'http://127.0.0.1:5173/');
+});
