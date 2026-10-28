@@ -8,12 +8,14 @@ export function SiteStudioVisualPreview({
   section,
   status,
   enabled,
+  url = "http://127.0.0.1:5173",
 }: {
   content: Record<string, unknown>;
   mode: "classic" | "power";
   section: string;
   status: string;
   enabled: boolean;
+  url?: string;
 }) {
   const frame = useRef<HTMLIFrameElement>(null),
     region = useRef<HTMLElement>(null),
@@ -37,6 +39,12 @@ export function SiteStudioVisualPreview({
     return () => document.removeEventListener("fullscreenchange", update);
   }, []);
   const [channel] = useState(() => crypto.randomUUID());
+  const frameOrigin = new URL(url).origin,
+    hosted = frameOrigin.startsWith("https:");
+  const frameNonce = useRef(""),
+    sequence = useRef(0),
+    authorized = useRef(false);
+  const frameName = `site-studio-${channel}`;
   const width = size === "desktop" ? 1280 : size === "tablet" ? 768 : 390;
   const scale = Math.min(1, Math.max(1, space.width) / width);
   useEffect(() => {
@@ -55,33 +63,148 @@ export function SiteStudioVisualPreview({
     latest.current = { content, mode, section };
   }, [content, mode, section]);
   const sendDraft = useCallback(() => {
-    if (!enabled || window.location.origin !== "http://127.0.0.1:3100") return;
+    if (
+      !enabled ||
+      (hosted
+        ? !authorized.current
+        : window.location.origin !== "http://127.0.0.1:3100")
+    )
+      return;
     frame.current?.contentWindow?.postMessage(
       {
         type: "eventsible:studio-draft",
-        version: 1,
+        version: hosted ? 2 : 1,
         channel,
+        ...(hosted
+          ? { frameNonce: frameNonce.current, sequence: ++sequence.current }
+          : {}),
         ...latest.current,
       },
-      "http://127.0.0.1:5173",
+      frameOrigin,
     );
-  }, [enabled, channel]);
+  }, [enabled, channel, frameOrigin, hosted]);
+  useEffect(() => {
+    if (!enabled || !hosted) return;
+    let active = true;
+    const controller = new AbortController();
+    frameNonce.current = crypto.randomUUID();
+    sequence.current = 0;
+    authorized.current = false;
+    const capability = async () => {
+      const response = await fetch("/api/site-studio/preview-session", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          audience: frameOrigin,
+          channel,
+          frameNonce: frameNonce.current,
+        }),
+      });
+      if (!response.ok)
+        throw new Error("Owner preview authorization unavailable");
+      const result = await response.json();
+      if (
+        typeof result.capability !== "string" ||
+        result.capability.length > 2048
+      )
+        throw new Error("Invalid preview authorization");
+      return result.capability as string;
+    };
+    const fail = () => {
+      if (!active) return;
+      authorized.current = false;
+      setConnected(false);
+      setSlow(true);
+      frame.current?.contentWindow?.postMessage(
+        {
+          type: "eventsible:studio-clear",
+          version: 2,
+          channel,
+          frameNonce: frameNonce.current,
+        },
+        frameOrigin,
+      );
+    };
+    void capability()
+      .then((token) => {
+        if (!active || !frame.current) return;
+        // A scoped capability travels in an ephemeral POST body, never a URL,
+        // cookie, persistent store, Owner session or public content endpoint.
+        const form = document.createElement("form"),
+          input = document.createElement("input");
+        form.method = "POST";
+        form.action = `${frameOrigin}/?studio-preview=1`;
+        form.target = frameName;
+        form.hidden = true;
+        input.type = "hidden";
+        input.name = "capability";
+        input.value = token;
+        form.append(input);
+        document.body.append(form);
+        form.submit();
+        form.remove();
+        input.value = "";
+      })
+      .catch(fail);
+    const renew = setInterval(() => {
+      void capability()
+        .then((token) => {
+          if (active)
+            frame.current?.contentWindow?.postMessage(
+              {
+                type: "eventsible:studio-authorize",
+                version: 2,
+                channel,
+                frameNonce: frameNonce.current,
+                capability: token,
+              },
+              frameOrigin,
+            );
+        })
+        .catch(fail);
+    }, 30_000);
+    return () => {
+      active = false;
+      authorized.current = false;
+      controller.abort();
+      clearInterval(renew);
+    };
+  }, [enabled, hosted, frameOrigin, channel, frameName, epoch]);
   function refresh() {
     setConnected(false);
     setSlow(false);
     setEpoch((e) => e + 1);
   }
   useEffect(() => {
-    if (!enabled || window.location.origin !== "http://127.0.0.1:3100") return;
+    if (
+      !enabled ||
+      (!hosted && window.location.origin !== "http://127.0.0.1:3100")
+    )
+      return;
     const onMessage = (e: MessageEvent) => {
       if (
-        e.origin !== "http://127.0.0.1:5173" ||
+        e.origin !== frameOrigin ||
         e.source !== frame.current?.contentWindow ||
         !e.data ||
-        e.data.version !== 1
+        e.data.version !== (hosted ? 2 : 1) ||
+        (hosted &&
+          (e.data.channel !== channel ||
+            e.data.frameNonce !== frameNonce.current))
       )
         return;
-      if (e.data.type === "eventsible:studio-ready") sendDraft();
+      if (hosted && e.data.type === "eventsible:studio-expired") {
+        authorized.current = false;
+        setConnected(false);
+        setSlow(true);
+        return;
+      }
+      if (e.data.type === "eventsible:studio-ready") {
+        authorized.current = true;
+        sendDraft();
+      }
       if (
         e.data.type === "eventsible:studio-rendered" &&
         e.data.channel === channel
@@ -96,7 +219,7 @@ export function SiteStudioVisualPreview({
       window.removeEventListener("message", onMessage);
       window.clearInterval(heartbeat);
     };
-  }, [enabled, channel, epoch, sendDraft]);
+  }, [enabled, channel, epoch, sendDraft, frameOrigin, hosted]);
   useEffect(() => {
     sendDraft();
   }, [content, mode, section, sendDraft]);
@@ -170,7 +293,7 @@ export function SiteStudioVisualPreview({
           <p className="studio-preview-status" role="status">
             {connected
               ? "Actual website renderer · unpublished content stays in this private frame"
-              : "Connecting to the local website renderer…"}
+              : "Connecting to the private website renderer…"}
           </p>
           <div ref={stage} className="studio-preview-stage">
             {!connected && (
@@ -182,7 +305,7 @@ export function SiteStudioVisualPreview({
                 </strong>
                 <p>
                   {slow
-                    ? "Your edits are safe in this editor. Nothing has been published. Retry when the local website is available."
+                    ? "Your edits are safe in this editor. Nothing has been published. Check Owner access and retry the private preview."
                     : "Opening the actual website renderer. Your draft remains private."}
                 </p>
                 {slow && (
@@ -212,8 +335,13 @@ export function SiteStudioVisualPreview({
                   key={epoch}
                   ref={frame}
                   title="Actual website — private draft preview"
-                  src="http://127.0.0.1:5173/?studio-preview=1"
-                  sandbox="allow-scripts allow-same-origin"
+                  name={frameName}
+                  src={
+                    hosted
+                      ? "about:blank"
+                      : "http://127.0.0.1:5173/?studio-preview=1"
+                  }
+                  sandbox="allow-scripts allow-same-origin allow-forms"
                   referrerPolicy="no-referrer"
                   onLoad={sendDraft}
                 />

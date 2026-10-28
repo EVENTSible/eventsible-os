@@ -98,6 +98,7 @@ export function SiteStudioHomeEditor({
   before,
   notice,
   visualPreviewEnabled,
+  visualPreviewUrl,
 }: {
   initial: SiteStudioCopy;
   approvedMedia: SiteMediaOption[];
@@ -112,6 +113,7 @@ export function SiteStudioHomeEditor({
   before?: number;
   notice: string;
   visualPreviewEnabled: boolean;
+  visualPreviewUrl?: string;
 }) {
   const [copy, setCopy] = useState(
     () =>
@@ -616,6 +618,7 @@ export function SiteStudioHomeEditor({
           section={previewTarget}
           status={status}
           enabled={visualPreviewEnabled}
+          url={visualPreviewUrl}
         />
       </div>
       <dialog

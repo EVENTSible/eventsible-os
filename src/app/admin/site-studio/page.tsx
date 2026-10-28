@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { authorizeHqCapability } from "@/lib/hq-auth";
 import { siteStudioPublicLink } from "@/lib/site-studio-public-link.mjs";
+import { studioFrameOrigin } from "@/lib/site-studio-preview-session.mjs";
 import { siteStudioEditorRevision } from "@/lib/site-studio-editor-revision.mjs";
 import type { SiteMediaOption } from "@/components/site-studio-home-editor";
 import { SiteStudioEditor } from "@/components/site-studio-editor";
@@ -270,7 +271,8 @@ export default async function SiteStudioPage({
           hasOlder={hasOlder}
           before={before}
           notice={notice}
-          visualPreviewEnabled={publicLink.href === "http://127.0.0.1:5173/"}
+          visualPreviewEnabled={publicLink.href === "http://127.0.0.1:5173/" || !!studioFrameOrigin()}
+          visualPreviewUrl={studioFrameOrigin() ?? "http://127.0.0.1:5173"}
           mediaPanel={
             <>
               <SiteStudioMediaIntake action={queueDriveMediaForReview} />
