@@ -1,0 +1,29 @@
+{
+  "version": "20261028213219",
+  "name": "site_studio_v1",
+  "status": "REQUIRES_SEPARATE_PRODUCTION_APPROVAL",
+  "proposalSha256": "113125346d7d5d99ff7c22f6ea8454513f32e06d633266357ef977a6ff993c09",
+  "migration": {
+    "path": "supabase/migrations/20261028213219_site_studio_v1.sql",
+    "sha256": "5fd24f1e4e5af3091def5897fd4fa5a7b0524b0a46c0d6ffa84ea6ff4022a809"
+  },
+  "runner": {
+    "path": "supabase/releases/site-studio/20261028213219/APPLY_APPROVED_SITE_STUDIO.psql",
+    "sha256": "986b22a1d91ccee01c2db5ee51d39bffe1c4c9407588789799dd02142539dbf9"
+  },
+  "postflight": {
+    "path": "supabase/releases/site-studio/20261028213219/POSTFLIGHT_READ_ONLY.sql",
+    "sha256": "b30821bebef7d95888ecb5cec5ca4117d111f7ea66fb349146726c346c96aec1"
+  },
+  "packagingCorrection": "Move unchanged exact Production ledger guard from canonical migration into controlled runner, permitting normal isolated CI migration replay. Schema proposal and all object/authorization guards unchanged.",
+  "supersedes": {
+    "migrationSha256": "b61b594931a4658f14333d27edb5b955e68dfbb62e808b6fdadce4bc98dce751",
+    "runnerSha256": "77afbb0785c562663303cd2104cce1bfb3fba26246ca07f5ac5bb3300539db28"
+  },
+  "expectedLedger": {
+    "count": 53,
+    "maxVersion": "20260917210520",
+    "md5": "0891190aab404ca7f80bb58e00424f57"
+  },
+  "encoding": "UTF-8 without BOM; LF"
+}

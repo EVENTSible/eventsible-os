@@ -6,6 +6,11 @@ on:
     branches:
       - main
     paths:
+      - "netlify/**"
+      - "next.config.ts"
+      - "netlify.toml"
+      - "vercel.json"
+      - "eslint.config.mjs"
       - ".github/workflows/ecosystem-integration-local-supabase.yml"
       - "supabase/**"
       - "scripts/**"
@@ -51,7 +56,7 @@ permissions:
 jobs:
   local-supabase-verification:
     name: Local Supabase integration verification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       EVENTSIBLE_PRODUCTION_SUPABASE_REF: cplpbzudjprzbnzocirc
@@ -201,6 +206,12 @@ jobs:
       - name: Verify outbox helper grants
         run: npm run test:outbox-helper-grants
 
+      - name: Verify Site Studio proposal on disposable local database
+        run: node scripts/site-studio-local-supabase-verify.mjs
+
+      - name: Check optional no-cost two-app browser runner syntax
+        run: node --check scripts/site-studio-two-app-local-verify.mjs
+
       - name: Run contract tests
         run: npm run test
 
@@ -221,6 +232,8 @@ jobs:
           printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$API_URL" >> "$GITHUB_ENV"
           printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$ANON_KEY" >> "$GITHUB_ENV"
           printf 'LOCAL_SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          # Only a disposable loopback Supabase key is used by the local public-content API.
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
           test_password="$(openssl rand -base64 30 | tr -d '\n')"
           printf '::add-mask::%s\n' "$test_password"
           printf 'DATA_READINESS_TEST_PASSWORD=%s\n' "$test_password" >> "$GITHUB_ENV"
@@ -229,10 +242,24 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build prepared media-free Netlify input
+        env:
+          NETLIFY: "true"
+          SUPABASE_SERVICE_ROLE_KEY: ""
+          RESEND_API_KEY: ""
+        run: |
+          npm run release:prepare
+          cd .media-free-release
+          npm ci --no-audit --no-fund
+          npm run build
+
       - name: Install isolated browser runtime
         run: |
-          npm install --no-save --no-package-lock playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npm install --prefix /tmp/eventsible-browser-runner --ignore-scripts --no-fund --save-exact playwright@1.56.1
+          npm audit --prefix /tmp/eventsible-browser-runner --audit-level=low
+          test ! -e node_modules/playwright
+          ln -s /tmp/eventsible-browser-runner/node_modules/playwright node_modules/playwright
+          node /tmp/eventsible-browser-runner/node_modules/playwright/cli.js install --with-deps chromium
 
       - name: Start isolated application
         shell: bash
@@ -249,17 +276,30 @@ jobs:
       - name: Run authenticated Data Readiness browser verification
         run: npm run test:data-readiness:browser
 
+      - name: Run Site Studio owner browser verification
+        run: node scripts/site-studio-browser-verify.mjs
+
       - name: Upload sanitized Data Readiness evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: data-readiness-isolated-evidence
-          path: artifacts/data-readiness
+          path: |
+            artifacts/data-readiness
+            artifacts/site-studio
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Test audit outage recovery and fail-closed behavior
+        # Exercise outage recovery and fail-closed behavior before live requests.
+        run: node --test scripts/audit-dependencies.test.mjs
+
+      - name: Verify production dependency audit independently
+        run: node scripts/audit-dependencies.mjs --omit=dev
+
       - name: Audit
-        run: npm audit --audit-level=high
+        if: ${{ !cancelled() }}
+        run: node scripts/audit-dependencies.mjs
 
       - name: Stop isolated application
         if: always()

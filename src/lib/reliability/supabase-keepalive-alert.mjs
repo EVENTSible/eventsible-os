@@ -36,9 +36,9 @@ export async function sendSupabaseKeepaliveFailureAlert(
       "The scheduled EVENTSible OS Supabase keep-alive did not complete all read-only checks.",
       `Timestamp: ${timestamp}`,
       `Checks passed: ${checksPassed} of ${checksAttempted}`,
-      "Review the Vercel runtime logs for /api/cron/supabase-keepalive.",
+      "Review the hosting runtime logs for the Supabase keep-alive job.",
     ].join("\n"),
-    html: `<p>The scheduled EVENTSible OS Supabase keep-alive did not complete all read-only checks.</p><p>Timestamp: ${timestamp}<br>Checks passed: ${checksPassed} of ${checksAttempted}</p><p>Review the Vercel runtime logs for <code>/api/cron/supabase-keepalive</code>.</p>`,
+    html: `<p>The scheduled EVENTSible OS Supabase keep-alive did not complete all read-only checks.</p><p>Timestamp: ${timestamp}<br>Checks passed: ${checksPassed} of ${checksAttempted}</p><p>Review the hosting runtime logs for the Supabase keep-alive job.</p>`,
     idempotencyKey: `eventsible-os-supabase-keepalive-failure:${timestamp.slice(0, 10)}`,
   };
 

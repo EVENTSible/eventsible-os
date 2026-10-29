@@ -1,0 +1,27 @@
+name: Cloudflare QA toolchain safety
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audited-qa-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.1
+      - name: Install only the independently locked toolchain
+        run: npm ci --ignore-scripts --prefix tools/cloudflare
+      - name: Strict toolchain audit without waivers
+        run: npm audit --prefix tools/cloudflare --audit-level=low
+      - name: Verify command syntax and unprepared-source deploy denial
+        shell: bash
+        run: |
+          node --check scripts/cloudflare-qa.mjs
+          if node scripts/cloudflare-qa.mjs deploy hq > /tmp/cf-denied.log 2>&1; then
+            echo "Unprepared source must never deploy"
+            exit 1
+          fi
+          grep -q 'requires a prepared media-free input' /tmp/cf-denied.log

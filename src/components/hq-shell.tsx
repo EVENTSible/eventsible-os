@@ -25,7 +25,7 @@ function NavigationIcon({ icon }: { icon: string }) {
 
 function NavigationLink({ item, active, onNavigate, compact = false }: { item: NavigationItem; active: boolean; onNavigate?: () => void; compact?: boolean }) {
   return (
-    <Link className={`hq-nav-link${active ? " active" : ""}${compact ? " compact" : ""}`} href={item.href} aria-current={active ? "page" : undefined} onClick={onNavigate}>
+    <Link prefetch={false} className={`hq-nav-link${active ? " active" : ""}${compact ? " compact" : ""}`} href={item.href} aria-current={active ? "page" : undefined} onClick={onNavigate}>
       <NavigationIcon icon={item.icon} />
       <span>{item.label}</span>
       {active ? <span className="hq-active-marker" aria-hidden="true">Current</span> : null}
@@ -103,11 +103,11 @@ export function HqShell({ children, role }: { children: ReactNode; role: string 
   };
 
   return (
-    <div className="hq-shell">
+    <div className="hq-shell" data-workspace={pathname === '/admin/site-studio' ? 'site-studio' : undefined}>
       <a className="hq-skip-link" href="#hq-main-content">Skip to content</a>
 
       <aside className="hq-sidebar" aria-label="EVENTSible HQ">
-        <Link className="hq-brand" href="/admin" aria-label="EVENTSible HQ home"><Wordmark compact /><span>HQ operating system</span></Link>
+        <Link prefetch={false} className="hq-brand" href="/admin" aria-label="EVENTSible HQ home"><Wordmark compact /><span>HQ operating system</span></Link>
         <nav className="hq-sidebar-navigation" aria-label="HQ primary navigation">
           {primaryItems.map((item) => <NavigationLink key={item.id} item={item} active={activeId === item.id} onNavigate={() => activateNavigation(item)} />)}
         </nav>

@@ -6,6 +6,7 @@ export const HQ_NAVIGATION = Object.freeze([
   Object.freeze({ id: "leads", label: "Leads", href: "/admin#lead-review", icon: "leads", group: "primary" }),
   Object.freeze({ id: "imports", label: "Imports", href: "/admin/imports", icon: "imports", group: "review" }),
   Object.freeze({ id: "data-readiness", label: "Records & Intake", href: "/admin/data-readiness", icon: "imports", group: "review", ownerOnly: true }),
+  Object.freeze({ id: "site-studio", label: "Site Studio", href: "/admin/site-studio", icon: "imports", group: "review", ownerOnly: true }),
 ]);
 
 const GIG_PATH_PREFIXES = ["/admin/gigs/", "/admin/wedding/", "/admin/event/"];
@@ -25,6 +26,7 @@ export function activeHqNavigationId(pathname = "/admin", hash = "") {
   if (path === "/admin/quick-add" || path.startsWith("/admin/quick-add/")) return "quick-add";
   if (path === "/admin/imports" || path.startsWith("/admin/imports/")) return "imports";
   if (path === "/admin/data-readiness" || path.startsWith("/admin/data-readiness/")) return "data-readiness";
+  if (path === "/admin/site-studio" || path.startsWith("/admin/site-studio/")) return "site-studio";
   if (GIG_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) return "gigs";
   if (path === "/admin" && GIG_HASHES.has(normalizedHash)) return "gigs";
   if (path === "/admin" && LEAD_HASHES.has(normalizedHash)) return "leads";
