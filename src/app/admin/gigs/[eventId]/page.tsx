@@ -95,11 +95,17 @@ export default async function GigWorkspacePage({ params, searchParams }: PagePro
   const planning = (planningResult.data ?? null) as AnyRow | null;
   const isOwner = authData.user.app_metadata?.role === "owner";
   const candidateId = isOwner && /^[0-9a-f-]{36}$/i.test(planningAssignment ?? "") ? planningAssignment : null;
+  const staffDate = event.starts_at ? new Date(String(event.starts_at)) : null;
+  const staffFrom = staffDate && !Number.isNaN(staffDate.valueOf()) ? new Date(staffDate.valueOf() - 86_400_000).toISOString().slice(0, 10) : null;
+  const staffTo = staffDate && !Number.isNaN(staffDate.valueOf()) ? new Date(staffDate.valueOf() + 86_400_000).toISOString().slice(0, 10) : null;
   const [candidateResult, linkedResult, staffResult] = await Promise.all([
     candidateId && !planning ? supabase.from("os_planning_assignments").select("id,event_id,status,submitted_at,last_saved_at,settings").eq("id", candidateId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     planning ? supabase.from("os_planning_assignments").select("id,event_id,status,submitted_at,last_saved_at,settings").eq("id", planning.id).eq("event_id", eventId).maybeSingle() : Promise.resolve({ data: null, error: null }),
-    supabase.from("os_staff_assignments").select("id,event_id,team_member_id,assignment_role,status,call_time").eq("event_id", eventId).eq("status", "assigned"),
+    staffFrom && staffTo ? supabase.rpc("os_team_calendar_snapshot", { p_from: staffFrom, p_to: staffTo }) : Promise.resolve({ data: null, error: null }),
   ]);
+  const staffSnapshot = staffResult.data as { assignments?: Array<{ eventId: string; teamMemberId: string; assignmentRole: string; callTime: string | null }>; teamMembers?: Array<{ id: string; displayName: string }> } | null;
+  const eventStaff = (staffSnapshot?.assignments ?? []).filter(row => row.eventId === eventId);
+  const teamNames = new Map((staffSnapshot?.teamMembers ?? []).map(row => [row.id, row.displayName]));
   const candidate = candidateResult.data && candidateResult.data.event_id !== eventId && candidateResult.data.status === "submitted" ? candidateResult.data : null;
   const assignment = linkedResult.data ?? candidate;
   const planningAnswersResult = assignment ? await supabase.from("os_planning_answers").select("question_key,value").eq("assignment_id", assignment.id) : { data: [], error: null };
@@ -170,7 +176,7 @@ export default async function GigWorkspacePage({ params, searchParams }: PagePro
             <h3>Music and cues</h3><ul>{planningPacket.music.map(row => <li key={row.sourceKey}>{row.moment}: {row.title} {row.artist}, {row.localAvailability}</li>)}</ul>
             <h3>Preparation</h3><ul>{planningPacket.tasks.map(task => <li key={task.key}>{task.title}: {task.status}</li>)}</ul>
           </>}
-          <p>Staff assignments: {staffResult.error ? "Unavailable" : `${staffResult.data?.length ?? 0} recorded`}. {staffResult.data?.map(row => `${row.assignment_role}: ${row.call_time ? dateTime(row.call_time) : "call time outstanding"}`).join("; ")}. Equipment must be confirmed by Operations.</p>
+          <p>Staff assignments: {staffResult.error ? "Unavailable" : `${eventStaff.length} recorded`}. {eventStaff.map(row => `${teamNames.get(row.teamMemberId) ?? "Team member"}, ${row.assignmentRole}: ${row.callTime ? dateTime(row.callTime) : "call time outstanding"}`).join("; ")}. Equipment must be confirmed by Operations.</p>
         </section>
         <section className="workspace-section workspace-overview" id="overview"><header><span className="eyebrow">Gig at a glance</span><h2>Event-day essentials</h2></header><dl className="workspace-facts workspace-facts-priority"><Fact label="Client / organization">{text(contact?.display_name, "Client not provided")}{contact?.organization_name ? ` · ${contact.organization_name}` : ""}</Fact><Fact label="Event">{text(event.title, "Untitled event")} · {text(event.event_type, "Type not provided")}</Fact><Fact label="Date">{eventDate}</Fact><Fact label="Event time">{event.historical_date ? eventStart : `${eventStart} – ${eventEnd}`}</Fact><Fact label="Venue">{text(event.venue_name, "Venue not provided")}</Fact><Fact label="Address">{fullAddress || "Full address not provided"}</Fact><Fact label="Room / area">{text(operational.roomArea)}</Fact><Fact label="Indoor / outdoor">{text(operational.environment)}</Fact></dl></section>
         <section className="workspace-section workspace-wide event-day-notes-section" id="event-day-notes"><header><span className="eyebrow">Event-Day Notes</span><h2>Pinned instructions and reminders</h2></header><EventDayNotesEditor action={upsertEventDayNoteAction} eventId={eventId} loadFailed={Boolean(notesResult.error)} notes={eventDayNotes} /></section>
