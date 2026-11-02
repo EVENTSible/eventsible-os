@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import cp from 'node:child_process';
 import crypto from 'node:crypto';
+import { APPROVED_HQ_ICONS } from './approved-hq-icons.mjs';
 const root=process.cwd();
 const name=process.argv[2] || '.media-free-release';
 if(!/^\.media-free-release(?:-[a-z0-9-]+)?$/.test(name)) throw Error('Destination must be a new .media-free-release directory directly inside this repository');
@@ -11,25 +12,26 @@ const git=(args)=>cp.execFileSync('git',['-c','safe.directory=*',...args],{cwd:r
 const head=git(['rev-parse','HEAD']);
 const files=git(['ls-files']).split('\n').filter(f=>!/(^|\/)\.env/.test(f));
 const binary=/\.(jpe?g|webp|png|gif|mp[34]|wav|ico|avif|mov|webm|ogg|flac)$/i;
-const removed=files.filter(f=>binary.test(f));
+const sha=f=>crypto.createHash('sha256').update(fs.readFileSync(path.join(root,f))).digest('hex');
+for(const [f,approvedSha] of Object.entries(APPROVED_HQ_ICONS)){
+ if(!files.includes(f) || sha(f)!==approvedSha)throw Error('Approved HQ icon missing or changed: '+f);
+}
+const removed=files.filter(f=>binary.test(f) && !Object.hasOwn(APPROVED_HQ_ICONS,f));
 const replacements=removed.map(f=>[f.startsWith('public/')?'/'+f.slice(7):f.startsWith('src/')?'@/'+f.slice(4):null, f.startsWith('public/')?'/media-free.svg':'@/assets/media-free.svg']).filter(([a])=>a);
 fs.mkdirSync(out);
 for(const f of files){
- if(binary.test(f))continue;
+ if(binary.test(f) && !Object.hasOwn(APPROVED_HQ_ICONS,f))continue;
  if(f.startsWith('.git/') || /(^|\/)\.env/.test(f)) throw Error('Unexpected private input');
  const target=path.join(out,f);if(!target.startsWith(out+path.sep))throw Error('Bad source path');
  fs.mkdirSync(path.dirname(target),{recursive:true});let bytes=fs.readFileSync(path.join(root,f));
- if(/\.(tsx?|jsx?|mjs|cjs|json|css|html)$/.test(f)&&!f.endsWith('lock.json')){
+ if(/\.(tsx?|jsx?|mjs|cjs|json|css|html)$/.test(f)&&!f.endsWith('lock.json')&&!f.startsWith('scripts/')){
   let text=bytes.toString('utf8').split('https://eventsible.info/super-e-icon.png').join('/media-free.svg');for(const[a,b]of replacements)text=text.split(a).join(b);
-  if(f==='src/app/manifest.ts') text=text.replaceAll('src: "/media-free.svg"','src: "/hq/media-free-icon.svg"').replaceAll('sizes: "192x192", type: "image/png"','sizes: "any", type: "image/svg+xml"').replaceAll('sizes: "512x512", type: "image/png"','sizes: "any", type: "image/svg+xml"');
   text=text.split('https://eventsible.info/super-e-icon.png').join('/media-free.svg');bytes=Buffer.from(text);
  }
  fs.writeFileSync(target,bytes);
 }
 const svg='<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-label="Generic event illustration"><rect width="800" height="500" fill="#182638"/><path d="M80 360L240 160l140 180 100-120 220 140" fill="none" stroke="#f4c623" stroke-width="14"/><text x="400" y="440" text-anchor="middle" fill="white" font-size="24">Illustration — media-free release</text></svg>';
 fs.mkdirSync(path.join(out,'public'),{recursive:true});fs.writeFileSync(path.join(out,'public/media-free.svg'),svg);
-fs.mkdirSync(path.join(out,'public/hq'),{recursive:true});fs.writeFileSync(path.join(out,'public/hq/media-free-icon.svg'),'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#071a34"/><text x="256" y="310" text-anchor="middle" font-family="sans-serif" font-size="190" font-weight="bold" fill="#f4c623">HQ</text></svg>');
 if(fs.existsSync(path.join(out,'src/assets')))fs.writeFileSync(path.join(out,'src/assets/media-free.svg'),svg);
-const sha=f=>crypto.createHash('sha256').update(fs.readFileSync(path.join(root,f))).digest('hex');
-fs.writeFileSync(path.join(out,'media-free-release.json'),JSON.stringify({version:1,sourceHead:head,sourceTree:git(['rev-parse','HEAD^{tree}']),packageName:JSON.parse(fs.readFileSync('package.json')).name,excludedMedia:removed.map(f=>({path:f,sha256:sha(f)})),preparedInputs:Object.fromEntries(files.filter(f=>!binary.test(f)).map(f=>[f,sha(f)]))},null,2));
-console.log('Prepared media-free release input: '+name+'; '+removed.length+' binary assets excluded; originals preserved.');
+fs.writeFileSync(path.join(out,'media-free-release.json'),JSON.stringify({version:1,sourceHead:head,sourceTree:git(['rev-parse','HEAD^{tree}']),packageName:JSON.parse(fs.readFileSync('package.json')).name,approvedAppIcons:Object.entries(APPROVED_HQ_ICONS).map(([path,sha256])=>({path,sha256})),excludedMedia:removed.map(f=>({path:f,sha256:sha(f)})),preparedInputs:Object.fromEntries(files.filter(f=>!binary.test(f)).map(f=>[f,sha(f)]))},null,2));
+console.log('Prepared media-free release input: '+name+'; '+removed.length+' binary assets excluded; two checksum-pinned HQ icons retained; originals preserved.');
