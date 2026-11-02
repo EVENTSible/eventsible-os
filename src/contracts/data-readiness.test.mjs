@@ -207,11 +207,11 @@ test("complete importer preserves native Wedding Hero and Event Builder records"
   const [migration,builder,wedding]=await Promise.all([
     read("supabase/migrations/20260915035447_hq_complete_manifest_importer.sql"),
     read("supabase/migrations/20260719053712_fix_event_builder_contact_merge.sql"),
-    read("src/app/client/wedding/submission-actions.ts"),
+    read("supabase/migrations/20261102180000_wedding_hero_atomic_public_writer.sql"),
   ]);
   assert.match(builder,/source_session_id[\s\S]+on conflict\(source_session_id\)/);
-  assert.match(wedding,/submission_id === request\.submissionId/);
-  assert.match(wedding,/os_planning_answers/);
+  assert.match(wedding,/v_submission::text/);
+  assert.match(wedding,/public\.os_planning_answers/);
   assert.match(migration,/A reviewed import is being applied; retry the native submission/);
   assert.doesNotMatch(migration,/(update|delete from) public\.os_(builder_submissions|builder_intake_requests|planning_assignments|planning_answers)/i);
   assert.doesNotMatch(migration,/set\s+(raw_payload|normalized_payload|value)\s*=/i);

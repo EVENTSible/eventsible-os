@@ -49,6 +49,33 @@ export function weddingTimeline(answers = {}) {
   return rows.sort((a, b) => (a.time ?? "99:99").localeCompare(b.time ?? "99:99"));
 }
 
+/** Client clock times are interpreted only in the event's explicitly verified timezone.
+ * @param {Array<{time: string|null, sourceKey: string, moment: string}>} timeline
+ * @param {{starts_at: unknown, ends_at: unknown, timezone: unknown}} coverage
+ * @param {string|null} planningZone
+ */
+export function weddingScheduleReview(timeline, coverage, planningZone = null) {
+  const start = Date.parse(coverage?.starts_at ?? "");
+  const end = Date.parse(coverage?.ends_at ?? "");
+  const zone = planningZone;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || !zone) {
+    return { status: "PENDING REVIEW", reason: "Confirm booked coverage and the client's clock timezone before comparing times.", outside: [], coverage };
+  }
+  const dateParts = new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(start));
+  const datePart = type => dateParts.find(part => part.type === type)?.value;
+  const day = `${datePart("year")}-${datePart("month")}-${datePart("day")}`;
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "shortOffset" }).formatToParts(new Date(start));
+  const offset = parts.find(part => part.type === "timeZoneName")?.value.match(/^GMT([+-])(\d{1,2})(?::(\d{2}))?$/);
+  if (!offset) return { status: "PENDING REVIEW", reason: "Timezone offset could not be verified.", outside: [], coverage };
+  const minutes = (offset[1] === "+" ? 1 : -1) * (Number(offset[2]) * 60 + Number(offset[3] ?? 0));
+  const outside = timeline.filter(row => row.time).map(row => {
+    const [hour, minute] = row.time.split(":").map(Number);
+    const instant = Date.parse(`${day}T00:00:00Z`) + ((hour * 60 + minute) - minutes) * 60_000;
+    return { ...row, instant, position: instant < start ? "BEFORE BOOKED COVERAGE" : instant > end ? "AFTER BOOKED COVERAGE" : "WITHIN BOOKED COVERAGE" };
+  }).filter(row => row.position !== "WITHIN BOOKED COVERAGE");
+  return { status: outside.length ? "PENDING REVIEW" : "NO OUTSIDE TIMES DETECTED", reason: outside.length ? "Client planning includes activities outside signed coverage." : "Clock times compared in the verified event timezone; confirm all missing times separately.", outside, coverage };
+}
+
 /** Read-only, deterministic suggestions. These are never task-creation commands. */
 export function weddingTaskProposals(eventId, answers = {}, services = [], existingTasks = []) {
   if (!eventId) throw new Error("A canonical event ID is required.");

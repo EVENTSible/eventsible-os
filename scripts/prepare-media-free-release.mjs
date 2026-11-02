@@ -21,12 +21,14 @@ for(const f of files){
  fs.mkdirSync(path.dirname(target),{recursive:true});let bytes=fs.readFileSync(path.join(root,f));
  if(/\.(tsx?|jsx?|mjs|cjs|json|css|html)$/.test(f)&&!f.endsWith('lock.json')){
   let text=bytes.toString('utf8').split('https://eventsible.info/super-e-icon.png').join('/media-free.svg');for(const[a,b]of replacements)text=text.split(a).join(b);
+  if(f==='src/app/manifest.ts') text=text.replaceAll('src: "/media-free.svg"','src: "/hq/media-free-icon.svg"').replaceAll('sizes: "192x192", type: "image/png"','sizes: "any", type: "image/svg+xml"').replaceAll('sizes: "512x512", type: "image/png"','sizes: "any", type: "image/svg+xml"');
   text=text.split('https://eventsible.info/super-e-icon.png').join('/media-free.svg');bytes=Buffer.from(text);
  }
  fs.writeFileSync(target,bytes);
 }
 const svg='<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-label="Generic event illustration"><rect width="800" height="500" fill="#182638"/><path d="M80 360L240 160l140 180 100-120 220 140" fill="none" stroke="#f4c623" stroke-width="14"/><text x="400" y="440" text-anchor="middle" fill="white" font-size="24">Illustration — media-free release</text></svg>';
 fs.mkdirSync(path.join(out,'public'),{recursive:true});fs.writeFileSync(path.join(out,'public/media-free.svg'),svg);
+fs.mkdirSync(path.join(out,'public/hq'),{recursive:true});fs.writeFileSync(path.join(out,'public/hq/media-free-icon.svg'),'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#071a34"/><text x="256" y="310" text-anchor="middle" font-family="sans-serif" font-size="190" font-weight="bold" fill="#f4c623">HQ</text></svg>');
 if(fs.existsSync(path.join(out,'src/assets')))fs.writeFileSync(path.join(out,'src/assets/media-free.svg'),svg);
 const sha=f=>crypto.createHash('sha256').update(fs.readFileSync(path.join(root,f))).digest('hex');
 fs.writeFileSync(path.join(out,'media-free-release.json'),JSON.stringify({version:1,sourceHead:head,sourceTree:git(['rev-parse','HEAD^{tree}']),packageName:JSON.parse(fs.readFileSync('package.json')).name,excludedMedia:removed.map(f=>({path:f,sha256:sha(f)})),preparedInputs:Object.fromEntries(files.filter(f=>!binary.test(f)).map(f=>[f,sha(f)]))},null,2));

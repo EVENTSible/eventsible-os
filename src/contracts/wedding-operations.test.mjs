@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
-import { buildWeddingOperations, weddingMusicRequests, weddingTaskProposals, weddingTimeline, weddingMusicCsv } from "../lib/wedding-operations.mjs";
+import { buildWeddingOperations, weddingMusicRequests, weddingTaskProposals, weddingTimeline, weddingMusicCsv, weddingScheduleReview } from "../lib/wedding-operations.mjs";
 import { publicWeddingDraftCanWrite } from "../lib/wedding-hero-submission.mjs";
 
 const event = { id: "synthetic-event", status: "booked" };
@@ -38,6 +38,15 @@ test("chronological client clock times survive DST weekend and missing/invalid t
   assert.equal(rows.find(x => x.sourceKey === "venue_access_time").submittedTime, "25:30");
   assert.ok(rows.filter(x => !x.time).every(x => x.timeStatus === "NEEDS CONFIRMATION"));
   assert.ok(rows.filter(x => x.time).every(x => /TIMEZONE NEEDS CONFIRMATION/.test(x.timeStatus)));
+});
+test("schedule review separates Michigan client clock times from signed Central coverage", () => {
+  const timeline = weddingTimeline({ cocktail_hour_included: true, cocktail_hour_start_time: "16:45", reception_timeline: [{ time: "17:45", moment: "Entrance" }, { time: "19:10", moment: "Dancing" }] });
+  const coverage = { starts_at: "2026-11-08T00:00:00Z", ends_at: "2026-11-08T05:00:00Z", timezone: "America/Chicago" };
+  assert.match(weddingScheduleReview(timeline, coverage).reason, /Confirm/);
+  const review = weddingScheduleReview(timeline, coverage, "America/Detroit");
+  assert.equal(review.status, "PENDING REVIEW");
+  assert.deepEqual(review.outside.map(row => row.time), ["16:45", "17:45"]);
+  assert.ok(review.outside.every(row => row.position === "BEFORE BOOKED COVERAGE"));
 });
 test("task suggestions repeat without duplicates and recognize existing stable event keys", () => {
   const services = [{ service_code: "karaoke" }, { service_code: "uplighting" }, { service_code: "selfie_booth_prints" }];
@@ -73,25 +82,23 @@ test("a public device draft remains limited to its matching public inquiry", () 
   assert.equal(publicWeddingDraftCanWrite(own, "other-draft"), false);
 });
 
-test("actual public submission action refuses managed plans before every write and notification", async () => {
+test("public action delegates all business writes to one RPC and fails closed before notifications", async () => {
   const require = createRequire(import.meta.url);
   const draftId = "11111111-1111-4111-8111-111111111111";
   const code = ts.transpileModule(readFileSync(new URL("../app/client/wedding/submission-actions.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  for (const target of [{ source: "owner_quick_add", status: "booked" }, { source: "wedding_hero_public_submission", status: "booked" }, { source: "wedding_hero_public_submission", status: "inquiry", wrongDraft: true }]) {
-    let writes = 0, sends = 0;
+  for (const response of [{ data: { state: "managed" }, error: null }, { data: null, error: { message: "migration missing" } }]) {
+    let writes = 0, sends = 0, calls = 0;
     const exports = {};
     runInNewContext(code, { exports, require: name => {
       if (name === "next/cache") return { revalidatePath: () => { writes++; } };
-      if (name === "@/lib/supabase/admin") return { createAdminSupabase: () => ({ from: table => {
-        const chain = { select() { return this; }, eq() { return this; }, neq() { return this; }, limit() { return this; }, maybeSingle: async () => ({ data: table === "os_planning_assignments" ? { id: "plan-a", event_id: "managed-event", settings: {} } : { id: "managed-event", ...target, settings: { public_draft_id: target.wrongDraft ? "other-draft" : draftId } }, error: null }), update() { writes++; throw Error("No write expected"); }, insert() { writes++; throw Error("No write expected"); }, upsert() { writes++; throw Error("No write expected"); } };
-        return chain;
-      } }) };
+      if (name === "@/lib/supabase/admin") return { createAdminSupabase: () => ({ rpc: async (name, input) => { calls++; assert.equal(name, "os_submit_public_wedding_hero"); assert.equal(input.p_input.draftId, draftId); return response; }, from: () => { writes++; throw Error("No REST write expected"); } }) };
       if (name === "@/lib/notifications/wedding-hero-email.mjs") return { WEDDING_HERO_SUBMITTED_NOTIFICATION: "submitted", sendWeddingHeroOwnerNotification: () => { sends++; } };
       return require(name.replace("@/lib/", "../lib/"));
     } });
     const result = await exports.submitPublicWeddingHeroPlanAction({ draftId, submissionId: "22222222-2222-4222-8222-222222222222", contactName: "Synthetic contact", email: "synthetic@example.invalid", mode: "form", answers: { partner_one_name: "Synthetic person" } });
     assert.equal(result.ok, false);
-    assert.match(result.message, /managed privately/);
+    assert.match(result.message, response.error ? /temporarily unavailable/ : /managed privately/);
+    assert.equal(calls, 1);
     assert.equal(writes, 0);
     assert.equal(sends, 0);
   }
