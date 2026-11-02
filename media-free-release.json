@@ -1,8 +1,18 @@
 {
   "version": 1,
-  "sourceHead": "1ee3118cea291cc9260b8bebfa401d2eb978e9bb",
-  "sourceTree": "3d8c704b0676e765a25fb885d88e03dfd1d1068c",
+  "sourceHead": "c49e404060656c201650e36e5378494698e9e237",
+  "sourceTree": "eefbb26bbb0073b99378306759964cd60a3e8ccf",
   "packageName": "eventsible-os-admin",
+  "approvedAppIcons": [
+    {
+      "path": "public/hq/icon-192.png",
+      "sha256": "a7620193dec45b76169b4cc5af2dcc0e7eebdec7f39c819e361c1fe223940e50"
+    },
+    {
+      "path": "public/hq/icon-512.png",
+      "sha256": "d355a3a2c945d72c6528127a186ece96e197cc3b51482f4ad11726e25b42f8da"
+    }
+  ],
   "excludedMedia": [
     {
       "path": "public/brand/eventsible-logo.png",
@@ -15,14 +25,6 @@
     {
       "path": "public/brand/eventsible-wedding-hero-real.webp",
       "sha256": "92ddff1019c7499db621218ee6263a3e9c410a84062cbea221eb708cd940dfdd"
-    },
-    {
-      "path": "public/hq/icon-192.png",
-      "sha256": "a7620193dec45b76169b4cc5af2dcc0e7eebdec7f39c819e361c1fe223940e50"
-    },
-    {
-      "path": "public/hq/icon-512.png",
-      "sha256": "d355a3a2c945d72c6528127a186ece96e197cc3b51482f4ad11726e25b42f8da"
     }
   ],
   "preparedInputs": {
@@ -147,11 +149,12 @@
     "public/live-bundle.js": "9503f105968640f75cc1c35d0f9c3ef8ef4e4a91545f91f93bed6f40876bcfa8",
     "public/live-config.json": "38c4c6878ed5f013ab0a43ae07babe42ee57f0060fff166957cc06e26cf88915",
     "public/live.css": "9014722b0b0b210fc9226a9a61a833604de8d968e9bb9cd53f7d4f6fa0e1bc2d",
+    "scripts/approved-hq-icons.mjs": "a8ec519c9d1ac2e2578dafde43233ac6712ca53a04c52947cb99d9f6be3cae6f",
     "scripts/audit-dependencies.mjs": "5551fa3a9174a830fe852c759ac4086a3c09f427be2e61f56f7e6df61289ad2c",
     "scripts/audit-dependencies.test.mjs": "9e94f10e9de954f9e4008a4a389753005d0b2851df2523d292d470b48e454c83",
     "scripts/bounded-cleanup-local-supabase-verify.mjs": "da43d998c03bf0e9ab545d105e2c62e5cea04689952a602d0e651b22ea988b22",
     "scripts/check-lint-known-issues.mjs": "0c52d42e4c369c2e31b469dd96b61e8971885bf8b6377185d6996545b9e0e383",
-    "scripts/check-release-input.mjs": "46e62409a81e554245a5d0ce9ac743c0b86c54e71c64f78970ad04525e828877",
+    "scripts/check-release-input.mjs": "4041b2251474d82ef64a6c2aee661844a41ee8e2944aacece90c037ce0e4e1bd",
     "scripts/cloudflare-qa.mjs": "cbf33958838dc68a027c7734a6ab4b559e091b4b4bb183d8fa43f4561e76fff4",
     "scripts/compare-application-schema-catalogs.mjs": "1c4f09f1fa7c9268f2baaec57483fc5880bdf58117db03e733ad61be013be557",
     "scripts/complete-intake-local-supabase-verify.mjs": "a1af2ff3133be828e9bbc023e34d585234c0e529ec61ccd160c73d17023b2c10",
@@ -160,7 +163,7 @@
     "scripts/ecosystem-local-supabase-verify.mjs": "552301b100535dfdd91c86cbc25e765a24ad3ee6c1e0e32baa908de2101242ae",
     "scripts/export-application-schema-catalog.mjs": "d8c137321b69b583fb2d9ce428b8d19f2cd8039b14b55ea40cd078d0c8c83429",
     "scripts/guard-local-supabase-ci.mjs": "c3ada14014f51f62214adb9d96b1677d85f86a93096e14bff38fc26c94c89c1f",
-    "scripts/prepare-media-free-release.mjs": "16e42e104f370529fab97cab708233ed280425856b62fe53db3940967704a918",
+    "scripts/prepare-media-free-release.mjs": "a2974265a058d86d513ec21eaf7b4ead5991abbe368b13cd343e1d5229dcbf7a",
     "scripts/quick-add-local-supabase-verify.mjs": "a0c229533c46d60e0b1ad3f23b4a96dc8578caf3e22e6415777b58cab108e129",
     "scripts/quick-add-rollback-local-supabase-verify.mjs": "3a5dcd4cd5c37265dbb4d2bc5012f9f6bab886be712fe592a35c27781b8a79fc",
     "scripts/sanitize-supabase-log.mjs": "1ddef1881ae6afbf4b8c456d023aaf1be8757c940f5ddd6e496c77991d2a5dc9",
@@ -282,7 +285,7 @@
     "src/contracts/hq-calendar.test.mjs": "13367f02578726f2fb5a3eb3f850b924e84b5eeef337c11e5638971a340e7748",
     "src/contracts/hq-navigation.test.mjs": "50cd3ccd1f8331195526e36590d6fbc37bbe651b250a98d80959376a6ea986c1",
     "src/contracts/lint-glob-compatibility.test.mjs": "b964cc586f6a1cd8088dd1f143ff944de87a801a8b4f29d0d4363bb5e56f87a7",
-    "src/contracts/media-free-release-contract.test.mjs": "f4bf879e4c1db277ee7f3cbd6eb93ee16d0f7d4b214e951789996e1bfbc65c08",
+    "src/contracts/media-free-release-contract.test.mjs": "7d9fd1c73c6017cef2b0e70c676884204206e2092801ed806956eaef361689cf",
     "src/contracts/mission-control.test.mjs": "5a129502e8c39d5ae43f9a015de5a58447d12f2b774208e99dc1522819e2ac78",
     "src/contracts/operational-timing.test.mjs": "8827e1ec2f8027387156bf285ebb63dd926817fe7d192bde1de766a8cba2c4a2",
     "src/contracts/public-site-data.test.mjs": "af5e66a1a9785e503688288a88445e18c97ca0607c736901126cdfb5a60542a8",

@@ -7,7 +7,7 @@ export const metadata = {
   applicationName: "EVENTSible HQ",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "EVENTSible HQ", statusBarStyle: "black-translucent" as const },
-  icons: { apple: "/media-free.svg" },
+  icons: { apple: "/hq/icon-192.png" },
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
