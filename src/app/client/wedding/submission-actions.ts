@@ -53,7 +53,6 @@ export async function submitPublicWeddingHeroPlanAction(input: PublicWeddingHero
       });
     } catch {
       notificationWarning = " Your plan is recorded, but the owner alert needs staff follow-up.";
-      await admin.from("os_activity_events").insert({ event_id: response.eventId, event_type: "planning.notification_failed", visibility: "staff", payload: { summary: "Public Wedding Hero submission owner notification failed.", submission_id: request.submissionId } });
     }
     revalidatePath("/admin");
     revalidatePath(`/admin/wedding/${response.eventId}`);
