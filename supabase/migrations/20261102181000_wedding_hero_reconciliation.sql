@@ -1,5 +1,19 @@
 -- Source-only, Owner-approved execution contract. Never call this from an automatic request.
 -- All locks and writes are one database transaction. An error rolls back every change.
+create or replace function private.os_guard_schedule_review_fact()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.fact_key = 'event.schedule_review' and auth.role() <> 'service_role'
+    and coalesce(auth.jwt()->'app_metadata'->>'role','') <> 'owner' then
+    raise exception 'Owner authorization required for schedule review';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.os_guard_schedule_review_fact() from public,anon,authenticated;
+create trigger os_schedule_review_owner_guard before insert or update on public.os_event_facts
+for each row execute function private.os_guard_schedule_review_fact();
+
 create or replace function public.os_reconcile_wedding_hero(
   p_source uuid, p_target uuid, p_assignment uuid, p_lead uuid,
   p_outbox uuid[], p_answers integer, p_facts integer, p_source_activity integer
