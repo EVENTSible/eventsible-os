@@ -12,14 +12,16 @@ declare
   v_source uuid;
   v_assignment uuid;
   v_target uuid := 'a1000000-0000-4000-8000-000000000003';
+  v_target_contact uuid := 'a1000000-0000-4000-8000-000000000004';
   v_lead uuid;
   v_outbox uuid[];
   v_answers integer;
   v_facts integer;
   v_activity integer;
 begin
-  insert into public.os_events(id,title,event_type,status,timezone)
-    values(v_target,'Synthetic booked wedding','Wedding','booked','America/Chicago');
+  insert into public.os_contacts(id,display_name,primary_email) values(v_target_contact,'Synthetic booked contact','booked@example.invalid');
+  insert into public.os_events(id,primary_contact_id,title,event_type,status,timezone)
+    values(v_target,v_target_contact,'Synthetic booked wedding','Wedding','booked','America/Chicago');
   v_response := public.os_submit_public_wedding_hero(v_input);
   if v_response->>'state' <> 'submitted' then raise exception 'First public submission failed: %',v_response; end if;
   v_source := (v_response->>'eventId')::uuid;
