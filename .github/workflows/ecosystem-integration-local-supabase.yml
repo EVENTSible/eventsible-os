@@ -129,6 +129,9 @@ jobs:
       - name: Lint reconstructed database
         run: npx supabase@2.117.0 db lint --local --schema public,private --level warning --fail-on error
 
+      - name: Verify atomic Wedding Hero reconciliation on disposable database
+        run: node scripts/wedding-reconciliation-local-supabase-verify.mjs
+
       - name: Verify Owner Quick Add rollback
         run: npm run test:quick-add:rollback
 

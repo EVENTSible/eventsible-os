@@ -13,6 +13,8 @@ import { formatClockTime, formatLoadInWindow, operationalTimingFormValues, OPERA
 import { eventDateLabel, eventTimeLabel } from "@/lib/event-time.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/types";
+import { buildWeddingOperations, weddingScheduleReview } from "@/lib/wedding-operations.mjs";
+import { recordWeddingScheduleReviewAction } from "./schedule-review-actions";
 
 export const metadata = { title: "Gig Workspace | EVENTSible HQ" };
 type PageProps = { params: Promise<{ eventId: string }> };
@@ -45,8 +47,9 @@ function nestedValue(value: unknown, key: string) { return value && typeof value
 function EmptyFoundation({ children }: { children: ReactNode }) { return <p className="workspace-empty">{children}</p>; }
 function Fact({ label, children }: { label: string; children: ReactNode }) { return <div><dt>{label}</dt><dd>{children}</dd></div>; }
 
-export default async function GigWorkspacePage({ params }: PageProps) {
+export default async function GigWorkspacePage({ params, searchParams }: PageProps & { searchParams: Promise<{ planningAssignment?: string }> }) {
   const { eventId } = await params;
+  const { planningAssignment } = await searchParams;
   const supabase = await createServerSupabase();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect("/login");
@@ -57,7 +60,7 @@ export default async function GigWorkspacePage({ params }: PageProps) {
     supabase.from("os_bookings").select("id,event_id,accepted_quote_version_id,status,contract_status,payment_status,total_amount,deposit_amount,balance_due,balance_due_at,booked_at,metadata,created_at,updated_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("os_activity_events").select("id,event_type,occurred_at,created_at,visibility").eq("event_id", eventId).order("occurred_at", { ascending: false }).limit(20),
     supabase.from("os_quote_versions").select("id,status,currency,subtotal,discount_amount,travel_amount,total_amount,deposit_amount,created_at").eq("event_id", eventId).order("version_number", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("os_tasks").select("id,title,description,status,priority,due_at,completed_at,task_type,created_at").eq("event_id", eventId).order("due_at", { ascending: true, nullsFirst: false }).limit(50),
+    supabase.from("os_tasks").select("id,title,description,status,priority,due_at,completed_at,task_type,created_at,metadata").eq("event_id", eventId).order("due_at", { ascending: true, nullsFirst: false }).limit(50),
     supabase.from("os_files").select("id,file_name,category,mime_type,size_bytes,visibility,created_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(50),
     supabase.from("os_event_facts").select("id,fact_key,value,is_confirmed,source").eq("event_id", eventId).in("fact_key", WORKSPACE_FACT_KEYS),
     supabase.from("os_planning_assignments").select("id,status,progress_percent,last_saved_at,submitted_at,created_at").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -90,6 +93,28 @@ export default async function GigWorkspacePage({ params }: PageProps) {
   const tasks = (tasksResult.data ?? []) as AnyRow[];
   const files = (filesResult.data ?? []) as AnyRow[];
   const planning = (planningResult.data ?? null) as AnyRow | null;
+  const isOwner = authData.user.app_metadata?.role === "owner";
+  const candidateId = isOwner && /^[0-9a-f-]{36}$/i.test(planningAssignment ?? "") ? planningAssignment : null;
+  const staffDate = event.starts_at ? new Date(String(event.starts_at)) : null;
+  const staffFrom = staffDate && !Number.isNaN(staffDate.valueOf()) ? new Date(staffDate.valueOf() - 86_400_000).toISOString().slice(0, 10) : null;
+  const staffTo = staffDate && !Number.isNaN(staffDate.valueOf()) ? new Date(staffDate.valueOf() + 86_400_000).toISOString().slice(0, 10) : null;
+  const [candidateResult, linkedResult, staffResult] = await Promise.all([
+    candidateId && !planning ? supabase.from("os_planning_assignments").select("id,event_id,status,submitted_at,last_saved_at,settings").eq("id", candidateId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    planning ? supabase.from("os_planning_assignments").select("id,event_id,status,submitted_at,last_saved_at,settings").eq("id", planning.id).eq("event_id", eventId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    staffFrom && staffTo ? supabase.rpc("os_team_calendar_snapshot", { p_from: staffFrom, p_to: staffTo }) : Promise.resolve({ data: null, error: null }),
+  ]);
+  const staffSnapshot = staffResult.data as { assignments?: Array<{ eventId: string; teamMemberId: string; assignmentRole: string; callTime: string | null }>; teamMembers?: Array<{ id: string; displayName: string }> } | null;
+  const eventStaff = (staffSnapshot?.assignments ?? []).filter(row => row.eventId === eventId);
+  const teamNames = new Map((staffSnapshot?.teamMembers ?? []).map(row => [row.id, row.displayName]));
+  const candidate = candidateResult.data && candidateResult.data.event_id !== eventId && candidateResult.data.status === "submitted" ? candidateResult.data : null;
+  const assignment = linkedResult.data ?? candidate;
+  const planningAnswersResult = assignment ? await supabase.from("os_planning_answers").select("question_key,value").eq("assignment_id", assignment.id) : { data: [], error: null };
+  const planningAnswers = Object.fromEntries((planningAnswersResult.data ?? []).map(row => [row.question_key, row.value]));
+  const planningPacket = assignment && !planningAnswersResult.error ? buildWeddingOperations({ event: { id: assignment.event_id, status: candidate ? "inquiry" : String(event.status) }, assignment, answers: planningAnswers, services, tasks: tasks.map(task => ({ id: String(task.id), metadata: task.metadata as Record<string, unknown> | undefined })) }) : null;
+  const reviewResult = await supabase.from("os_event_facts").select("value").eq("event_id", eventId).eq("fact_key", "event.schedule_review").maybeSingle();
+  const review = reviewResult.data?.value && typeof reviewResult.data.value === "object" && !Array.isArray(reviewResult.data.value) ? reviewResult.data.value as AnyRow : null;
+  const planningZone = review && review.assignmentId === assignment?.id ? String(review.planningZone ?? "") : "";
+  const schedule = planningPacket ? weddingScheduleReview(planningPacket.timeline, { starts_at: event.starts_at, ends_at: event.ends_at, timezone: event.timezone }, planningZone || null) : null;
   const eventDayNotes = (notesResult.data ?? []) as EventDayNote[];
   const loadResults = [["Booking", bookingResult.error], ["Services", servicesResult.error], ["Activity", activityResult.error], ["Quote", quoteResult.error], ["Contact", contactResult.error], ["Day-of contact", dayOfContactResult.error], ["Contact selector", contactOptionsResult.error], ["Tasks", tasksResult.error], ["Documents", filesResult.error], ["Event facts", factsResult.error], ["Planning", planningResult.error]] as const;
   const loadWarnings = loadResults.filter(([, error]) => error).map(([label]) => label);
@@ -137,6 +162,22 @@ export default async function GigWorkspacePage({ params }: PageProps) {
       </section>
 
       <div className="workspace-grid">
+        <section className="workspace-section workspace-wide" id="wedding-planning"><header><span className="eyebrow">Wedding Hero to Gig</span><h2>Planning and schedule review</h2></header>
+          {!planningPacket ? <><p>No Wedding Hero plan is linked to this Gig. {isOwner ? "An Owner can review an unlinked submitted assignment by opening this Gig with ?planningAssignment= followed by its assignment ID." : "Ask the Owner to reconcile any separate client planning record."}</p></> : <>
+            {candidate ? <p className="alert warning">Owner review candidate only. Assignment {assignment?.id} belongs to a separate inquiry. No records have been joined. Confirm identity and reconcile through the approved transaction before treating this as the Gig plan.</p> : <p>Linked planning assignment: {assignment?.id}. <a href={`/admin/wedding/${eventId}/operations`}>Full Wedding Hero operations review</a></p>}
+            <p>Last planning update: {dateTime(assignment?.last_saved_at ?? assignment?.submitted_at)}. Music preparation: {planningPacket.music.length} selected requests, recording and local availability not verified.</p>
+            <h3>Signed coverage</h3><p>{eventDate} {eventTimeLabel(event.starts_at, event.timezone)} to {eventTimeLabel(event.ends_at, event.timezone)} ({text(event.timezone)}). Booking and financial terms remain unchanged.</p>
+            <h3>Client requested sequence</h3><p>Draft planning times. These are not the approved run sheet. Confirm the client timezone before comparison.</p>
+            <ol>{planningPacket.timeline.map((row, i) => <li key={`${row.sourceKey}-${i}`}>{row.time ?? "Time unknown"} {row.moment}{row.people ? `, ${row.people}` : ""}{row.notes ? `: ${row.notes}` : ""}</li>)}</ol>
+            <p><b>Schedule: {schedule?.status}</b>. {schedule?.reason}</p>
+            {schedule?.outside?.length ? <ul>{schedule.outside.map((row, i) => <li key={`${row.sourceKey}-${i}`}>{row.time} {row.moment}: {row.position}</li>)}</ul> : null}
+            {isOwner ? <form action={recordWeddingScheduleReviewAction}><input type="hidden" name="eventId" value={eventId} /><input type="hidden" name="assignmentId" value={assignment?.id} /><input type="hidden" name="sourceDigest" value={planningPacket.sourceDigest} /><label>Client planning timezone <select name="planningZone" defaultValue={planningZone}><option value="">Needs confirmation</option><option value="America/Detroit">Eastern, Michigan</option><option value="America/Chicago">Central</option><option value="America/Indiana/Indianapolis">Eastern, Indiana</option></select></label><label>Owner decision <select name="decision" defaultValue={review && review.assignmentId === assignment?.id ? String(review.decision ?? "pending") : "pending"}><option value="pending">Pending review</option><option value="accommodate">Accommodate, subject to client confirmation</option><option value="clarify">Clarify times and coverage</option><option value="propose_change">Propose contract change</option></select></label><label>Internal review note <textarea name="note" maxLength={1000} defaultValue={review && review.assignmentId === assignment?.id ? String(review.note ?? "") : ""} /></label><button className="btn" type="submit">Save Owner review</button></form> : null}
+            <p>Owner decision: {review && review.assignmentId === assignment?.id ? status(review.decision) : "Pending review"}. No price, coverage, booking, client message or authoritative run sheet changes from this review.</p>
+            <h3>Music and cues</h3><ul>{planningPacket.music.map(row => <li key={row.sourceKey}>{row.moment}: {row.title} {row.artist}, {row.localAvailability}</li>)}</ul>
+            <h3>Preparation</h3><ul>{planningPacket.tasks.map(task => <li key={task.key}>{task.title}: {task.status}</li>)}</ul>
+          </>}
+          <p>Staff assignments: {staffResult.error ? "Unavailable" : `${eventStaff.length} recorded`}. {eventStaff.map(row => `${teamNames.get(row.teamMemberId) ?? "Team member"}, ${row.assignmentRole}: ${row.callTime ? dateTime(row.callTime) : "call time outstanding"}`).join("; ")}. Equipment must be confirmed by Operations.</p>
+        </section>
         <section className="workspace-section workspace-overview" id="overview"><header><span className="eyebrow">Gig at a glance</span><h2>Event-day essentials</h2></header><dl className="workspace-facts workspace-facts-priority"><Fact label="Client / organization">{text(contact?.display_name, "Client not provided")}{contact?.organization_name ? ` · ${contact.organization_name}` : ""}</Fact><Fact label="Event">{text(event.title, "Untitled event")} · {text(event.event_type, "Type not provided")}</Fact><Fact label="Date">{eventDate}</Fact><Fact label="Event time">{event.historical_date ? eventStart : `${eventStart} – ${eventEnd}`}</Fact><Fact label="Venue">{text(event.venue_name, "Venue not provided")}</Fact><Fact label="Address">{fullAddress || "Full address not provided"}</Fact><Fact label="Room / area">{text(operational.roomArea)}</Fact><Fact label="Indoor / outdoor">{text(operational.environment)}</Fact></dl></section>
         <section className="workspace-section workspace-wide event-day-notes-section" id="event-day-notes"><header><span className="eyebrow">Event-Day Notes</span><h2>Pinned instructions and reminders</h2></header><EventDayNotesEditor action={upsertEventDayNoteAction} eventId={eventId} loadFailed={Boolean(notesResult.error)} notes={eventDayNotes} /></section>
         <section className="workspace-section workspace-wide" id="operations"><header><span className="eyebrow">Our operational times</span><h2>Arrival through load-out</h2></header><dl className="operations-timeline">{operationalTimes.map(([label, value]) => <Fact key={label} label={label}>{event.historical_date&&label.startsWith("Service")?"Time not provided":operationalTime(label, value, event.timezone)}</Fact>)}</dl><p className="workspace-help">Missing operational times are shown honestly. Event start/end do not imply staff arrival, load-in, setup, breakdown, or must-be-out times.</p><OperationalTimingEditor action={updateOperationalTimingAction} eventId={eventId} initialValues={timingFormValues} /></section>

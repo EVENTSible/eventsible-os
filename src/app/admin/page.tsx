@@ -1,13 +1,18 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { activateWeddingCompanionAction, approveQuoteAction, convertToGigAction, updateLeadStatusAction } from "@/app/admin/actions";
 import { buildLeadSummary, latestQuoteByLead, formatMoney, isActiveLeadStatus, isBookedStatus, MISSION_CONTROL_SELECTS, nextLeadAction, QUOTE_APPROVAL_STATUS } from "@/lib/mission-control.mjs";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { EventDashboardRow, isStaffRole } from "@/lib/types";
 import { hasHqCapability } from "@/lib/hq-authorization";
+import { orderGigBoardRows } from "@/lib/gig-board.mjs";
 
 export const metadata = {
   title: "Mission Control | EVENTSible OS",
 };
+
+// One clock value per private server request, stable across its render retries.
+const requestTime = cache(() => Date.now());
 
 type AnyRow = Record<string, unknown>;
 type AdminPageProps = {
@@ -232,8 +237,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     }))
     .filter((lead) => lead.id);
   const leadRows = activeLeads.length ? activeLeads : fallbackLeads;
-  const bookedRows = events.filter((event) => isBookedStatus(event.booking_status) || bookingsByEvent.has(event.event_id));
-  const planning = events.filter((event) => ["assigned", "opened", "in_progress", "reopened"].includes(event.planning_status ?? "") || (event.progress_percent ?? 0) > 0);
+  const bookedRows = orderGigBoardRows(events.filter((event) => isBookedStatus(event.booking_status) || bookingsByEvent.has(event.event_id)), requestTime());
   const heroRows = events.filter((event) => Boolean(event.assignment_id) && ["Wedding Hero", "Event Hero"].includes(event.planning_template_name ?? ""));
   const attention = events.filter((event) => event.contract_status === "sent" || event.payment_status === "deposit_due" || event.last_activity_type?.includes("help"));
   const notice = noticeText(params, "notice");
@@ -379,7 +383,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <section className="panel gig-panel" id="gig-workspace">
           <div className="panel-heading">
             <div><span className="eyebrow">Booked Gig workspace</span><h2>Confirmed and workspace-ready events</h2></div>
-            <span className="status-dot">{planning.length} planning</span>
+            <span className="status-dot">{bookedRows.length} gigs · upcoming first</span>
           </div>
           <div className="event-list workspace-list">
             {bookedRows.length ? bookedRows.slice(0, 10).map((event) => {
