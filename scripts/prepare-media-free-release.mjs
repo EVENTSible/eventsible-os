@@ -20,9 +20,9 @@ for(const f of files){
  const target=path.join(out,f);if(!target.startsWith(out+path.sep))throw Error('Bad source path');
  fs.mkdirSync(path.dirname(target),{recursive:true});let bytes=fs.readFileSync(path.join(root,f));
  if(/\.(tsx?|jsx?|mjs|cjs|json|css|html)$/.test(f)&&!f.endsWith('lock.json')){
-  let text=bytes.toString('utf8').split('https://eventsible.info/super-e-icon.png').join('/media-free.svg');for(const[a,b]of replacements)text=text.split(a).join(b);
+  let text=bytes.toString('utf8').split('/media-free.svg').join('/media-free.svg');for(const[a,b]of replacements)text=text.split(a).join(b);
   if(f==='src/app/manifest.ts') text=text.replaceAll('src: "/media-free.svg"','src: "/hq/media-free-icon.svg"').replaceAll('sizes: "192x192", type: "image/png"','sizes: "any", type: "image/svg+xml"').replaceAll('sizes: "512x512", type: "image/png"','sizes: "any", type: "image/svg+xml"');
-  text=text.split('https://eventsible.info/super-e-icon.png').join('/media-free.svg');bytes=Buffer.from(text);
+  text=text.split('/media-free.svg').join('/media-free.svg');bytes=Buffer.from(text);
  }
  fs.writeFileSync(target,bytes);
 }
