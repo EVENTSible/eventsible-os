@@ -21,7 +21,7 @@ declare
   v_activity jsonb;
 begin
   if v_draft is null or v_submission is null or jsonb_typeof(p_input->'answers') <> 'object'
-    or pg_catalog.length(p_input->'answers'::text) > 300000 or v_name is null or pg_catalog.length(v_name) < 2
+    or pg_catalog.length((p_input->'answers')::text) > 300000 or v_name is null or pg_catalog.length(v_name) < 2
     or (p_input->>'mode') not in ('guided','form','print')
     or (p_input->>'progress')::integer not between 0 and 100 then
     raise exception 'Invalid public Wedding Hero submission';
