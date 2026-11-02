@@ -14,6 +14,7 @@ test("HQ navigation registry has the approved destinations and no future placeho
     { id: "imports", label: "Imports", href: "/admin/imports", group: "review" },
     { id: "data-readiness", label: "Records & Intake", href: "/admin/data-readiness", group: "review" },
     { id: "site-studio", label: "Site Studio", href: "/admin/site-studio", group: "review" },
+    { id: "tools", label: "Connected tools", href: "/admin/tools", group: "review" },
     { id: "install", label: "Install HQ", href: "/admin/install", group: "review" },
   ]);
   assert.doesNotMatch(JSON.stringify(HQ_NAVIGATION), /Contacts|Team|Equipment|Money|Content Factory|Custom Creations/);
@@ -29,6 +30,7 @@ test("route and anchor matching preserve active global context", () => {
   assert.equal(activeHqNavigationId("/admin/imports"), "imports");
   assert.equal(activeHqNavigationId("/admin/data-readiness"), "data-readiness");
   assert.equal(activeHqNavigationId("/admin/site-studio"), "site-studio");
+  assert.equal(activeHqNavigationId("/admin/tools"), "tools");
   assert.equal(activeHqNavigationId("/admin/install"), "install");
   assert.equal(activeHqNavigationId("/admin/gigs/event-id"), "gigs");
   assert.equal(activeHqNavigationId("/admin/wedding/event-id"), "gigs");
