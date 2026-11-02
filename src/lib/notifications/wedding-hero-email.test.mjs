@@ -242,11 +242,12 @@ test("first Wedding Hero submissions enrich the trigger activity instead of inse
 
 test("public resubmission refreshes the date-only event setting without inventing a start time", () => {
   const action = readFileSync(new URL("../../app/client/wedding/submission-actions.ts", import.meta.url), "utf8");
-  const existingEventStart = action.indexOf('.select("id,primary_contact_id,source,settings")');
+  const existingEventStart = action.indexOf('.select("id,primary_contact_id,source,settings,status")');
   const existingEventEnd = action.indexOf("const sectionResult", existingEventStart);
   const existingEventFlow = action.slice(existingEventStart, existingEventEnd);
 
   assert.ok(existingEventStart > -1);
+  assert.ok(existingEventFlow.indexOf("publicWeddingDraftCanWrite") < existingEventFlow.indexOf('admin.from("os_events").update'));
   assert.match(existingEventFlow, /wedding_date_from_planner: eventDate \|\| null/);
   assert.doesNotMatch(existingEventFlow, /starts_at:/);
 });

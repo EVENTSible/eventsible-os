@@ -8,7 +8,7 @@ import {
 } from "@/lib/notifications/wedding-hero-email.mjs";
 import { WEDDING_COMPANION_VERSION } from "@/lib/wedding-companion.mjs";
 import { buildWeddingSubmissionDigest } from "@/lib/wedding-day-sheet.mjs";
-import { validateWeddingHeroPlanSubmission } from "@/lib/wedding-hero-submission.mjs";
+import { publicWeddingDraftCanWrite, validateWeddingHeroPlanSubmission } from "@/lib/wedding-hero-submission.mjs";
 
 export type PublicWeddingHeroSubmissionInput = {
   draftId: string;
@@ -185,12 +185,15 @@ export async function submitPublicWeddingHeroPlanAction(input: PublicWeddingHero
     } else {
       const eventResult = await admin
         .from("os_events")
-        .select("id,primary_contact_id,source,settings")
+        .select("id,primary_contact_id,source,settings,status")
         .eq("id", eventId)
         .neq("status", "archived")
         .maybeSingle();
       if (eventResult.error || !eventResult.data) {
         return { ok: false, message: "Your wedding record could not be refreshed. Please try again." };
+      }
+      if (!publicWeddingDraftCanWrite(eventResult.data, request.draftId)) {
+        return { ok: false, message: "This plan is now managed privately by EVENTSible. Contact EVENTSible for an approved update." };
       }
       if (eventResult.data.source === "wedding_hero_public_submission") {
         const eventSettings = eventResult.data.settings && typeof eventResult.data.settings === "object" && !Array.isArray(eventResult.data.settings)
