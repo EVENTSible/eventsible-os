@@ -7,7 +7,7 @@ import { operationalConflictWindow } from "@/lib/team-availability.mjs";
 
 export const metadata = { title: "Team Calendar | EVENTSible HQ" };
 
-type SearchParams = Promise<{ notice?: string; error?: string }>;
+type SearchParams = Promise<{ notice?: string; error?: string; date?: string }>;
 type Snapshot = {
   currentTeamMemberId?: string | null;
   canManageTeam?: boolean;
@@ -45,6 +45,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const scheduled = shaped.filter((event) => event.id && event.dateKey);
   const unscheduledCount = shaped.filter((event) => !event.dateKey).length;
   const todayKey = localDateKey(new Date(), HQ_CALENDAR_TIME_ZONE) ?? new Date().toISOString().slice(0, 10);
+  const initialDateKey = /^\d{4}-\d{2}-\d{2}$/.test(params.date ?? "") && scheduled.some(event => event.dateKey === params.date) ? params.date : todayKey;
   const snapshot = (snapshotResult.data ?? {}) as Snapshot;
   const loadError = dashboardResult.error || eventSettingsResult.error || factResult.error;
 
@@ -58,6 +59,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
       <HqCalendar
         events={scheduled}
         todayKey={todayKey}
+        initialDateKey={initialDateKey}
         unscheduledCount={unscheduledCount}
         teamMembers={snapshot.teamMembers ?? []}
         availability={snapshot.availability ?? []}

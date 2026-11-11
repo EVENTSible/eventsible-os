@@ -8,7 +8,7 @@ const migration = read("../../supabase/migrations/20260917210520_hq_owner_quick_
 const actions = read("../app/admin/quick-add/actions.ts");
 const page = read("../app/admin/quick-add/page.tsx");
 const workspace = read("../components/quick-add-workspace.tsx");
-const mission = read("../app/admin/page.tsx");
+const mission = read("../app/admin/mission-control/page.tsx");
 const rollback = read("../../supabase/rollbacks/20260917210520_hq_owner_quick_add.sql");
 const release = read("../../docs/architecture/EVENTSIBLE_HQ_OWNER_QUICK_ADD.md");
 

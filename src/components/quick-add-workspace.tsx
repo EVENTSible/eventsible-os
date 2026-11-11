@@ -52,7 +52,7 @@ function ResultLink({ result }: { result: Record<string, unknown> }) {
   const eventId = String(result.eventId ?? "");
   if (eventId) return <Link className="secondary-button compact-button" href={`/admin/gigs/${eventId}`}>Open canonical gig</Link>;
   const leadId = String(result.leadId ?? "");
-  if (leadId) return <Link className="secondary-button compact-button" href="/admin#lead-review">Open Lead review</Link>;
+  if (leadId) return <Link className="secondary-button compact-button" href="/admin/mission-control#lead-review">Open Lead review</Link>;
   return <Link className="secondary-button compact-button" href="/admin/data-readiness">Open Records</Link>;
 }
 

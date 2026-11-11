@@ -166,7 +166,7 @@ test("the administrative Supabase client is explicitly server-only", async () =>
 
 test("non-owner UI omits commercial and provisioning controls", async () => {
   const [page, imports] = await Promise.all([
-    read("src/app/admin/page.tsx"),
+    read("src/app/admin/mission-control/page.tsx"),
     read("src/components/existing-gig-import-review.tsx"),
   ]);
   assert.match(page, /canManageLeads \? <LeadStatusForm/);

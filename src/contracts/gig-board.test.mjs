@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { orderGigBoardRows } from "../lib/gig-board.mjs";
+import { ownerPlanningReviewForGig } from "../lib/owner-planning-review.mjs";
 
 const now = Date.parse("2026-11-02T15:00:00Z");
 test("upcoming wedding remains in the first ten despite older completed bookings", () => {
@@ -12,6 +13,14 @@ test("upcoming wedding remains in the first ten despite older completed bookings
   assert.ok(ordered.slice(0, 10).some(x => x.id === wedding.id));
   assert.equal(ordered.length, input.length);
   assert.equal(JSON.stringify(input), before);
+});
+test("Owner-confirmed wedding review is exact and cannot attach a different gig", () => {
+  assert.deepEqual(ownerPlanningReviewForGig("2fd7f957-abae-491e-96fe-46ef88410016"), {
+    sourceEventId: "ef3c4ef1-0794-4c2f-b69b-620dde4c3a3e",
+    assignmentId: "92b8fb5b-9c03-44ab-a650-36d35f0e8283",
+  });
+  assert.equal(ownerPlanningReviewForGig("ef3c4ef1-0794-4c2f-b69b-620dde4c3a3e"), null);
+  assert.equal(ownerPlanningReviewForGig("another-gig"), null);
 });
 test("ongoing gigs precede future gigs, then undated and recent past; unknown dates stay unknown", () => {
   const rows = [

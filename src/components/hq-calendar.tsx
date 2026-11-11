@@ -52,6 +52,7 @@ type CalendarIndicator = { key: string; label: string; tone: string };
 type Props = {
   events: CalendarEvent[];
   todayKey: string;
+  initialDateKey?: string;
   unscheduledCount: number;
   teamMembers: TeamMember[];
   availability: TeamAvailability[];
@@ -135,11 +136,11 @@ function AvailabilitySummary({ entry, member, conflict, onOpen }: { entry: TeamA
   </article>;
 }
 
-export function HqCalendar({ events, todayKey, unscheduledCount, teamMembers, availability, assignments, currentTeamMemberId, canManageTeam, canManageAssignments, upsertAvailabilityAction, removeAvailabilityAction, manageAssignmentAction, manageTeamMemberAction }: Props) {
+export function HqCalendar({ events, todayKey, initialDateKey, unscheduledCount, teamMembers, availability, assignments, currentTeamMemberId, canManageTeam, canManageAssignments, upsertAvailabilityAction, removeAvailabilityAction, manageAssignmentAction, manageTeamMemberAction }: Props) {
   const [view, setView] = useState<View>("month");
   const [scope, setScope] = useState<"master" | "mine">("master");
-  const [monthKey, setMonthKey] = useState(todayKey.slice(0, 7));
-  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [monthKey, setMonthKey] = useState((initialDateKey ?? todayKey).slice(0, 7));
+  const [selectedDate, setSelectedDate] = useState(initialDateKey ?? todayKey);
   const [agendaRange, setAgendaRange] = useState<AgendaRange>("30");
   const [teamFilter, setTeamFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -276,7 +277,7 @@ export function HqCalendar({ events, todayKey, unscheduledCount, teamMembers, av
 
     {conflicts.length ? <section className="calendar-conflicts panel" aria-labelledby="calendar-conflicts-title"><header className="panel-heading"><div><span className="eyebrow">Scheduling conflicts</span><h2 id="calendar-conflicts-title">{conflicts.length} overlap{conflicts.length === 1 ? " needs" : "s need"} attention</h2></div><span className="calendar-conflict-badge">Review</span></header><p>Conflicts use occupied time windows. Exact end/start boundaries do not conflict, and missing travel time is never invented.</p></section> : null}
 
-    {canManageAssignments || canManageTeam ? <details className="calendar-owner-tools"><summary><span>Manage Team</span><small>Staff assignments and team records</small></summary><div className="calendar-owner-tools-content">
+    {canManageAssignments || canManageTeam ? <details className="calendar-owner-tools" id="team"><summary><span>Manage Team</span><small>Staff assignments and team records</small></summary><div className="calendar-owner-tools-content">
     {canManageAssignments ? <section className="calendar-owner-panel panel"><header className="panel-heading"><div><span className="eyebrow">Owner controls</span><h2>Staff assignments</h2></div></header><form action={manageAssignmentAction} className="calendar-form-grid"><input name="action" type="hidden" value="upsert" /><label>EVENTSible event<select name="event_id" required><option value="">Choose canonical event</option>{events.filter((event) => event.dateKey).map((event) => <option value={event.id} key={event.id}>{event.dateKey} · {event.title}</option>)}</select></label><label>Team member<select name="team_member_id" required><option value="">Choose team member</option>{teamMembers.filter((member) => member.status === "active").map((member) => <option value={member.id} key={member.id}>{member.displayName}</option>)}</select></label><label>Assignment role<select name="assignment_role"><option value="dj">DJ</option><option value="mc">MC</option><option value="vocalist">Vocalist</option><option value="assistant">Assistant</option><option value="activity_helper">Activity helper</option><option value="operator">Operator</option><option value="other">Other</option></select></label><label>Call time<input name="call_time" type="datetime-local" /></label><input name="timezone" type="hidden" value="America/Indiana/Indianapolis" /><div className="calendar-field-wide calendar-form-actions"><button className="primary-button" type="submit">Assign team member</button></div></form>{assignments.length ? <div className="assignment-admin-list">{assignments.map((assignment) => <form action={manageAssignmentAction} key={assignment.id}><input name="action" type="hidden" value="remove" /><input name="assignment_id" type="hidden" value={assignment.id} /><span>{members.get(assignment.teamMemberId)?.displayName ?? "Team member"} · {events.find((event) => event.id === assignment.eventId)?.title ?? "Canonical event"} · {assignmentRoleLabel(assignment.assignmentRole)}</span><button className="secondary-button" type="submit">Remove assignment</button></form>)}</div> : <p className="calendar-empty">No active staff assignments are recorded.</p>}</section> : null}
 
     {canManageTeam && teamMembers.length ? <section className="calendar-owner-panel panel"><header className="panel-heading"><div><span className="eyebrow">Owner controls</span><h2>Team records</h2></div></header><div className="team-admin-list">{teamMembers.map((member) => <form action={manageTeamMemberAction} className="calendar-form-grid" key={member.id}><input name="team_member_id" type="hidden" value={member.id} /><label>Display name<input name="display_name" defaultValue={member.displayName} required /></label><label>Timezone<input name="timezone" defaultValue={member.timezone} required /></label><label>Status<select name="status" defaultValue={member.status}><option value="active">Active</option><option value="inactive">Inactive</option></select></label><button className="secondary-button" type="submit">Update member</button></form>)}</div></section> : null}

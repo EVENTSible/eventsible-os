@@ -57,7 +57,6 @@ export default async function WeddingCompanionReviewPage({ params }: PageProps) 
             <span>{statusLabel(eventResult.data.planning_status)}</span>
             <small>{latestUpdate ? `Last answer ${formatDate(latestUpdate)}` : "No answers saved yet"}</small>
             <Link className="secondary-button compact-button" href={`/admin/wedding/${eventId}/operations`}>Review operations packet</Link>
-            <Link className="secondary-button compact-button" href={`/client/wedding/${eventId}`}>Open client preview</Link>
           </div>
         </header>
 

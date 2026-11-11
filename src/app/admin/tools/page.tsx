@@ -1,20 +1,30 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createServerSupabase } from "@/lib/supabase/server";
+import { isStaffRole } from "@/lib/types";
 
-export const metadata = { title: "Connected tools | EVENTSible HQ" };
+export const metadata = { title: "Tools | EVENTSible HQ" };
 
-export default function ConnectedToolsPage() {
-  return <div className="admin-main install-main">
-    <span className="eyebrow">One HQ, connected destinations</span>
-    <h1>Connected tools</h1>
-    <p>Start with the booked Gig Workspace for event-specific work. These links use the existing routes and services. Access still depends on your HQ role and each tool&apos;s own permissions.</p>
-    <div className="install-grid">
-      <article className="panel"><h2>Mission Control and leads</h2><p>Review inquiries, quotes, and booked gigs in HQ.</p><Link className="secondary-button" href="/admin#lead-review">Review leads</Link></article>
-      <article className="panel"><h2>Calendar and assigned gigs</h2><p>Use Master Calendar or My Schedule, then open the canonical Gig Workspace.</p><Link className="secondary-button" href="/admin/calendar">Open calendar</Link></article>
-      <article className="panel"><h2>Wedding Hero and Event Hero</h2><p>Open the staff review from a linked Hero workspace. The November 7 submission needs Owner reconciliation before it appears on the booked Gig.</p><Link className="secondary-button" href="/admin#hero-workspaces">Review Hero plans</Link></article>
-      <article className="panel"><h2>Staff, tasks, equipment, and music</h2><p>Use the event sections in Gig Workspace. Wedding Hero operations review includes a read-only music cue list when a plan is linked.</p><Link className="secondary-button" href="/admin#gig-workspace">Open gigs</Link></article>
-      <article className="panel"><h2>Event Builder</h2><p>Public client quote and planning intake.</p><a className="secondary-button" href="https://build.eventsible.info/build?start=choose">Open Builder</a></article>
-      <article className="panel"><h2>VINCE live experience</h2><p>Open the existing live event app. Booth Console remains a separate local tool; HQ does not expose a Host PIN.</p><a className="secondary-button" href="https://eventsible.app">Open VINCE</a></article>
+export default async function ConnectedToolsPage() {
+  const supabase = await createServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) redirect("/login");
+  const role = auth.user.app_metadata?.role;
+  if (!isStaffRole(role)) redirect("/access-denied");
+  const owner = role === "owner";
+  return <div className="admin-main hq-board">
+    <header className="hq-page-heading"><div><span className="eyebrow">Connected work</span><h1>Tools</h1><p>Open the existing HQ routes and live EVENTSible services.</p></div></header>
+    <div className="hq-tool-grid">
+      <Link href="/admin/mission-control" className="hq-tool-card"><span>Business</span><h2>Mission Control</h2><p>Leads, quotes and approvals. Editing controls follow your role.</p><b>Open →</b></Link>
+      <Link href="/admin/mission-control#hero-workspaces" className="hq-tool-card"><span>Client planning</span><h2>Wedding & Event Hero</h2><p>Review submitted plans and original answers.</p><b>Open →</b></Link>
+      <Link href="/admin/gigs" className="hq-tool-card"><span>Operations</span><h2>Gigs</h2><p>Booked services, music, crew, tasks and event documents.</p><b>Open →</b></Link>
+      {owner ? <Link href="/admin/quick-add" className="hq-tool-card"><span>Owner</span><h2>Quick Add</h2><p>Record a real contact, lead or gig.</p><b>Open →</b></Link> : null}
+      {owner ? <Link href="/admin/site-studio" className="hq-tool-card"><span>Owner</span><h2>Site Studio</h2><p>Edit the existing website workspace.</p><b>Open →</b></Link> : null}
+      {owner ? <Link href="/admin/data-readiness" className="hq-tool-card"><span>Owner</span><h2>Records & Intake</h2><p>Review imports and data readiness.</p><b>Open →</b></Link> : null}
+      <Link href="/admin/imports" className="hq-tool-card"><span>Review</span><h2>Imports</h2><p>Inspect imported event candidates.</p><b>Open →</b></Link>
+      <Link href="/admin/install" className="hq-tool-card"><span>Workspace</span><h2>Install HQ</h2><p>Device instructions for the existing app.</p><b>Open →</b></Link>
+      <a href="https://build.eventsible.info/build?start=choose" className="hq-tool-card"><span>Public service</span><h2>Event Builder</h2><p>Open the existing quote and planning intake.</p><b>Open ↗</b></a>
+      <a href="https://eventsible.app" className="hq-tool-card"><span>Live experience</span><h2>VINCE</h2><p>Open the separate event experience app.</p><b>Open ↗</b></a>
     </div>
-    <p>Site Studio is in the Owner menu. Custom Creations does not have a verified HQ workspace yet.</p>
   </div>;
 }
