@@ -6,25 +6,26 @@ import { activeHqNavigationId, HQ_NAVIGATION, hqContextLabel } from "../lib/hq-n
 
 test("HQ navigation registry has the approved destinations and no future placeholders", () => {
   assert.deepEqual(HQ_NAVIGATION.map(({ id, label, href, group }) => ({ id, label, href, group })), [
-    { id: "today", label: "Today", href: "/admin", group: "primary" },
-    { id: "quick-add", label: "Quick Add", href: "/admin/quick-add", group: "primary" },
+    { id: "home", label: "Home", href: "/admin", group: "primary" },
+    { id: "gigs", label: "Gigs", href: "/admin/gigs", group: "primary" },
     { id: "calendar", label: "Calendar", href: "/admin/calendar", group: "primary" },
-    { id: "gigs", label: "Gigs", href: "/admin#gig-workspace", group: "primary" },
-    { id: "leads", label: "Leads", href: "/admin#lead-review", group: "primary" },
+    { id: "team", label: "Team", href: "/admin/team", group: "primary" },
+    { id: "tools", label: "Tools", href: "/admin/tools", group: "primary" },
+    { id: "mission-control", label: "Mission Control / Leads", href: "/admin/mission-control", group: "review" },
+    { id: "quick-add", label: "Quick Add", href: "/admin/quick-add", group: "review" },
     { id: "imports", label: "Imports", href: "/admin/imports", group: "review" },
     { id: "data-readiness", label: "Records & Intake", href: "/admin/data-readiness", group: "review" },
     { id: "site-studio", label: "Site Studio", href: "/admin/site-studio", group: "review" },
-    { id: "tools", label: "Connected tools", href: "/admin/tools", group: "review" },
     { id: "install", label: "Install HQ", href: "/admin/install", group: "review" },
   ]);
-  assert.doesNotMatch(JSON.stringify(HQ_NAVIGATION), /Contacts|Team|Equipment|Money|Content Factory|Custom Creations/);
+  assert.doesNotMatch(JSON.stringify(HQ_NAVIGATION), /Equipment|Money|Content Factory|Custom Creations/);
 });
 
 test("route and anchor matching preserve active global context", () => {
-  assert.equal(activeHqNavigationId("/admin"), "today");
-  assert.equal(activeHqNavigationId("/admin", "#lead-review"), "leads");
-  assert.equal(activeHqNavigationId("/admin", "quote-review"), "leads");
-  assert.equal(activeHqNavigationId("/admin", "#gig-workspace"), "gigs");
+  assert.equal(activeHqNavigationId("/admin"), "home");
+  assert.equal(activeHqNavigationId("/admin/gigs"), "gigs");
+  assert.equal(activeHqNavigationId("/admin/mission-control", "#lead-review"), "mission-control");
+  assert.equal(activeHqNavigationId("/admin/team"), "team");
   assert.equal(activeHqNavigationId("/admin/calendar"), "calendar");
   assert.equal(activeHqNavigationId("/admin/quick-add"), "quick-add");
   assert.equal(activeHqNavigationId("/admin/imports"), "imports");
@@ -59,7 +60,7 @@ test("shared shell owns protected landmarks, mobile navigation, and accessible d
   assert.match(shell, /aria-label="HQ primary navigation"/);
   assert.match(shell, /aria-label="HQ mobile navigation"/);
   assert.match(shell, /HQ_NAVIGATION\.filter/);
-  assert.match(shell, /More/);
+  assert.match(shell, /primaryItems\.map\(\(item\) => <NavigationLink/);
   assert.match(shell, /role="dialog"/);
   assert.match(shell, /aria-modal="true"/);
   assert.match(shell, /event\.key === "Escape"/);
@@ -76,6 +77,9 @@ test("shared shell owns protected landmarks, mobile navigation, and accessible d
 test("ordinary admin pages no longer render page-specific sidebars", () => {
   for (const relativePath of [
     "../app/admin/page.tsx",
+    "../app/admin/gigs/page.tsx",
+    "../app/admin/team/page.tsx",
+    "../app/admin/mission-control/page.tsx",
     "../app/admin/calendar/page.tsx",
     "../app/admin/quick-add/page.tsx",
     "../app/admin/imports/page.tsx",
