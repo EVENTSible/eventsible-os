@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "sourceHead": "cdacca4f8cc663e6037d79eafec19fbb2d4c7bc8",
-  "sourceTree": "407e23ed04fe26a37c1e8bf9dda3ed1e2ee8b115",
+  "sourceHead": "d66f7de478b98f14cc68945ee07e41695e09fe81",
+  "sourceTree": "d5713212837aec75ceb7ea784702e485bea6abb4",
   "packageName": "eventsible-os-admin",
   "approvedAppIcons": [
     {
@@ -192,7 +192,7 @@
     "src/app/admin/gigs/[eventId]/schedule-review-actions.ts": "32d1a99daa7e4e4a665c4f573c31087279eeeb6168bdcf44ab9f25baabf73837",
     "src/app/admin/gigs/page.tsx": "a189173323f53bba6aa88ff4521d6c378b391b83988ccf803a7412b1b5c97dd3",
     "src/app/admin/imports/actions.ts": "f5f3975b8fa89cc755ce2a61180b4d415b509280c0b507bd14c3fc768983687f",
-    "src/app/admin/imports/page.tsx": "b5ebd58476b295a19c6a0810c5aef66d18c88f0fb655e526d20ed655807eec28",
+    "src/app/admin/imports/page.tsx": "9bca6c3cf218b8b1c6601a601e849f665ce2c3cdb8c3e900ebc4075f4c211016",
     "src/app/admin/install/page.tsx": "9001ac1e9a478b6b66f9eb4a27fe7ab1240fe3bf60847df8165009a0b81658ca",
     "src/app/admin/layout.tsx": "bc5681f49a62ca1759d47c313f8d28f785ca9d3950a570576781ee33c57d6d1d",
     "src/app/admin/loading.tsx": "6877bb3f994ef61cd79da9bcc681a79a7ac5fdcdf5ecc9112b50d6c1db814447",
@@ -252,7 +252,7 @@
     "src/components/logout-button.tsx": "f2deb3217869092cd8cd8c8eee9f2719ce487f287f6fd89a6b0a960b189b2ba5",
     "src/components/operational-timing-editor.tsx": "d0cfbcec6e725f829f024f699ec6508a1cf08f83195848a0cb64771f5e0e8a90",
     "src/components/password-recovery-form.tsx": "cbbdf6ce54d8beac360ddd1410a7f8804428b31c53e490ab65bda5726a284009",
-    "src/components/quick-add-workspace.tsx": "1159087e55442932fd85a50f3f340ec10b60293b616e7fe49919e3aa56f1919b",
+    "src/components/quick-add-workspace.tsx": "f159f0810cd503ab6c61fc1bca71f9e31dacede6ec20ae3ea51a8ac7c689309f",
     "src/components/records-intake-workspace.tsx": "a5cf14ecba38791e2ba8f83ca371ff4940f7664ef829f6608bfc8f1e2eb1aead",
     "src/components/site-studio-editor.tsx": "81ca9a2dc840e965e19299a3879de018080dd2190cae22059bd95c1d107921dc",
     "src/components/site-studio-home-editor.tsx": "57e28d7d36bc252829c7fdc93ca2564f60244f1a0520931f706c05e9316bd879",
