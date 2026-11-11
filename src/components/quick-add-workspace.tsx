@@ -52,7 +52,7 @@ function ResultLink({ result }: { result: Record<string, unknown> }) {
   const eventId = String(result.eventId ?? "");
   if (eventId) return <Link className="secondary-button compact-button" href={`/admin/gigs/${eventId}`}>Open canonical gig</Link>;
   const leadId = String(result.leadId ?? "");
-  if (leadId) return <Link className="secondary-button compact-button" href="/admin#lead-review">Open Lead review</Link>;
+  if (leadId) return <Link className="secondary-button compact-button" href="/admin/mission-control#lead-review">Open Lead review</Link>;
   return <Link className="secondary-button compact-button" href="/admin/data-readiness">Open Records</Link>;
 }
 
@@ -123,7 +123,7 @@ function NoteForm({ action, contacts, events, leads, bookings }: { action: Actio
 
 export function QuickAddWorkspace({ action, contacts, events, leads, bookings, services, initialType }: Props) {
   const [type, setType] = useState<QuickType>((TYPES.some((item) => item.id === initialType) ? initialType : "contact") as QuickType);
-  return <div className="admin-main quick-add-main"><header className="admin-header compact"><div><span className="eyebrow">Owner truth</span><h1>Quick Add</h1><p>Save an ordinary business fact directly to EVENTSible HQ. Imports and forensic tools stay out of the way.</p></div><Link className="secondary-button" href="/admin">Back to Mission Control</Link></header>
+  return <div className="admin-main quick-add-main"><header className="admin-header compact"><div><span className="eyebrow">Owner truth</span><h1>Quick Add</h1><p>Save an ordinary business fact directly to EVENTSible HQ. Imports and forensic tools stay out of the way.</p></div><Link className="secondary-button" href="/admin/mission-control">Back to Mission Control</Link></header>
     <nav aria-label="Quick Add record type" className="quick-type-grid">{TYPES.map((item) => <button aria-current={type === item.id ? "page" : undefined} className={type === item.id ? "active" : ""} key={item.id} onClick={() => setType(item.id)}><b>{item.label}</b><span>{item.description}</span></button>)}</nav>
     <section className="panel quick-add-panel"><div className="panel-heading"><div><span className="eyebrow">New canonical record</span><h2>Add {TYPES.find((item) => item.id === type)?.label}</h2></div><span className="status-dot">Owner only</span></div>
       {type === "contact" ? <ContactForm action={action} /> : null}

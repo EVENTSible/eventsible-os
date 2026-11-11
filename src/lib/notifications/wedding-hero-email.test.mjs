@@ -214,41 +214,36 @@ test("public plan submission validation requires contact information and meaning
 test("public submission is explicit and local autosave remains notification-free", () => {
   const questionnaire = readFileSync(new URL("../../components/wedding-questionnaire.tsx", import.meta.url), "utf8");
   const action = readFileSync(new URL("../../app/client/wedding/submission-actions.ts", import.meta.url), "utf8");
+  const writer = readFileSync(new URL("../../../supabase/migrations/20261102180000_wedding_hero_atomic_public_writer.sql", import.meta.url), "utf8");
   const autosaveStart = questionnaire.indexOf("const savePublicDraft");
   const autosaveEnd = questionnaire.indexOf("const sectionCompletion", autosaveStart);
   assert.doesNotMatch(questionnaire.slice(autosaveStart, autosaveEnd), /submitPublicWeddingHeroPlanAction/);
   assert.match(questionnaire, /Send plan now/);
   assert.match(questionnaire, /Autosave does not notify EVENTSible/);
   assert.match(action, /sendWeddingHeroOwnerNotification/);
-  assert.match(action, /planning\.submitted/);
+  assert.match(writer, /planning\.submitted/);
   assert.match(action, /status: "submitted"/);
-  assert.match(action, /starts_at: null/);
-  assert.match(action, /wedding_date_from_planner: eventDate/);
+  assert.match(writer, /'wedding_date_from_planner'/);
+  assert.doesNotMatch(writer, /update public\.os_events set starts_at/);
 });
 
-test("first Wedding Hero submissions enrich the trigger activity instead of inserting a duplicate", () => {
+test("public submission activity is transactionally idempotent while private flow retains its trigger handling", () => {
   const publicAction = readFileSync(new URL("../../app/client/wedding/submission-actions.ts", import.meta.url), "utf8");
   const privateAction = readFileSync(new URL("../../app/client/wedding/actions.ts", import.meta.url), "utf8");
-
-  for (const action of [publicAction, privateAction]) {
-    assert.match(action, /const triggeredActivity = await admin\.from\("os_activity_events"\)\.update/);
-    assert.match(action, /\.eq\("event_type", "planning\.submitted"\)/);
-    assert.match(action, /\.eq\("payload->>assignment_id", assignment/);
-    assert.match(action, /if \(triggeredActivity\.error \|\| !triggeredActivity\.data\?\.length\)/);
-  }
-  assert.match(publicAction, /if \(assignment\.status === "submitted"\)/);
+  const writer = readFileSync(new URL("../../../supabase/migrations/20261102180000_wedding_hero_atomic_public_writer.sql", import.meta.url), "utf8");
+  assert.match(publicAction, /admin\.rpc\("os_submit_public_wedding_hero"/);
+  assert.match(writer, /'wedding-hero-submission:' \|\| v_submission::text/);
+  assert.match(writer, /on conflict\(idempotency_key\).*do nothing/);
+  assert.match(privateAction, /const triggeredActivity = await admin\.from\("os_activity_events"\)\.update/);
+  assert.match(privateAction, /\.eq\("event_type", "planning\.submitted"\)/);
   assert.match(privateAction, /if \(assignmentResult\.data\.status === "submitted"\)/);
 });
 
 test("public resubmission refreshes the date-only event setting without inventing a start time", () => {
-  const action = readFileSync(new URL("../../app/client/wedding/submission-actions.ts", import.meta.url), "utf8");
-  const existingEventStart = action.indexOf('.select("id,primary_contact_id,source,settings")');
-  const existingEventEnd = action.indexOf("const sectionResult", existingEventStart);
-  const existingEventFlow = action.slice(existingEventStart, existingEventEnd);
-
-  assert.ok(existingEventStart > -1);
-  assert.match(existingEventFlow, /wedding_date_from_planner: eventDate \|\| null/);
-  assert.doesNotMatch(existingEventFlow, /starts_at:/);
+  const writer = readFileSync(new URL("../../../supabase/migrations/20261102180000_wedding_hero_atomic_public_writer.sql", import.meta.url), "utf8");
+  assert.ok(writer.indexOf("v_event.status <> 'inquiry'") < writer.indexOf("update public.os_events set title"));
+  assert.match(writer, /'wedding_date_from_planner',nullif\(v_date,''\)/);
+  assert.doesNotMatch(writer, /update public\.os_events set starts_at/);
 });
 
 test("blank processional additional details stay compact in every planner mode", () => {

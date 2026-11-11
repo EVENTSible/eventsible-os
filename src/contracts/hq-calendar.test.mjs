@@ -71,7 +71,7 @@ test("Calendar-first layout keeps the month and selected day ahead of entry and 
   assert.ok(component.indexOf('className="calendar-primary-layout"') < component.indexOf('id="add-availability"'));
   assert.ok(component.indexOf('id="selected-day-agenda"') < component.indexOf('id="add-availability"'));
   assert.ok(component.indexOf('id="add-availability"') < component.indexOf('className="calendar-owner-tools"'));
-  assert.match(component, /<details className="calendar-owner-tools">/);
+  assert.match(component, /<details className="calendar-owner-tools" id="team">/);
   assert.match(component, /aria-controls="calendar-filters"/);
   assert.doesNotMatch(page, /calendar-header|Mission Control/);
   assert.match(page, /<h1 className="sr-only">Team Calendar<\/h1>/);

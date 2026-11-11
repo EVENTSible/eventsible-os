@@ -273,6 +273,16 @@
       "version": "20261028213219",
       "name": "site_studio_v1",
       "sha256": "5fd24f1e4e5af3091def5897fd4fa5a7b0524b0a46c0d6ffa84ea6ff4022a809"
+    },
+    {
+      "version": "20261102180000",
+      "name": "wedding_hero_atomic_public_writer",
+      "sha256": "123059ff15105a6eafa3b8c5d8a97b8dd48715ef2e121b53397e5e539249d449"
+    },
+    {
+      "version": "20261102181000",
+      "name": "wedding_hero_reconciliation",
+      "sha256": "1647c92ae0e9c802a65b6cb1bb7b6d9c35f82e0686cb78f1d1dda98e3a8352d9"
     }
   ]
 }
