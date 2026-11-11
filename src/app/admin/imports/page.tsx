@@ -101,7 +101,7 @@ export default async function ExistingGigIntakePage() {
   return <div className="admin-main intake-main">
       <header className="admin-header intake-header">
         <div><span className="eyebrow">Existing Gig Intake / Import Review</span><h1>Review first. Import once. Keep one canonical gig.</h1><p>Manual and future source adapters create bounded staff-private proposals. Only an explicit Import as New Gig decision creates the canonical contact, event, confirmed booking, services, and workspace.</p></div>
-        <div className="header-actions"><a className="secondary-button" href="/admin/calendar">Calendar</a><a className="primary-button" href="/admin">Mission Control</a></div>
+        <div className="header-actions"><a className="secondary-button" href="/admin/calendar">Calendar</a><a className="primary-button" href="/admin/mission-control">Mission Control</a></div>
       </header>
       {warnings.length ? <div className="alert warning"><b>Some review data is unavailable.</b>{warnings.map((warning) => <p key={warning}>{warning}</p>)}<p>No import will be represented as safe while required canonical data is unavailable.</p></div> : null}
       <ExistingGigImportReview
