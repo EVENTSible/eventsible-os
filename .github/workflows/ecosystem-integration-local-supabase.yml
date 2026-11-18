@@ -133,7 +133,8 @@ jobs:
         run: |
           psql "$SUPABASE_LOCAL_DB_URL" --no-password --set ON_ERROR_STOP=1 --file supabase/rollbacks/20261118100000_opportunity_desk.sql
           test "$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select to_regprocedure('public.os_create_opportunity(uuid,jsonb)') is null")" = "t"
-          test "$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select count(*) from storage.buckets where id='opportunity-evidence'")" = "0"
+          test "$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select count(*) from storage.buckets where id='opportunity-evidence' and public=false")" = "1"
+          test "$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select count(*) from storage.objects where bucket_id='opportunity-evidence'")" = "0"
           npx supabase@2.117.0 db reset --local
 
       - name: Verify Opportunity Desk atomic intake, privacy and role boundaries
