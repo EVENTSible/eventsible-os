@@ -75,6 +75,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Report exact dependency advisories without changing the audit gate
+        run: node scripts/opportunity-audit-inventory.mjs
+
       - name: Confirm Docker availability
         run: |
           docker version
