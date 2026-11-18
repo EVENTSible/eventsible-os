@@ -256,6 +256,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <a className="secondary-button" href="/admin/calendar">Open calendar</a>
             <a className="secondary-button" href="/admin/imports">Review imports</a>
             <a className="secondary-button" href="#lead-review">Review leads</a>
+            <a className="secondary-button" href="/admin/mission-control/follow-ups">Team follow-ups</a>
             <a className="secondary-button" href="#quote-review">{canApproveQuotes ? "Approve quotes" : "Review quotes"}</a>
           </div>
         </header>
@@ -282,6 +283,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <article className="panel lead-panel" id="lead-review">
             <div className="panel-heading">
               <div><span className="eyebrow">Lead review</span><h2>Who they are, what they want, and what happens next</h2></div>
+              <a className="secondary-button" href="/admin/mission-control/follow-ups">Open follow-up board</a>
               <span className="status-dot">OS-owned</span>
             </div>
             <div className="lead-list">

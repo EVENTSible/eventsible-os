@@ -24,7 +24,7 @@ export function activeHqNavigationId(pathname = "/admin", _hash = "") {
 
   if (path === "/admin/calendar" || path.startsWith("/admin/calendar/")) return "calendar";
   if (path === "/admin/team") return "team";
-  if (path === "/admin/mission-control") return "mission-control";
+  if (path === "/admin/mission-control" || path.startsWith("/admin/mission-control/")) return "mission-control";
   if (path === "/admin/quick-add" || path.startsWith("/admin/quick-add/")) return "quick-add";
   if (path === "/admin/imports" || path.startsWith("/admin/imports/")) return "imports";
   if (path === "/admin/data-readiness" || path.startsWith("/admin/data-readiness/")) return "data-readiness";

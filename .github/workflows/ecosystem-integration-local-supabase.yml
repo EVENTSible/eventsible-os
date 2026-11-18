@@ -73,7 +73,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --no-audit --no-fund
 
       - name: Confirm Docker availability
         run: |
@@ -128,6 +128,18 @@ jobs:
 
       - name: Lint reconstructed database
         run: npx supabase@2.117.0 db lint --local --schema public,private --level warning --fail-on error
+
+      - name: Verify guarded Opportunity Desk rollback on fresh disposable schema
+        run: |
+          psql "$SUPABASE_LOCAL_DB_URL" --no-password --set ON_ERROR_STOP=1 --file supabase/rollbacks/20261118100000_opportunity_desk.sql
+          test "$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select to_regprocedure('public.os_create_opportunity(uuid,jsonb)') is null")" = "t"
+          test "$(psql "$SUPABASE_LOCAL_DB_URL" --no-password --tuples-only --no-align --command "select count(*) from storage.buckets where id='opportunity-evidence'")" = "0"
+          npx supabase@2.117.0 db reset --local
+
+      - name: Verify Opportunity Desk atomic intake, privacy and role boundaries
+        run: |
+          psql "$SUPABASE_LOCAL_DB_URL" --no-password --set ON_ERROR_STOP=1 --file scripts/opportunity-desk-local-supabase-verify.sql
+          node scripts/opportunity-claim-local-supabase-verify.mjs
 
       - name: Verify atomic Wedding Hero reconciliation on disposable database
         run: node scripts/wedding-reconciliation-local-supabase-verify.mjs

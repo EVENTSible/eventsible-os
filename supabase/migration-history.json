@@ -283,6 +283,11 @@
       "version": "20261102181000",
       "name": "wedding_hero_reconciliation",
       "sha256": "1647c92ae0e9c802a65b6cb1bb7b6d9c35f82e0686cb78f1d1dda98e3a8352d9"
+    },
+    {
+      "version": "20261118100000",
+      "name": "opportunity_desk",
+      "sha256": "ad072e12ad6abc1761eaef0856a723bfdce1cba285560192ea76c269786673d2"
     }
   ]
 }
