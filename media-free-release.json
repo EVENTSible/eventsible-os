@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "sourceHead": "ea210f749130685d8320f6ab09b96efb9aae05d2",
-  "sourceTree": "dd82f91487b6d13bb9cc9b146b013015ad837362",
+  "sourceHead": "2757fc896b7f8d9e79e58940af0f3f68476d7f6c",
+  "sourceTree": "cfbec9da1aefce9c9dbd61a5a3afdb8669c3fda2",
   "packageName": "eventsible-os-admin",
   "approvedAppIcons": [
     {
@@ -30,7 +30,7 @@
   "preparedInputs": {
     ".gitattributes": "9814066688d206a5fbcac9635cbc1cdcca917ecaeec148292d382621e84636f6",
     ".github/workflows/cloudflare-qa-toolchain.yml": "60f84079183234642a192175448208d02f67d72fab84dc51ec9863589b3c5a07",
-    ".github/workflows/ecosystem-integration-local-supabase.yml": "71fa7e43d2b6b18fb4102083fd95f0891c49b52184c4173f79e5077cd4c648b2",
+    ".github/workflows/ecosystem-integration-local-supabase.yml": "04d8871f107d7e799ba9923006c81cd77b6d9c9261ffbb61fb82d84cf1823217",
     ".gitignore": "bdb27c3bdb8a13e26806e7a33883d0af6b4681023f10378ca7945d51946c7326",
     ".vercelignore": "8df39f82f7607c3a847802a63993bd4b7bd7fe610254b8fb4834c936d8b02054",
     "AGENTS.md": "ec1b6e023814ae1a510b02ea62229e5eb035d75e39e3335d5ea7f5ce5654d567",
@@ -122,8 +122,8 @@
     "netlify.toml": "9df04e44ddfdf7e978f29f701677861113f48cf6e4be782f900f0de535879ae1",
     "netlify/functions/supabase-keepalive.mjs": "af1ba46836ff90c256450d421f0fd8103248cb979233501a479e009e04e497eb",
     "next.config.ts": "b8cfc04648fe777a776c2d34f1fbcda7f63b3cf2121862850ee7ee4d5450b523",
-    "package-lock.json": "0cdfecfbd9eeb4964fda38215e10f48a5482e4f00a92c7db2ae88219f8b28cb9",
-    "package.json": "5aa2eb4edf7721ce8c7f32c9f5236f11d2c18b9bcbeced6ad44a8e3e88cfe529",
+    "package-lock.json": "c7b6495578dbb86bfc3916a4c674dbf19afb516a9bbbfea154972f519baae518",
+    "package.json": "6b455f588156ccfbab5f2b6091a13b370a937afc3251d470b037d90fcb13dca8",
     "postcss.config.mjs": "7b299d3d3b16699ddda397c0b2373b3af4f25f8fc9ccc9b3d9e64ef083bc1c21",
     "public/auth-bridge.js": "6cd38051d965387642b7944e8ec63e5a55b13df01244e19d3d13ed70195cafea",
     "public/brand/eventsible-wedding-hero.svg": "fc7ca7ce7b8f952bd5bed2d83a709b58c0f38c7b6f43fb0698814dd649072405",
@@ -164,6 +164,7 @@
     "scripts/ecosystem-local-supabase-verify.mjs": "552301b100535dfdd91c86cbc25e765a24ad3ee6c1e0e32baa908de2101242ae",
     "scripts/export-application-schema-catalog.mjs": "d8c137321b69b583fb2d9ce428b8d19f2cd8039b14b55ea40cd078d0c8c83429",
     "scripts/guard-local-supabase-ci.mjs": "c3ada14014f51f62214adb9d96b1677d85f86a93096e14bff38fc26c94c89c1f",
+    "scripts/opportunity-audit-inventory.mjs": "232bb5fe0b290cd2840fbfcc9cce5005f6a46382a708f64530f785aec7a891ba",
     "scripts/opportunity-claim-local-supabase-verify.mjs": "77c698f28d83b6848bf140ea8c1be6188859763066050d41b6692e7288156c12",
     "scripts/opportunity-desk-browser-verify.mjs": "f6f907f7d1912cf96fb004d8f9f0f36ad51079a5541483879a1a4a1a72c47e4f",
     "scripts/opportunity-desk-local-supabase-verify.sql": "2c463744f1c9bfe57c2322696113c48895c9503325c47841fe7fa9f9fecae1c8",
