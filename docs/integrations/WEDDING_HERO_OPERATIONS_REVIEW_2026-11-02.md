@@ -1,0 +1,23 @@
+# Wedding Hero operations review
+
+Status: IMPLEMENTED locally; not deployed. Based directly on Production commit `5a2606ff438714b3b16b0574634c10f9fdb82911`.
+
+The private staff review at `/admin/wedding/[eventId]/operations` derives a chronological sequence, exact client music requests and review-only task suggestions from the existing event-linked Wedding Hero answers. Its link is on the existing Wedding Hero review page. It reuses the existing day-of-sheet formatter, staff capability check, user-scoped Supabase client and RLS. No service-role client or new public endpoint is introduced.
+
+The projection refuses to combine an assignment with another event. It never matches or relinks customers by date, name, phone or email. Public device-draft submissions currently create their own unverified inquiry; existing authenticated event plans use the existing canonical event. An Owner-reviewed reconciliation is required when a public submission belongs to a separately booked event. Do not create another booking or silently copy contacts.
+
+The focused public-submission guard accepts existing device-draft edits only while the associated event remains a public-submission inquiry with the same draft ID. A managed/booked event or mismatched draft is refused before any contact, answer, assignment, fact, activity or email write. Authenticated client editing is unchanged. Deploy this safeguard before considering Production reparenting; otherwise the old device-draft capability could follow the assignment into a booked event. Identity, membership, fact conflicts, pending outbox entries and audit preservation still need a reviewed reconciliation transaction and separate Owner authorization. The guard is not permission to relink records.
+
+This request-time guard is not an atomic claim boundary. An in-flight public submission could have passed its checks before a concurrent reassignment. A future reconciliation must retire/drain public write access and enforce a database-transaction boundary shared with the writer; do not move the assignment merely because this guard is deployed. A new database claim/writer contract, if chosen, requires separate schema approval. No such migration is included here.
+
+Opening the page performs reads only. It does not create tasks, change calendar times, assign staff, send notifications, publish media or modify crates/playlists. Task proposal keys are stable per event and task purpose. Future task creation needs a separately reviewed, transactional idempotent writer and permission checks. Existing tasks without those keys still require duplicate review.
+
+The manifest fingerprint identifies the current saved answer contents and submission timestamp. It does not claim that historical answer snapshots exist: the current public submission history stores metadata and is capped at 20 entries, while answers are upserted in place. Do not represent a fingerprint as a second revision database.
+
+Clock times remain client-entered values. Missing/invalid times are explicitly unknown, and the projection does not infer timezone, convert dates or replace canonical schedule fields. Music choices retain title, artist, requested version, cue, fade and notes. Unchosen song-moment suggestions are excluded; do-not-play entries remain a distinct instruction. Local recording availability is always unverified here. CSV cells are quoted and spreadsheet formulas neutralized.
+
+This branch excludes pending Mission Control work: `a7a03cf5` → `a63e8b5` → `5e3edc2` → `18a1852`. The separate Public/Builder date correction `69831e7` remains in its owning repository. No cherry-picks or merges were performed. Do not claim local calendar context or staffing projection is live in Production.
+
+Live Owner inspection also confirmed that the board's ten oldest-first rows hide an upcoming canonical booking (rank 18 of 22). The small board correction orders current/upcoming gigs first, then undated records and recent past gigs, before the existing ten-card limit. It retains all records and booking predicates and changes no event dates. This correction touches `src/app/admin/page.tsx`, which also has pending changes in the Mission Control branch. Reconcile this narrow hunk with that branch before any future integration; do not cherry-pick the whole pending Mission Control implementation or overwrite it.
+
+Real-event details, packet derivatives and encrypted source are outside Git in a restricted Home-PC folder. Source tests and browser QA use synthetic data only. No Production migration, business write, notification or deployment is authorized by this implementation. A later release needs Owner approval and normal environment, backup, source-review and deployment-control gates.

@@ -10,6 +10,13 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const SUBMISSION_MODES = new Set(["guided", "form", "print"]);
 const MAX_ANSWER_BYTES = 300_000;
 
+/** Device-draft access must never become write access to a managed booked event. */
+export function publicWeddingDraftCanWrite(event, draftId) {
+  return event?.source === "wedding_hero_public_submission"
+    && event.status === "inquiry"
+    && event.settings?.public_draft_id === draftId;
+}
+
 function cleanText(value, maxLength) {
   return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, maxLength);
 }

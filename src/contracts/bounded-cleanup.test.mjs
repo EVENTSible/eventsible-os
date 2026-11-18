@@ -9,7 +9,7 @@ const actions=read("../app/admin/data-readiness/actions.ts");
 const page=read("../app/admin/data-readiness/page.tsx");
 const workspace=read("../components/records-intake-workspace.tsx");
 const styles=read("../app/globals.css");
-const dashboard=read("../app/admin/page.tsx");
+const dashboard=read("../app/admin/mission-control/page.tsx");
 const calendar=read("../app/admin/calendar/page.tsx");
 const browserVerifier=read("../../scripts/data-readiness-browser-verify.mjs");
 

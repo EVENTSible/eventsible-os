@@ -19,6 +19,8 @@ function NavigationIcon({ icon }: { icon: string }) {
   if (icon === "calendar") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3m12-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" /></svg>;
   if (icon === "gigs") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16v11H4zM8 8V5h8v3M9 13h6" /></svg>;
   if (icon === "leads") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-3a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v3m1-6h1a5 5 0 0 1 5 5v1" /></svg>;
+  if (icon === "team") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-3a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v3m1-6h1a5 5 0 0 1 5 5v1" /></svg>;
+  if (icon === "tools") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" /></svg>;
   if (icon === "imports") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 18h16v3H4z" /></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v9h-6v-6H9v6H3z" /></svg>;
 }
@@ -42,9 +44,7 @@ export function HqShell({ children, role }: { children: ReactNode; role: string 
   const activeId = activeHqNavigationId(pathname, hash);
   const contextLabel = hqContextLabel(pathname, hash);
   const primaryItems = HQ_NAVIGATION.filter((item) => item.group === "primary" && (!("ownerOnly" in item) || !item.ownerOnly || role === "owner"));
-  const mobilePrimaryItems = primaryItems.filter((item) => item.id !== "leads");
   const reviewItems = HQ_NAVIGATION.filter((item) => item.group === "review" && (!("ownerOnly" in item) || !item.ownerOnly || role === "owner"));
-  const reviewActive = reviewItems.some((item) => item.id === activeId);
 
   useEffect(() => {
     const updateHash = () => setHash(window.location.hash);
@@ -129,10 +129,7 @@ export function HqShell({ children, role }: { children: ReactNode; role: string 
       </div>
 
       <nav className="hq-mobile-navigation" aria-label="HQ mobile navigation">
-        {mobilePrimaryItems.map((item) => <NavigationLink key={item.id} item={item} active={activeId === item.id} onNavigate={() => activateNavigation(item)} compact />)}
-        <button type="button" className={`hq-nav-link compact${reviewActive ? " active" : ""}`} aria-expanded={navigationOpen} aria-controls="hq-navigation-dialog" onClick={openNavigation}>
-          <span className="hq-more-icon" aria-hidden="true">•••</span><span>More</span>{reviewActive ? <span className="hq-active-marker" aria-hidden="true">Current</span> : null}
-        </button>
+        {primaryItems.map((item) => <NavigationLink key={item.id} item={item} active={activeId === item.id} onNavigate={() => activateNavigation(item)} compact />)}
       </nav>
 
       {navigationOpen ? (

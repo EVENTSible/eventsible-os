@@ -1,0 +1,23 @@
+.followups { max-width: 1450px; margin: 0 auto; }
+.followups-filters { display: flex; gap: .6rem; flex-wrap: wrap; margin: 1rem 0; }
+.followups-filters a { border: 1px solid #ccd8ed; border-radius: 999px; padding: .6rem .9rem; color: #103673; text-decoration: none; background: #fff; }
+.followups-filters a[aria-current="page"] { background: #113a85; color: white; }
+.followups-layout { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 1.3rem; align-items: start; }
+.followups-list { display: grid; gap: .75rem; max-height: 75vh; overflow: auto; }
+.followups-card { display: grid; gap: .38rem; padding: 1rem; border-radius: 16px; border: 1px solid #d6e2f3; background: #fff; color: #203250; text-decoration: none; overflow-wrap: anywhere; }
+.followups-card:hover, .followups-card.selected { border-color: #174da5; box-shadow: 0 8px 24px #15438616; }
+.followups-card strong { font-size: 1.12rem; color: #123771; }
+.followups-card small, .followups-facts small { color: #59687d; }
+.followups-detail { min-width: 0; }
+.followups-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; margin: 1rem 0; }
+.followups-facts > div { padding: .9rem; border-radius: 12px; background: #f3f7fd; overflow-wrap: anywhere; }
+.followups-facts p { margin: .4rem 0; white-space: pre-wrap; }
+.followups-actions, .followups-work { display: grid; gap: 1rem; margin: 1rem 0; }
+.followups-actions form, .followups-work form { display: grid; gap: .55rem; justify-items: start; }
+.followups-work label, .followups-actions label { display: grid; gap: .4rem; width: 100%; font-weight: 600; }
+.followups-work input, .followups-work select, .followups-work textarea, .followups-actions select { width: 100%; padding: .65rem; border: 1px solid #b4c8df; border-radius: 8px; font: inherit; }
+.followups-work textarea { resize: vertical; }
+.followups-history { border-top: 1px solid #e1e8f2; padding-top: 1rem; }
+.followups-history ul { list-style: none; padding: 0; }
+.followups-history li { border-bottom: 1px solid #e1e8f2; padding: .65rem 0; overflow-wrap: anywhere; }
+@media(max-width: 800px) { .followups-layout { grid-template-columns: 1fr; } .followups-list { max-height: none; } .followups-facts { grid-template-columns: 1fr; } }
