@@ -6,10 +6,12 @@ values
 ('00000000-0000-0000-0000-000000000000','19000000-0000-4000-8000-000000000002','authenticated','authenticated','manager-opportunity@example.invalid','',now(),'','','','','{"role":"manager"}','{}',now(),now()),
 ('00000000-0000-0000-0000-000000000000','19000000-0000-4000-8000-000000000003','authenticated','authenticated','staff-opportunity@example.invalid','',now(),'','','','','{"role":"staff"}','{}',now(),now()),
 ('00000000-0000-0000-0000-000000000000','19000000-0000-4000-8000-000000000004','authenticated','authenticated','client-opportunity@example.invalid','',now(),'','','','','{"role":"client"}','{}',now(),now());
-insert into public.os_profiles(id,display_name) values
-('19000000-0000-4000-8000-000000000001','Synthetic Owner'),
-('19000000-0000-4000-8000-000000000002','Synthetic Manager'),
-('19000000-0000-4000-8000-000000000003','Synthetic Staff');
+update public.os_profiles set display_name = 'Synthetic Owner'
+where id = '19000000-0000-4000-8000-000000000001';
+update public.os_profiles set display_name = 'Synthetic Manager'
+where id = '19000000-0000-4000-8000-000000000002';
+update public.os_profiles set display_name = 'Synthetic Staff'
+where id = '19000000-0000-4000-8000-000000000003';
 insert into storage.objects(bucket_id,name,owner_id,metadata)
 values('opportunity-evidence','intake/29000000-0000-4000-8000-000000000001.png',
   '19000000-0000-4000-8000-000000000001','{"size":128,"mimetype":"image/png"}'::jsonb);

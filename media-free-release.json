@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "sourceHead": "3b1e72aec4246b8f295b40bf18eb9262aa04d9b5",
-  "sourceTree": "89322773cb1cd7527be8d44803043dcb13626f39",
+  "sourceHead": "64e759ff230e8419ffa290f588268c9bbb881f0d",
+  "sourceTree": "579270c471a076825644be66b112b6d2a27d3785",
   "packageName": "eventsible-os-admin",
   "approvedAppIcons": [
     {
@@ -30,7 +30,7 @@
   "preparedInputs": {
     ".gitattributes": "9814066688d206a5fbcac9635cbc1cdcca917ecaeec148292d382621e84636f6",
     ".github/workflows/cloudflare-qa-toolchain.yml": "60f84079183234642a192175448208d02f67d72fab84dc51ec9863589b3c5a07",
-    ".github/workflows/ecosystem-integration-local-supabase.yml": "bc76d96596237adc081e5c7772c62e2e1ae46700d3bedd1ac97b0a0f6da872b5",
+    ".github/workflows/ecosystem-integration-local-supabase.yml": "71fa7e43d2b6b18fb4102083fd95f0891c49b52184c4173f79e5077cd4c648b2",
     ".gitignore": "bdb27c3bdb8a13e26806e7a33883d0af6b4681023f10378ca7945d51946c7326",
     ".vercelignore": "8df39f82f7607c3a847802a63993bd4b7bd7fe610254b8fb4834c936d8b02054",
     "AGENTS.md": "ec1b6e023814ae1a510b02ea62229e5eb035d75e39e3335d5ea7f5ce5654d567",
@@ -164,8 +164,9 @@
     "scripts/ecosystem-local-supabase-verify.mjs": "552301b100535dfdd91c86cbc25e765a24ad3ee6c1e0e32baa908de2101242ae",
     "scripts/export-application-schema-catalog.mjs": "d8c137321b69b583fb2d9ce428b8d19f2cd8039b14b55ea40cd078d0c8c83429",
     "scripts/guard-local-supabase-ci.mjs": "c3ada14014f51f62214adb9d96b1677d85f86a93096e14bff38fc26c94c89c1f",
-    "scripts/opportunity-claim-local-supabase-verify.mjs": "1bfd28ed2021ad46fc7b2d23c1071bf5f8be93bc7bb2717533735e8c231621c7",
-    "scripts/opportunity-desk-local-supabase-verify.sql": "3fed5eab2993777148cb037f16a8267e349d5726b3ce111a7f68ed4ebcf98378",
+    "scripts/opportunity-claim-local-supabase-verify.mjs": "77c698f28d83b6848bf140ea8c1be6188859763066050d41b6692e7288156c12",
+    "scripts/opportunity-desk-browser-verify.mjs": "4ec7ae23ce0b9b297ceb074a1be7221ab11b2257709c380f92fc1f57c6548b6b",
+    "scripts/opportunity-desk-local-supabase-verify.sql": "2c463744f1c9bfe57c2322696113c48895c9503325c47841fe7fa9f9fecae1c8",
     "scripts/prepare-media-free-release.mjs": "a2974265a058d86d513ec21eaf7b4ead5991abbe368b13cd343e1d5229dcbf7a",
     "scripts/quick-add-local-supabase-verify.mjs": "a0c229533c46d60e0b1ad3f23b4a96dc8578caf3e22e6415777b58cab108e129",
     "scripts/quick-add-rollback-local-supabase-verify.mjs": "3a5dcd4cd5c37265dbb4d2bc5012f9f6bab886be712fe592a35c27781b8a79fc",
@@ -440,7 +441,7 @@
     "supabase/releases/site-studio/20261028213219/POSTFLIGHT_READ_ONLY.sql": "b30821bebef7d95888ecb5cec5ca4117d111f7ea66fb349146726c346c96aec1",
     "supabase/releases/site-studio/20261028213219/README.md": "b1b5df247e10d169d158a82fcdf15cf4e088fa8e601da631b3e580ff9092cbdf",
     "supabase/rollbacks/20260917210520_hq_owner_quick_add.sql": "56b7eabbee89596b139651318f0ac9992005295d73b8b3f14ca808edd182a71a",
-    "supabase/rollbacks/20261118100000_opportunity_desk.sql": "e945bda4f536120dd6f19c5af1a4f05d577782067522b84748e9343e06b42f8c",
+    "supabase/rollbacks/20261118100000_opportunity_desk.sql": "5c0173103d7bdaea0508563320da75d5ba4d0f1b81e00ebbe5b191bfa24dbc6c",
     "tools/cloudflare/package-lock.json": "8371f0f2a7ff16253da910c9311b3b7d961cf246e78729d27d4ffd82ec138a73",
     "tools/cloudflare/package.json": "2f04dd877f8c2f9fcef817810fd008df9d122226742dd5fe5807f175281d5af3",
     "tools/next-lint-glob/README.md": "83daae07ddfe516f4a2ae188cabde67152eea13e9bd48cab54e6b7624c197683",

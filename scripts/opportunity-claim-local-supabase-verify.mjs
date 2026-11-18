@@ -24,7 +24,7 @@ for (const [id,role,email] of people) {
   run("insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,confirmation_token,recovery_token,email_change_token_new,email_change,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) " +
     "values('00000000-0000-0000-0000-000000000000','" + id + "','authenticated','authenticated','" + email +
     "','',now(),'','','','','{\"role\":\"" + role + "\"}','{}',now(),now());" +
-    "insert into public.os_profiles(id,display_name) values('" + id + "','Synthetic " + role + "');");
+    "update public.os_profiles set display_name='Synthetic " + role + "' where id='" + id + "';");
 }
 const input = JSON.stringify({
   source:"gigsalad",threadUrl:"https://www.gigsalad.com/synthetic-concurrent-claim-ci",

@@ -20,5 +20,6 @@ drop policy os_opportunity_evidence_staff_read on storage.objects;
 drop policy os_opportunity_evidence_owner_write on storage.objects;
 drop policy os_opportunity_evidence_owner_cleanup on storage.objects;
 drop policy os_files_opportunity_evidence_owner_insert on public.os_files;
-delete from storage.buckets where id='opportunity-evidence';
+-- Supabase protects bucket deletion at the database layer. Leave the empty,
+-- private bucket in place; a separately approved Storage API call may remove it.
 commit;
