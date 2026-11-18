@@ -61,6 +61,14 @@ export async function saveGoogleConnection(ownerId: string, refreshToken: string
       : await admin.from("os_google_calendar_sources").insert(row);
     if (saved.error) throw new GoogleCalendarError("calendar_save_failed");
   }
+  const known = await admin.from("os_google_calendar_sources").select("calendar_id").eq("owner_user_id",ownerId);
+  if (known.error) throw new GoogleCalendarError("calendar_save_failed");
+  const permitted = new Set(rows.map(row => row.calendar_id));
+  for (const stale of known.data ?? []) {
+    if (permitted.has(stale.calendar_id)) continue;
+    const removed = await admin.from("os_google_calendar_sources").delete().eq("owner_user_id",ownerId).eq("calendar_id",stale.calendar_id);
+    if (removed.error) throw new GoogleCalendarError("calendar_save_failed");
+  }
 }
 
 export async function selectGoogleCalendars(ownerId: string, selectedIds: string[], sharedIds: string[]) {
