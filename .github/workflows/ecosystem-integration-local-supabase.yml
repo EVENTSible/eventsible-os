@@ -295,6 +295,9 @@ jobs:
       - name: Run Site Studio owner browser verification
         run: node scripts/site-studio-browser-verify.mjs
 
+      - name: Run Opportunity Desk Owner and staff browser workflow
+        run: node scripts/opportunity-desk-browser-verify.mjs
+
       - name: Upload sanitized Data Readiness evidence
         if: always()
         uses: actions/upload-artifact@v4
