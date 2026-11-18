@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "sourceHead": "4f67a5cb8c0287f4e990a31099d5c7e40c629df0",
-  "sourceTree": "41d73b510d16ee27635623f410410a12520ce019",
+  "sourceHead": "266be87f2ebc6bed49193c6ede165879df008c23",
+  "sourceTree": "7c20963d54d48302610343789b6e71008ce8c6da",
   "packageName": "eventsible-os-admin",
   "excludedMedia": [
     {
@@ -211,7 +211,7 @@
     "src/app/client/wedding/submission-actions.ts": "009fa85c12832903a7cab123f61b8279207688f6259beb009db7909538fe3127",
     "src/app/client/wedding/wedding-page.module.css": "4b32955f966c5f77bc4525056330d01c6bdfcd8bb45cc7ddbc882ace764b57f2",
     "src/app/eventhero/page.tsx": "79e7157ad500edfe535942a89a3eafb4ce5a49e216b23b6c56b755534526c2e5",
-    "src/app/globals.css": "962600f313ea2646269c0f3e5d2cc469ef1e357cb0fa34305dfc798b89f890c6",
+    "src/app/globals.css": "486112ab69b4c6fc7e7c32d2144b3bb983f610c72fcdd0e6c69f305cc4c2ad47",
     "src/app/layout.tsx": "48f6e2f139504603516fc79cb3bbabc74430a4788413be74fe68c3dc5358ab7b",
     "src/app/login/page.tsx": "7854336eae7698b579b97cb79a169f41b78e4a4b0bc2be0efba6d6ef042adb56",
     "src/app/login/recover/page.tsx": "2b1d8f53cc909b55d6245f74be0476032a134aa1e45f22789b84b00fb863237b",
