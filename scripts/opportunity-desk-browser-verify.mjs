@@ -91,7 +91,7 @@ try {
   await owner.getByText("Original inquiry and reply").click();
   await owner.getByText("Synthetic verified sent quote for test only.").waitFor();
   await owner.getByText("Private screenshots").waitFor();
-  await owner.getByRole("link", { name: "Overdue", exact: false }).waitFor();
+  await owner.getByRole("navigation", { name: "Follow-up filters" }).getByRole("link", { name: /^Overdue/ }).waitFor();
   for (const width of [390, 1440]) {
     await owner.setViewportSize({ width, height: 844 });
     if (await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) {
@@ -136,7 +136,12 @@ try {
   const clientContext = await browser.newContext();
   const client = await clientContext.newPage();
   await signIn(client, users[2].email, boardPath);
-  if (new URL(client.url()).pathname !== "/access-denied") throw new Error("Client could open private team correspondence.");
+  await client.goto(`${appUrl}${boardPath}?lead=${lead.id}`, { waitUntil: "networkidle" });
+  const clientPath = new URL(client.url()).pathname;
+  if (!["/access-denied", "/login"].includes(clientPath) ||
+      await client.getByRole("heading", { name: "Team Follow-Ups" }).count()) {
+    throw new Error(`Client could open private team correspondence; route: ${clientPath}.`);
+  }
   if (errors.length) throw new Error(`Owner browser runtime errors: ${errors.slice(0, 3).join(" | ")}`);
   console.log("PASS: isolated Owner screenshot intake, confirmed quote, duplicate guard, staff claim, notes, drafts, outcome, schedule, responsive board, and client boundary.");
 } finally {

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "sourceHead": "64e759ff230e8419ffa290f588268c9bbb881f0d",
-  "sourceTree": "579270c471a076825644be66b112b6d2a27d3785",
+  "sourceHead": "ea210f749130685d8320f6ab09b96efb9aae05d2",
+  "sourceTree": "dd82f91487b6d13bb9cc9b146b013015ad837362",
   "packageName": "eventsible-os-admin",
   "approvedAppIcons": [
     {
@@ -165,7 +165,7 @@
     "scripts/export-application-schema-catalog.mjs": "d8c137321b69b583fb2d9ce428b8d19f2cd8039b14b55ea40cd078d0c8c83429",
     "scripts/guard-local-supabase-ci.mjs": "c3ada14014f51f62214adb9d96b1677d85f86a93096e14bff38fc26c94c89c1f",
     "scripts/opportunity-claim-local-supabase-verify.mjs": "77c698f28d83b6848bf140ea8c1be6188859763066050d41b6692e7288156c12",
-    "scripts/opportunity-desk-browser-verify.mjs": "4ec7ae23ce0b9b297ceb074a1be7221ab11b2257709c380f92fc1f57c6548b6b",
+    "scripts/opportunity-desk-browser-verify.mjs": "f6f907f7d1912cf96fb004d8f9f0f36ad51079a5541483879a1a4a1a72c47e4f",
     "scripts/opportunity-desk-local-supabase-verify.sql": "2c463744f1c9bfe57c2322696113c48895c9503325c47841fe7fa9f9fecae1c8",
     "scripts/prepare-media-free-release.mjs": "a2974265a058d86d513ec21eaf7b4ead5991abbe368b13cd343e1d5229dcbf7a",
     "scripts/quick-add-local-supabase-verify.mjs": "a0c229533c46d60e0b1ad3f23b4a96dc8578caf3e22e6415777b58cab108e129",
