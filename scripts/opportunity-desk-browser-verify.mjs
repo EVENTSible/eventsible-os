@@ -91,7 +91,7 @@ try {
   await owner.getByText("Original inquiry and reply").click();
   await owner.getByText("Synthetic verified sent quote for test only.").waitFor();
   await owner.getByText("Private screenshots").waitFor();
-  await owner.getByRole("link", { name: "Overdue", exact: false }).waitFor();
+  await owner.getByRole("navigation", { name: "Follow-up filters" }).getByRole("link", { name: /^Overdue/ }).waitFor();
   for (const width of [390, 1440]) {
     await owner.setViewportSize({ width, height: 844 });
     if (await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) {
