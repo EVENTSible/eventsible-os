@@ -136,7 +136,12 @@ try {
   const clientContext = await browser.newContext();
   const client = await clientContext.newPage();
   await signIn(client, users[2].email, boardPath);
-  if (new URL(client.url()).pathname !== "/access-denied") throw new Error("Client could open private team correspondence.");
+  await client.goto(`${appUrl}${boardPath}?lead=${lead.id}`, { waitUntil: "networkidle" });
+  const clientPath = new URL(client.url()).pathname;
+  if (!["/access-denied", "/login"].includes(clientPath) ||
+      await client.getByRole("heading", { name: "Team Follow-Ups" }).count()) {
+    throw new Error(`Client could open private team correspondence; route: ${clientPath}.`);
+  }
   if (errors.length) throw new Error(`Owner browser runtime errors: ${errors.slice(0, 3).join(" | ")}`);
   console.log("PASS: isolated Owner screenshot intake, confirmed quote, duplicate guard, staff claim, notes, drafts, outcome, schedule, responsive board, and client boundary.");
 } finally {
