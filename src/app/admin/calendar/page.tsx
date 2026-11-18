@@ -3,6 +3,9 @@ import { manageAssignmentAction, manageTeamMemberAction, removeAvailabilityActio
 import { HqCalendar, type CalendarEvent, type StaffAssignment, type TeamAvailability, type TeamMember } from "@/components/hq-calendar";
 import { HQ_CALENDAR_TIME_ZONE, localDateKey, shapeCalendarEvent } from "@/lib/hq-calendar.mjs";
 import { authorizeHqCapability } from "@/lib/hq-auth";
+import { GoogleCalendarConnection } from "@/components/google-calendar-connection";
+import { matchGoogleEntryAction } from "@/app/admin/calendar/google/actions";
+import { loadGoogleOwnerSettings } from "@/lib/google-calendar/server";
 import { operationalConflictWindow } from "@/lib/team-availability.mjs";
 
 export const metadata = { title: "Team Calendar | EVENTSible HQ" };
@@ -29,12 +32,14 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const { supabase } = authorization;
   const params = await searchParams;
 
-  const [dashboardResult, eventSettingsResult, factResult, snapshotResult] = await Promise.all([
+  const [dashboardResult, eventSettingsResult, factResult, snapshotResult, googleResult] = await Promise.all([
     supabase.from("os_event_dashboard_v").select("event_id,title,event_type,event_status,starts_at,ends_at,timezone,venue_name,venue_summary,booking_id,booking_status,booked_services").order("starts_at", { ascending: true, nullsFirst: false }),
     supabase.from("os_events").select("id,settings").neq("status", "archived"),
     supabase.from("os_event_facts").select("event_id,fact_key,value").in("fact_key", ["event.arrival_time", "event.load_in_window", "event.breakdown_start", "event.must_be_out"]),
     supabase.rpc("os_team_calendar_snapshot", { p_from: dateOffsetKey(-90), p_to: dateOffsetKey(310) }),
+    supabase.rpc("os_google_calendar_snapshot", { p_from: dateOffsetKey(-90), p_to: dateOffsetKey(270) }),
   ]);
+  const googleSettings = authorization.role === "owner" ? await loadGoogleOwnerSettings(authorization.user.id) : null;
 
   const settingsByEvent = new Map((eventSettingsResult.data ?? []).map((row) => [String(row.id), row.settings ?? {}]));
   const facts = factResult.data ?? [];
@@ -55,8 +60,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
       {params.error ? <div className="alert warning" role="alert">{params.error}</div> : null}
       {loadError ? <div className="alert warning"><b>Some canonical event timing details could not be loaded.</b><p>Unknown timing is not treated as proof of availability.</p></div> : null}
       {snapshotResult.error ? <div className="alert warning"><b>Team availability is not available in this environment.</b><p>Canonical gigs remain visible; no personal schedule is represented as complete.</p></div> : null}
+      {googleResult.error && googleSettings?.connected ? <div className="alert warning">External Google events could not be loaded. Canonical gigs remain visible.</div> : null}
+      {googleSettings ? <GoogleCalendarConnection settings={googleSettings} /> : null}
       <HqCalendar
         events={scheduled}
+        googleEntries={Array.isArray(googleResult.data) ? googleResult.data : []}
+        matchGoogleEntryAction={authorization.role === "owner" ? matchGoogleEntryAction : null}
         todayKey={todayKey}
         unscheduledCount={unscheduledCount}
         teamMembers={snapshot.teamMembers ?? []}
