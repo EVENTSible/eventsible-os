@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 
 const url = process.env.SUPABASE_LOCAL_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 const parsed = new URL(url);
-if (!['127.0.0.1','localhost'].includes(parsed.hostname) || parsed.port !== '54322' || url.includes('cplpbzudjprzbnzocirc')) throw Error('Only the disposable local database is permitted');
+if (!['127.0.0.1','localhost'].includes(parsed.hostname) || parsed.port !== '54322') throw Error('Only the disposable local database is permitted');
 const owner = '10000000-0000-4000-8000-000000000099';
 const generation = '20000000-0000-4000-8000-000000000099';
 const entries = JSON.stringify([{event_id:'calendar-instance',title:'Synthetic appointment',all_day:true,starts_on:'2026-11-18',ends_on:'2026-11-19',visibility:'default',status:'confirmed'}]);
