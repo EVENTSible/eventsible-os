@@ -273,6 +273,11 @@
       "version": "20261028213219",
       "name": "site_studio_v1",
       "sha256": "5fd24f1e4e5af3091def5897fd4fa5a7b0524b0a46c0d6ffa84ea6ff4022a809"
+    },
+    {
+      "version": "20261118170000",
+      "name": "google_calendar_readonly",
+      "sha256": "c0ee0e7397af95ec89b4b401d5e68abea3fd3d0feb1bc8cda775d6571e0dc1e6"
     }
   ]
 }

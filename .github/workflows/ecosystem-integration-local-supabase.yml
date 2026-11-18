@@ -166,6 +166,9 @@ jobs:
       - name: Run Team Availability authorization verification
         run: npm run test:team-calendar:local-supabase
 
+      - name: Verify Google Calendar sync replay, cursor, RLS and rollback on disposable database
+        run: node scripts/google-calendar-local-supabase-verify.mjs
+
       - name: Run Data Readiness authorization and intake verification
         run: npm run test:data-readiness:local-supabase
 
