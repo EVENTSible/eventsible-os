@@ -54,6 +54,23 @@ permissions:
   contents: read
 
 jobs:
+  audit-lock-candidate:
+    name: Prepare compatible Next security patch for review
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.1"
+          cache: npm
+      - name: Resolve only the same-series Next and ESLint-config patch
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund --save-exact next@16.4.6 eslint-config-next@16.4.6
+      - name: Print compressed review patch without changing repository state
+        run: |
+          node -e 'const {execFileSync}=require("node:child_process"); const {gzipSync}=require("node:zlib"); const patch=execFileSync("git",["diff","--binary","--","package.json","package-lock.json"]); console.log("LOCK_PATCH_BASE64="+gzipSync(patch).toString("base64"));'
+
   local-supabase-verification:
     name: Local Supabase integration verification
     runs-on: ubuntu-24.04
