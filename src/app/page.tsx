@@ -26,7 +26,7 @@ const planningPaths = [
 ] as const;
 
 function EventsibleLogo({ footer = false }: { footer?: boolean }) {
-  return <Image className={footer ? "front-door-footer-logo" : "front-door-logo"} src="/brand/eventsible-logo.png" alt="EVENTSible — Excellence in Event Entertainment" width={1408} height={769} sizes={footer ? "132px" : "(max-width: 700px) 138px, 176px"} priority={!footer} />;
+  return <Image className={footer ? "front-door-footer-logo" : "front-door-logo"} src="/media-free.svg" alt="EVENTSible — Excellence in Event Entertainment" width={1408} height={769} sizes={footer ? "132px" : "(max-width: 700px) 138px, 176px"} priority={!footer} />;
 }
 
 export default function HomePage() {

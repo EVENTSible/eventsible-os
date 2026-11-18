@@ -50,7 +50,7 @@ function EventsibleBrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <Image
       className={compact ? "wedding-hero-company-logo" : "wedding-hero-intro-logo"}
-      src="/brand/eventsible-wedding-hero-logo.png"
+      src="/media-free.svg"
       alt="EVENTSible - Excellence in Event Entertainment"
       width={659}
       height={379}
